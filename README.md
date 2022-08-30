@@ -3,7 +3,9 @@
 Analysis of zonation patterns from fluorscence images.
 
 ## Read images
-Reading images with bioformats
+- [ ] Read all images with bioformats
+- [ ] Assign channels
+- [ ] Store data
 
 ## Extract channels
 
