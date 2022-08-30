@@ -1,0 +1,5 @@
+python-bioformats
+python-javabridge
+rich>=12.5.1
+numpy>=1.23.2
+matplotlib
