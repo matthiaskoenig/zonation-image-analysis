@@ -1,5 +1,7 @@
 from pathlib import Path
 
 CZI_PATH = Path(__file__).parent.parent.parent / "data" / "czi"
-CZI_IMAGES = CZI_PATH
+CZI_IMAGES = sorted([p for p in CZI_PATH.glob("*.czi")])
 
+IMAGE_PATH = Path(__file__).parent.parent.parent / "data" / "czi"
+IMAGES = sorted([p for p in IMAGE_PATH.glob("*.czi")])
