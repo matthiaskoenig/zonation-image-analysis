@@ -1,5 +1,8 @@
 import numpy as np
-from skimage.filters import gaussian, laplace
+from skimage.filters import gaussian
+from zonation import IMAGE_PATH, RESULTS_PATH, CZI_IMAGES
+from read_images import FluorescenceImage, Fluorophor
+from plots import plot_image_with_hist, plot_zonation, plot_overlay
 
 
 def histogram_normalization(image: np.ndarray) -> np.ndarray:
@@ -36,13 +39,10 @@ def histogram_normalization(image: np.ndarray) -> np.ndarray:
     return image_hist
 
 
-if __name__ == "__main__":
-    from zonation import IMAGE_PATH
-    from read_images import FluorescenceImage, Fluorophor
-    from plots import plot_image_with_hist, plot_zonation, plot_overlay
-
-    # plot image channels & histograms
-    fimage = FluorescenceImage.from_file(IMAGE_PATH / "Test33.pickle")
+def run_analysis(sid: str):
+    """Run image analysis for given image sid."""
+    print(f"--- {sid} ---")
+    fimage = FluorescenceImage.from_file(IMAGE_PATH / f"{sid}.pickle")
     cyp2e1 = fimage.get_channel_data(Fluorophor.CY3)
     ecad = fimage.get_channel_data(Fluorophor.ALEXA_FLUOR_488)
 
@@ -50,18 +50,29 @@ if __name__ == "__main__":
     image_raw = np.zeros(shape=(cyp2e1.shape[0], cyp2e1.shape[1], 2))
     image_raw[:, :, 0] = cyp2e1
     image_raw[:, :, 1] = ecad
-    plot_image_with_hist(image_raw, cmap="gray", title="raw data")
-    # FIXME: save
+    plot_image_with_hist(image_raw, cmap="gray", title=f"{sid}: raw data", path=RESULTS_PATH / f"raw_{sid}.png")
 
     # perform histogram normalization
     image_hist = histogram_normalization(image_raw)
-    plot_image_with_hist(image_hist, cmap="gray", title="histogram processing")
+    plot_image_with_hist(image_hist, cmap="gray", title=f"{sid}: histogram processing", path=RESULTS_PATH / f"hist_{sid}.png")
 
     # calculate ratio
-    plot_zonation(image_hist, cmap="tab20c", title="difference and ratio")
+    cmap = "seismic"
+    plot_zonation(image_hist, cmap=cmap, title=f"{sid}: difference and ratio", path=RESULTS_PATH / f"diffratio_{sid}.png")
 
     # gauss normalization (depending on radius/structure)
     image_gauss = gaussian(image_hist, sigma=20, multichannel=True, channel_axis=None)
     # image_gauss = gaussian(image_gauss, sigma=10, channel_axis=1)
-    plot_zonation(image_gauss, cmap="tab20c", title="gauss filtering for averaging")
-    plot_overlay(image_hist, image_gauss, alpha=0.4)
+    plot_zonation(image_gauss, cmap=cmap, title=f"{sid}: gauss filtering for averaging", path=RESULTS_PATH / f"gauss_{sid}.png")
+    plot_overlay(image_hist, image_gauss, cmap=cmap, alpha=0.4, title=f"{sid}: Zonation overlay", path=RESULTS_PATH / f"overlay_{sid}.png")
+
+
+if __name__ == "__main__":
+
+    for p in CZI_IMAGES:
+        sid = p.stem
+        run_analysis(sid)
+
+    # run_analysis("Test33")
+
+

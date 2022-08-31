@@ -1,10 +1,13 @@
 """Plotting helpers for images."""
+from pathlib import Path
 
 from matplotlib import pyplot as plt
 import numpy as np
 
+plt.rcParams['font.size'] = 25
 
-def plot_image_with_hist(image: np.ndarray, cmap: str = "gray", title: str = None):
+
+def plot_image_with_hist(image: np.ndarray, cmap: str = "gray", title: str = None, path: Path=None):
     """Plot the relevant channels."""
     plt.figure(figsize=(20, 15))
     if title:
@@ -39,16 +42,13 @@ def plot_image_with_hist(image: np.ndarray, cmap: str = "gray", title: str = Non
     plt.title("E-Cadherin Histogram")
     print(hist)
 
-    # Zonation
-    # plt.subplot(133)
-    # # plt.imshow(data[:, :, 2]/data[:, :, 0], cmap=cmap)
-    # plt.imshow((data[:, :, 2] - data[:, :, 0]), cmap=cmap)
-    # plt.axis('off')
-    # plt.title("cyp2e1/ecad")
+    if path:
+        plt.savefig(path, bbox_inches="tight")
+
     plt.show()
 
 
-def plot_zonation(image: np.ndarray, cmap="gray", title: str = None):
+def plot_zonation(image: np.ndarray, cmap="gray", title: str = None, path: Path=None):
     """Plot the relevant channels."""
     plt.figure(figsize=(20, 15))
     if title:
@@ -79,11 +79,18 @@ def plot_zonation(image: np.ndarray, cmap="gray", title: str = None):
     plt.axis('off')
     plt.title("CYP2E1/E-Cadherin")
 
+    if path:
+        plt.savefig(path, bbox_inches="tight")
+
     plt.show()
 
 
-def plot_overlay(image: np.ndarray, image_gauss, alpha=0.5, title: str = None):
+def plot_overlay(image: np.ndarray, image_gauss, cmap="gray", alpha=0.5, title: str = None, path: Path=None):
     """Plot the relevant channels."""
+    X, Y = np.meshgrid(range(image.shape[1]), range(image.shape[0]))
+    image_difference = image_gauss[:, :, 0] - image_gauss[:, :, 1]
+    image_ratio = image_gauss[:, :, 0]/image_gauss[:, :, 1]
+
     plt.figure(figsize=(20, 15))
     if title:
         plt.suptitle(title)
@@ -91,45 +98,35 @@ def plot_overlay(image: np.ndarray, image_gauss, alpha=0.5, title: str = None):
     # CYP2E1
     plt.subplot(221)
     plt.imshow(image[:, :, 0], cmap="gray", aspect="equal")
-    plt.imshow(image_gauss[:, :, 0] - image_gauss[:, :, 1], cmap="tab20c", aspect="equal", alpha=alpha)
+    plt.imshow(image_difference, cmap=cmap, aspect="equal", alpha=alpha)
+    plt.contour(X, Y, image_difference, colors="black", linestyles="solid")
     plt.axis('off')
     plt.title("CYP2E1 + Difference Overlay")
 
     plt.subplot(222)
     plt.imshow(image[:, :, 1], cmap="gray", aspect="equal")
-    plt.imshow(image_gauss[:, :, 0] - image_gauss[:, :, 1], cmap="tab20c", aspect="equal", alpha=alpha)
+    plt.imshow(image_difference, cmap=cmap, aspect="equal", alpha=alpha)
+    plt.contour(X, Y, image_difference, colors="black", linestyles="solid")
     plt.axis('off')
     plt.title("E-Cadherin + Difference Overlay")
 
     plt.subplot(223)
     plt.imshow(image[:, :, 0], cmap="gray", aspect="equal")
-    plt.imshow(image_gauss[:, :, 0]/image_gauss[:, :, 1], cmap="tab20c", aspect="equal",
-               alpha=alpha)
+    plt.imshow(image_ratio, cmap=cmap, aspect="equal", alpha=alpha)
+    plt.contour(X, Y, image_ratio, colors="black", linestyles="solid")
     plt.axis('off')
     plt.title("CYP2E1 + Ratio Overlay")
 
     plt.subplot(224)
     plt.imshow(image[:, :, 1], cmap="gray", aspect="equal")
-    plt.imshow(image_gauss[:, :, 0]/image_gauss[:, :, 1], cmap="tab20c", aspect="equal",
+    plt.imshow(image_ratio, cmap=cmap, aspect="equal",
                alpha=alpha)
+    plt.contour(X, Y, image_ratio, colors="black", linestyles="solid")
     plt.axis('off')
     plt.title("E-Cadherin + Ratio Overlay")
 
+    if path:
+        plt.savefig(path, bbox_inches="tight")
+
     plt.show()
 
-def contours(image):
-    from skimage import measure
-
-    # Construct some test data
-    x, y = np.ogrid[-np.pi:np.pi:100j, -np.pi:np.pi:100j]
-    r = np.sin(np.exp((np.sin(x) ** 3 + np.cos(y) ** 2)))
-
-    # Find contours at a constant value of 0.8
-    contours = measure.find_contours(r, 0.8)
-
-    # Display the image and plot all contours found
-    fig, ax = plt.subplots()
-    ax.imshow(r, cmap=plt.cm.gray)
-
-    for contour in contours:
-        ax.plot(contour[:, 1], contour[:, 0], linewidth=2)
