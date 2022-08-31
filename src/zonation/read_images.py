@@ -63,6 +63,7 @@ class FluorescenceImage:
                 return self.data[..., k]
         else:
             logger.error("Channel could not be found.")
+            return None
 
     @staticmethod
     def from_file(path: Path) -> FluorescenceImage:
