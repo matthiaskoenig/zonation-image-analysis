@@ -3,6 +3,7 @@ from skimage.filters import gaussian
 from zonation import IMAGE_PATH, RESULTS_PATH, CZI_IMAGES
 from read_images import FluorescenceImage, Fluorophor
 from plots import plot_image_with_hist, plot_zonation, plot_overlay
+from zonation.analysis import histogram_quantile_normalization
 
 
 def run_analysis(sid: str, show_plot: bool = True):
@@ -28,7 +29,7 @@ def run_analysis(sid: str, show_plot: bool = True):
                          path=RESULTS_PATH / f"raw_{sid}.png")
 
     # perform histogram normalization
-    image_hist = histogram_normalization(image_raw, qlower=0.01)
+    image_hist = histogram_quantile_normalization(image_raw, qlower=0.01)
     plot_image_with_hist(image_hist, cmap="gray", title=f"{sid}: histogram processing", path=RESULTS_PATH / f"hist_{sid}.png")
 
     # calculate and plot ratios
