@@ -78,11 +78,11 @@ def run_analysis(sid: str, show_plot: bool = True):
 
 if __name__ == "__main__":
 
-    # for p in CZI_IMAGES:
-    #    sid = p.stem
-    #    run_analysis(sid)
+    for p in CZI_IMAGES:
+       sid = p.stem
+       run_analysis(sid)
 
-    run_analysis("Test33")
+    # run_analysis("Test33")
 
 
 
