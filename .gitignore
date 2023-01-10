@@ -15,3 +15,4 @@ src/zonation_image_analysis.egg-info/
 
 dist
 .tox
+src/zia/resources/RH0422_1x2.5.pickle

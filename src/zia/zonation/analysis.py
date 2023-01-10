@@ -1,16 +1,55 @@
+"""
+Module for running zonation analysis.
+"""
 import numpy as np
-from plots import plot_image_with_hist, plot_overlay, plot_zonation
-from read_images import FluorescenceImage, Fluorophor
 from skimage.filters import gaussian
 
-from zia import CZI_IMAGES, IMAGE_PATH, RESULTS_PATH
-from zia.analysis import histogram_quantile_normalization
+from zia import CZI_IMAGES, CZI_PATH, RESULTS_PATH
+from zia.czi_io import FluorescenceImage, Fluorophor
+from zia.zonation.plots import plot_image_with_hist, plot_overlay, plot_zonation
 
 
-def run_analysis(sid: str, show_plot: bool = True):
+def histogram_quantile_normalization(
+    image: np.ndarray, qlower: float = 0.01, qupper: float = 0.99
+) -> np.ndarray:
+    """Remove outliers at high values & rescale histogram to 256 range.
+
+    set lowest entries to zero entries to zero,
+    remove max entries
+    remove long tail of intensities
+     input image is converted according to the conventions of img_as_float (Normalized
+     first to values [-1.0 ; 1.0] or [0 ; 1.0] depending on dtype of input)
+
+    """
+    image_hist = image.copy()
+    for k in range(image.shape[2]):
+        # hist, bins = np.histogram(image[:, :, k], bins=256)
+        image_flat = image[:, :, k].flatten()
+        quantiles = np.quantile(image_flat, q=[qlower, qupper])
+
+        for p in range(image.shape[0]):
+            for q in range(image.shape[1]):
+                value = image[p, q, k]
+                if value < quantiles[0]:
+                    image_hist[p, q, k] = quantiles[0]
+                elif value > quantiles[1]:
+                    # FIXME: this could remove important information for portal
+                    # field detection
+                    image_hist[p, q, k] = quantiles[1]
+
+        # min-max normalization
+        image_hist[:, :, k] = (image_hist[:, :, k] - np.min(image_hist[:, :, k])) / (
+            np.max(image_hist[:, :, k]) - np.min(image_hist[:, :, k])
+        )
+
+    # return renormalized data
+    return image_hist
+
+
+def run_zonation_analysis(sid: str) -> None:
     """Run image analysis for given image sid."""
     print(f"--- {sid} ---")
-    fimage = FluorescenceImage.from_file(IMAGE_PATH / f"{sid}.pickle")
+    fimage = FluorescenceImage.from_file(CZI_PATH / f"{sid}.pickle")
 
     # TODO: check the assignments of proteins to the fluorophors
     cyp2e1 = fimage.get_channel_data(Fluorophor.ALEXA_FLUOR_488)
@@ -104,6 +143,6 @@ if __name__ == "__main__":
 
     for p in CZI_IMAGES:
         sid = p.stem
-        run_analysis(sid)
+        run_zonation_analysis(sid)
 
     # run_analysis("Test33")
