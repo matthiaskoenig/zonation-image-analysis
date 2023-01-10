@@ -2,7 +2,6 @@
 import numpy as np
 from skimage.filters import gaussian
 
-from zia import CZI_IMAGES, CZI_PATH, RESULTS_PATH
 from zia.czi_io import FluorescenceImage, Fluorophor
 from zia.zonation.plots import plot_image_with_hist, plot_overlay, plot_zonation
 
@@ -44,8 +43,9 @@ def histogram_quantile_normalization(
     return image_hist
 
 
-def run_zonation_analysis(sid: str) -> None:
+def run_zonation_analysis(CZI_PATH: str) -> None:
     """Run image analysis for given image sid."""
+    sid: str = p.stem
     print(f"--- {sid} ---")
     fimage = FluorescenceImage.from_file(CZI_PATH / f"{sid}.pickle")
 
@@ -142,9 +142,10 @@ def run_zonation_analysis(sid: str) -> None:
 
 
 if __name__ == "__main__":
+    from zia import CZI_IMAGES_INITIAL, CZI_IMAGES_AXIOS, RESULTS_PATH
 
+    # First preprocess the images;
     for p in CZI_IMAGES:
-        sid = p.stem
         run_zonation_analysis(sid)
 
     # run_analysis("Test33")
