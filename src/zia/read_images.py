@@ -3,13 +3,12 @@
 Using bioformats with python-javabridge
 
 https://pypi.org/project/python-javabridge/
-https://pythonhosted.org/javabridge/installation.html
 
-git clone https://github.com/CellProfiler/python-javabridge.git
+This requires a working JAVA version
+https://pythonhosted.org/javabridge/installation.html
 
 sudo apt-get install openjdk-11-jdk
 export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
-
 """
 from __future__ import annotations
 
