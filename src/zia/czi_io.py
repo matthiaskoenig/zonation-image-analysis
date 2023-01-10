@@ -1,15 +1,14 @@
-"""Reading images.
+"""Reading CZI fluorescence images.
 
 Using bioformats with python-javabridge
 
 https://pypi.org/project/python-javabridge/
-https://pythonhosted.org/javabridge/installation.html
 
-git clone https://github.com/CellProfiler/python-javabridge.git
+This requires a working JAVA version
+https://pythonhosted.org/javabridge/installation.html
 
 sudo apt-get install openjdk-11-jdk
 export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
-
 """
 from __future__ import annotations
 
@@ -17,7 +16,7 @@ import logging
 import pickle
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 import bioformats
 import javabridge
@@ -72,6 +71,7 @@ class FluorescenceImage:
     @staticmethod
     def from_file(path: Path) -> FluorescenceImage:
         """Read images from file using pickle."""
+        image: FluorescenceImage
         with open(path, "rb") as f:
             image = pickle.load(f)
         return image
@@ -109,26 +109,32 @@ class FluorescenceImage:
         return info
 
 
-if __name__ == "__main__":
-    from zia import CZI_IMAGES, CZI_PATH
+def read_czi_images(czi_images: Iterable[Path]) -> List[Path]:
+    """Read and store CZI image data.
 
-    # data = read_czi(CZI_PATH / "M1039R_4x5_2.czi")
-    # data = read_czi(CZI_PATH / "M1056_3_4x5.czi")
-    # data = read_czi(CZI_PATH / "MH0117_4x5_2.czi")
-    # data = read_czi(CZI_PATH / "RH0422_2_4x5.czi")
+    Uses pickle to store the matrices and metadata.
+    Returns list of pickle paths.
+    """
+    pickle_paths: List[Path] = []
     javabridge.start_vm(class_path=bioformats.JARS)
 
-    # for czi_path in [CZI_PATH / "Test1.czi"]:
-    for czi_path in CZI_IMAGES:
+    for czi_path in czi_images:
 
         sid = czi_path.stem
         data, ome = read_czi(czi_path)
         image = FluorescenceImage(sid=sid, data=data, ome=ome)
-        cyp2e1 = image.get_channel_data(Fluorophor.ALEXA_FLUOR_488)
-        ecad = image.get_channel_data(Fluorophor.CY3)
 
-        pickle_path = czi_path.parent.parent / "images" / f"{sid}.pickle"
+        pickle_path = czi_path.parent / f"{sid}.pickle"
+        pickle_paths.append(pickle_path)
         image.to_file(pickle_path)
-        image2 = FluorescenceImage.from_file(pickle_path)
 
     javabridge.kill_vm()
+    return pickle_paths
+
+
+if __name__ == "__main__":
+
+    from zia import CZI_EXAMPLE, CZI_IMAGES
+
+    # read_czi_images(czi_images=[CZI_EXAMPLE])
+    read_czi_images(czi_images=CZI_IMAGES)

@@ -1,3 +1,1 @@
-"""
-Example for WSI imaging.
-"""
+"""Example for WSI imaging."""

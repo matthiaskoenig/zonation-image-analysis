@@ -1,6 +1,6 @@
-.. image:: https://github.com/matthiaskoenig/pymetadata/raw/develop/docs/images/favicon/zonation-image-analysis-100x100-300dpi.png
+.. image:: https://github.com/matthiaskoenig/zonation-image-analysis/raw/develop/docs/images/favicon/zonation-image-analysis-100x100-300dpi.png
    :align: left
-   :alt: pymetadata logo
+   :alt: zonation-image-analysis logo
 
 Zonation image analysis
 =======================

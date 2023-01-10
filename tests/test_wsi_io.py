@@ -1,6 +1,5 @@
-"""
-Tests for WSI IO.
-"""
+"""Tests for WSI IO."""
+from zia.wsi_io import *
 
 
 def test_dummy() -> None:
