@@ -1,5 +1,15 @@
 .idea
 __pycache__
+.pytest_cache
+.vscode
+*.pyc
+*~
+.DS_Store
+.coverage
 
 data
 results
+src/zonation_image_analysis.egg-info/
+
+
+dist

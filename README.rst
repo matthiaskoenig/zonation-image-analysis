@@ -1,5 +1,25 @@
+.. image:: https://github.com/matthiaskoenig/pymetadata/raw/develop/docs/images/favicon/zonation-image-analysis-100x100-300dpi.png
+   :align: left
+   :alt: pymetadata logo
+
 Zonation image analysis
 =======================
+
+.. image:: https://github.com/matthiaskoenig/pymetadata/workflows/CI-CD/badge.svg
+   :target: https://github.com/matthiaskoenig/pymetadata/workflows/CI-CD
+   :alt: GitHub Actions CI/CD Status
+
+.. image:: https://img.shields.io/pypi/l/pymetadata.svg
+   :target: http://opensource.org/licenses/LGPL-3.0
+   :alt: GNU Lesser General Public License 3
+
+.. image:: https://img.shields.io/badge/code%20style-black-000000.svg
+   :target: https://github.com/ambv/black
+   :alt: Black
+
+.. image:: http://www.mypy-lang.org/static/mypy_badge.svg
+   :target: http://mypy-lang.org/
+   :alt: mypy
 
 This repository implements functionality for the image analysis based on whole-slide images (WSI) and large images either using brightfield or fluorescence microscopy. A key analysis is the analysis and quantification of zonation patterns from fluorscence images of the liver using double stainings with CYP2E1 and E-catharin.
 
@@ -12,6 +32,38 @@ Features include among others
 .. image:: https://github.com/matthiaskoenig/zonation-image-analysis/raw/develop/docs/images/zonation.png
    :align: left
    :alt: zonation example
+
+Installation
+============
+
+Setup bioformats
+----------------
+Using bioformats with python-javabridge requires a working java installation.
+For more information see
+
+`https://pypi.org/project/python-javabridge>`__
+`https://pythonhosted.org/javabridge/installation.html>`__
+
+A minimum requirement is installation of Java::
+
+    sudo apt-get install openjdk-11-jdk
+    export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
+
+Install python package
+----------------------
+For the installation to work numpy must already be installed.
+
+The latest develop version can be installed from source via::
+
+    pip install numpy>=1.24.1
+    pip install git+https://github.com/matthiaskoenig/zonation-image-analysis.git@develop
+
+Or via cloning the repository and installing via::
+
+    git clone https://github.com/matthiaskoenig/zonation-image-analysis.git
+    cd zonation-image-analysis
+    pip install numpy>=1.24.1
+    pip install -e .
 
 License
 =======
