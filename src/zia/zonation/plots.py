@@ -13,7 +13,7 @@ def plot_image_with_hist(
     image: np.ndarray,
     cmap: str = "gray",
     title: Optional[str] = None,
-    path: Path = None,
+    path: Optional[Path] = None,
 ) -> None:
     """Plot the relevant channels."""
     plt.figure(figsize=(30, 15))
@@ -70,8 +70,13 @@ def plot_image_with_hist(
     plt.show()
 
 
-def plot_zonation(image: np.ndarray, cmap="gray", title: str = None, path: Path = None):
-    """Plot the relevant channels."""
+def plot_zonation(
+    image: np.ndarray,
+    cmap: str = "gray",
+    title: Optional[str] = None,
+    path: Optional[Path] = None,
+) -> None:
+    """Plot relevant channels."""
     plt.figure(figsize=(20, 15))
     if title:
         plt.suptitle(title)
@@ -112,11 +117,11 @@ def plot_overlay(
     image_gauss: np.ndarray,
     zonation: np.ndarray,
     zonation_gauss: np.ndarray,
-    cmap="gray",
-    alpha=0.5,
-    title: str = None,
-    path: Path = None,
-):
+    cmap: str = "gray",
+    alpha: float = 0.5,
+    title: Optional[str] = None,
+    path: Optional[Path] = None,
+) -> None:
     """Plot the relevant channels."""
     X, Y = np.meshgrid(range(image.shape[1]), range(image.shape[0]))
 
