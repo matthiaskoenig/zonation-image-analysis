@@ -50,3 +50,10 @@ https://github.com/openslide/openslide-python/blob/main/examples/deepzoom/deepzo
 https://github.com/openseadragon/openseadragon/issues/1399  
 https://github.com/WasMachenSachen/openseadragon-opacity-slider  
 
+## Viewer
+### QuPath
+
+
+### Napari
+https://napari.org/stable/
+https://www.youtube.com/watch?v=vismuuc4y1I&list=PLYx7XA2nY5Gfxu98P_HL1MnFb_BSkpxLV&index=11
