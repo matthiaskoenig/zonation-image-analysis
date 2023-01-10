@@ -55,13 +55,17 @@ def run_zonation_analysis(sid: str) -> None:
     dapi = fimage.get_channel_data(Fluorophor.DAPI)
 
     # Display raw data of channel
-    if dapi is not None:
-        image_raw = np.zeros(shape=(cyp2e1.shape[0], cyp2e1.shape[1], 3))
-        image_raw[:, :, 2] = dapi
+    if dapi is None:
+        # some images do not have dapi information
+        layers = 2
     else:
-        image_raw = np.zeros(shape=(cyp2e1.shape[0], cyp2e1.shape[1], 2))
+        layers = 3
+
+    image_raw = np.zeros(shape=(cyp2e1.shape[0], cyp2e1.shape[1], layers))  # type: ignore
     image_raw[:, :, 0] = cyp2e1
     image_raw[:, :, 1] = ecad
+    if dapi is not None:
+        image_raw[:, :, 2] = dapi
 
     plot_image_with_hist(
         image_raw,
@@ -125,7 +129,7 @@ def run_zonation_analysis(sid: str) -> None:
     # TODO: store results in image for visualization
 
     # Display raw data of channel
-    image_out = np.zeros(shape=(cyp2e1.shape[0], cyp2e1.shape[1], 5))
+    image_out = np.zeros(shape=(cyp2e1.shape[0], cyp2e1.shape[1], 5))  # type: ignore
     image_out[:, :, 0] = image_hist[:, :, 0]
     image_out[:, :, 1] = image_hist[:, :, 1]
     if dapi is not None:

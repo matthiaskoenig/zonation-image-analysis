@@ -1,5 +1,6 @@
 """Plotting helpers for images."""
 from pathlib import Path
+from typing import Optional
 
 import numpy as np
 from matplotlib import pyplot as plt
@@ -9,8 +10,11 @@ plt.rcParams["font.size"] = 25
 
 
 def plot_image_with_hist(
-    image: np.ndarray, cmap: str = "gray", title: str = None, path: Path = None
-):
+    image: np.ndarray,
+    cmap: str = "gray",
+    title: Optional[str] = None,
+    path: Path = None,
+) -> None:
     """Plot the relevant channels."""
     plt.figure(figsize=(30, 15))
     if title:

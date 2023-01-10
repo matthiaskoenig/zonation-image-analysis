@@ -71,6 +71,7 @@ class FluorescenceImage:
     @staticmethod
     def from_file(path: Path) -> FluorescenceImage:
         """Read images from file using pickle."""
+        image: FluorescenceImage
         with open(path, "rb") as f:
             image = pickle.load(f)
         return image
