@@ -7,6 +7,8 @@ https://pypi.org/project/python-javabridge/
 This requires a working JAVA version
 https://pythonhosted.org/javabridge/installation.html
 
+git clone https://github.com/CellProfiler/python-javabridge.git
+
 sudo apt-get install openjdk-11-jdk
 export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
 """
