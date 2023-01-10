@@ -109,7 +109,7 @@ class FluorescenceImage:
 
 
 def read_czi_images(czi_images: Iterable[Path]) -> List[Path]:
-    """Reads and stores CZI image data.
+    """Read and store CZI image data.
 
     Uses pickle to store the matrices and metadata.
     Returns list of pickle paths.

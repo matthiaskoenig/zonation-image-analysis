@@ -1,6 +1,4 @@
-"""
-Module for running zonation analysis.
-"""
+"""Module for running zonation analysis."""
 import numpy as np
 from skimage.filters import gaussian
 
