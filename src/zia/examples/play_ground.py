@@ -1,11 +1,9 @@
 from pprint import pprint
 
-import dask.array as da
 import zarr
-import napari
 
 from napari_lazy_openslide import OpenSlideStore
-from zia import RESOURCES_PATH
+from zia import  DATA_PATH
 from openslide import OpenSlide, OpenSlideUnsupportedFormatError
 from tifffile import imread
 if __name__ == "__main__":
@@ -17,14 +15,14 @@ if __name__ == "__main__":
     #    viewer.open(OME_TIFF_EXAMPLE)
 
     #OpenSlideStore(OME_TIFF_EXAMPLE)
-    file_path_luca = RESOURCES_PATH / "LuCa-7color_Scan1.ome.tiff"
-    file_path_npdi = RESOURCES_PATH / "LQF2_LM_HE_PVL.ndpi"
-    file_path_lqf2 = RESOURCES_PATH / "LQF2_RM_HE_PVL2.ome.tif"
-    file_path_czi = RESOURCES_PATH / "RH0422_1x2.5.czi"
+    file_path_luca = DATA_PATH / "LuCa-7color_Scan1.ome.tiff"
+    file_path_npdi = DATA_PATH / "LQF2_LM_HE_PVL.ndpi"
+    file_path_lqf2 = DATA_PATH / "LQF2_RM_HE_PVL2.ome.tif"
+    file_path_czi = DATA_PATH / "RH0422_1x2.5.czi"
 
-    file_path_tiff_test1 = RESOURCES_PATH / "test_001.tif"
-    file_path_tiff_test1_exported = RESOURCES_PATH / "test_001_exported.ome.tif"
-    file_path_tiff_test1_exported2 = RESOURCES_PATH / "test_001_exported2.ome.tif"
+    file_path_tiff_test1 = DATA_PATH / "test_001.tif"
+    file_path_tiff_test1_exported = DATA_PATH / "test_001_exported.ome.tif"
+    file_path_tiff_test1_exported2 = DATA_PATH / "test_001_exported2.ome.tif"
 
     for file_path in [file_path_lqf2, file_path_npdi, file_path_tiff_test1, file_path_czi, file_path_tiff_test1_exported2]:
         try:

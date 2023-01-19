@@ -31,30 +31,34 @@ def read_file(file_path: Path) -> (XML, List[da.Array]):
         #    data = da.from_zarr(store, component=d["path"])
         #    for layer_n in range(layers_n):
         #        layers[f"layer{layer_n}"].append(data[layer_n,:,:])
+        data = [da.from_zarr(store, component=d["path"]) for d in datasets]
 
-        data = [da.moveaxis(da.from_zarr(store, component=d["path"]),0,2) for d in datasets]
+        #data = [da.moveaxis(da.from_zarr(store, component=d["path"]),0,2) for d in datasets]
+
+
+
         return data
     except TiffFileError as e:
-        #img = readers.czi_reader.CziReader(file_path)
+        img = readers.czi_reader.CziReader(file_path)
         print(f"Error reading file: {file_path.name}")
 
-        czi = CziFile(file_path)
-        dimensions = czi.get_dims_shape()
-        print(dimensions)
+        #czi = CziFile(file_path)
+        #dimensions = czi.get_dims_shape()
+        #print(dimensions)
 
         #img = AICSImage(file_path, reconstruct_mosaic=False)  # selects the first scene found
 
-        #properties = [img.dims,  # returns a Dimensions object
-        # img.dims.order,  # returns string "TCZYX"
-        # img.dims.X, # returns size of X dimension
-        # img.shape,  # returns tuple of dimension sizes in TCZYX order
-        # img.scenes,  # returns total number of pixels
-        # ]
-        #
-        # print(properties)
+        properties = [img.dims,  # returns a Dimensions object
+         img.dims.order,  # returns string "TCZYX"
+         img.dims.X, # returns size of X dimension
+         img.shape,  # returns tuple of dimension sizes in TCZYX order
+         img.scenes,  # returns total number of pixels
+         ]
+
+        print(properties)
         # print(img.get_image_data("TCZYXS"))
 
-        #return img.get_image_data("TCZYXS")
+        return img.get_image_data("TCZYXS")
 
 
 
@@ -75,11 +79,22 @@ def napari_view(file_path: Path) -> None:
     #viewer = napari.view_image(data, rgb=True, name=file_path.name, )
     napari.run()
 
+def napari_view_ndpi(file_path: Path) -> None:
+    data= read_file(file_path,)
+
+    viewer = napari.Viewer()
+    viewer.add_image(data)
+
+    #viewer = napari.view_image(data, rgb=True, name=file_path.name, )
+    napari.run()
+
 
 if __name__ == "__main__":
-    napari_view(file_path_tiff_exported2,)
+    #napari_view(file_path_tiff_exported2,)
+    #napari_view_ndpi(file_path_npdi,)
+
     #napari_view(file_path_tiff_test1)
-    #napari_view(file_path_czi2)
+    napari_view_ndpi(file_path_czi2)
 
 
 
