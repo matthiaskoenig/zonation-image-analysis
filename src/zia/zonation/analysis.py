@@ -1,4 +1,6 @@
 """Module for running zonation analysis."""
+from pathlib import Path
+
 import numpy as np
 from skimage.filters import gaussian
 
@@ -45,9 +47,10 @@ def histogram_quantile_normalization(
 
 def run_zonation_analysis(CZI_PATH: str) -> None:
     """Run image analysis for given image sid."""
+    p = Path(CZI_PATH)
     sid: str = p.stem
     print(f"--- {sid} ---")
-    fimage = FluorescenceImage.from_file(CZI_PATH / f"{sid}.pickle")
+    fimage = FluorescenceImage.from_file(p.parent / f"{sid}.pickle")
 
     # TODO: check the assignments of proteins to the fluorophors
     cyp2e1 = fimage.get_channel_data(Fluorophor.ALEXA_FLUOR_488)
@@ -142,10 +145,11 @@ def run_zonation_analysis(CZI_PATH: str) -> None:
 
 
 if __name__ == "__main__":
-    from zia import CZI_IMAGES_INITIAL, CZI_IMAGES_AXIOS, RESULTS_PATH
+    from zia import CZI_IMAGES_INITIAL, CZI_IMAGES_AXIOS, RESULTS_PATH, CZI_EXAMPLE
 
     # First preprocess the images;
-    for p in CZI_IMAGES:
-        run_zonation_analysis(sid)
+    # for p in CZI_IMAGES:
+    #     run_zonation_analysis(sid)
 
+    run_zonation_analysis(CZI_EXAMPLE)
     # run_analysis("Test33")
