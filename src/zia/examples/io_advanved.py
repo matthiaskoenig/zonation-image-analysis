@@ -1,9 +1,11 @@
+"""Using tifffile to read data"""
+
 from pathlib import Path
-from typing import List
+from typing import List, Tuple
 from xml.etree.ElementTree import XML
 
-from aicspylibczi import CziFile
-import bioformats
+# from aicspylibczi import CziFile
+# import bioformats
 import zarr
 import dask.array as da
 
@@ -12,18 +14,32 @@ from aicsimageio import AICSImage, readers
 
 from zia import TEST_FILES_PATHS, file_path_npdi, file_path_tiff_test1, file_path_czi, \
     file_path_czi2, file_path_tiff_exported2
+
 import napari
 
-def read_file(file_path: Path) -> (XML, List[da.Array]):
+
+def read_ndpi(ndpi_path: Path):
+    """Read NDPI image (Hammamatsu Scanner)."""
+    return read_image_tifffile(ndpi_path)
+
+
+def read_image_tifffile(image_path: Path) -> Tuple[XML, List[da.Array]]:
+    """Read image with tifffile library."""
+    if not image_path.exists():
+        raise IOError(f"Image file does not exist: {image_path}")
+    if not image_path.is_file():
+        raise IOError(f"Image file is not a file: {image_path}")
+
+    print(f"Reading image with tifffile: {image_path.name}")
     try:
-        print(f"Reading file: {file_path.name}")
-        print(file_path.is_file())
-        store = tifffile.imread(file_path, aszarr=True)
 
+        # read in zarr store
+        store = tifffile.imread(image_path, aszarr=True)
+        group = zarr.open(store, mode="r")  # zarr.core.Group or Array
 
-        #ome_xml = bioformats.get_omexml_metadata(file_path)
-        grp = zarr.open(store, mode="r")
-        datasets = grp.attrs["multiscales"][0]["datasets"]
+        datasets = group.attrs["multiscales"][0]["datasets"]
+
+        # ome_xml = bioformats.get_omexml_metadata(file_path)
         #print(grp.attrs)
         #layers_n = 3
         #layers = {f"layer{x}":[] for x in range(layers_n)}
@@ -31,16 +47,16 @@ def read_file(file_path: Path) -> (XML, List[da.Array]):
         #    data = da.from_zarr(store, component=d["path"])
         #    for layer_n in range(layers_n):
         #        layers[f"layer{layer_n}"].append(data[layer_n,:,:])
+
+        # convert in list of dask arrays
         data = [da.from_zarr(store, component=d["path"]) for d in datasets]
 
         #data = [da.moveaxis(da.from_zarr(store, component=d["path"]),0,2) for d in datasets]
 
-
-
         return data
     except TiffFileError as e:
-        img = readers.czi_reader.CziReader(file_path)
-        print(f"Error reading file: {file_path.name}")
+        img = readers.czi_reader.CziReader(image_path)
+        print(f"Error reading file: {image_path.name}")
 
         #czi = CziFile(file_path)
         #dimensions = czi.get_dims_shape()
@@ -64,24 +80,28 @@ def read_file(file_path: Path) -> (XML, List[da.Array]):
 
         #raise e
 
-def napari_view(file_path: Path) -> None:
-    data= read_file(file_path)
-    #ome = ome_types.from_xml(ome_xml)
-    #ome =ome_types.from_xml(ome_xml)
-    #print(ome)
+# def napari_view(file_path: Path) -> None:
+#     data= read_file(file_path)
+#     #ome = ome_types.from_xml(ome_xml)
+#     #ome =ome_types.from_xml(ome_xml)
+#     #print(ome)
+#
+#     #with napari.gui_qt():
+#     viewer = napari.Viewer()
+#     colormaps = {"what_ever_1": "red", "what_ever_2": "green", "what_ever_3": "blue"}
+#     for n, (name,color) in enumerate(colormaps.items()):
+#         viewer.add_image([data_single[:, :, n] for data_single in data], blending="additive", colormap=color, name=name)
+#
+#     #viewer = napari.view_image(data, rgb=True, name=file_path.name, )
+#     napari.run()
 
-    #with napari.gui_qt():
-    viewer = napari.Viewer()
-    colormaps = {"what_ever_1": "red", "what_ever_2": "green", "what_ever_3": "blue"}
-    for n, (name,color) in enumerate(colormaps.items()):
-        viewer.add_image([data_single[:, :, n] for data_single in data], blending="additive", colormap=color, name=name)
 
-    #viewer = napari.view_image(data, rgb=True, name=file_path.name, )
-    napari.run()
+def napari_view_ndpi(ndpi_path: Path) -> None:
+    """View NDPI image in napari.
 
-def napari_view_ndpi(file_path: Path) -> None:
-    data= read_file(file_path,)
-
+    This is starting napari and blocking.
+    """
+    data = read_image_tifffile(ndpi_path, )
     viewer = napari.Viewer()
     viewer.add_image(data)
 
@@ -90,11 +110,14 @@ def napari_view_ndpi(file_path: Path) -> None:
 
 
 if __name__ == "__main__":
+    napari_view_ndpi(file_path_npdi,)
+
     #napari_view(file_path_tiff_exported2,)
-    #napari_view_ndpi(file_path_npdi,)
+
 
     #napari_view(file_path_tiff_test1)
-    napari_view_ndpi(file_path_czi2)
+
+    # napari_view_ndpi(file_path_czi2)
 
 
 

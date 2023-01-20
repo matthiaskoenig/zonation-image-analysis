@@ -5,3 +5,8 @@ numpy>=1.23.2
 matplotlib<3.5.6
 scikit-image>=0.19.3
 xmltodict
+
+zarr>=2.13.6
+tifffile>=2022.10.10
+aicsimageio>=4.9.4
+napari[all]
