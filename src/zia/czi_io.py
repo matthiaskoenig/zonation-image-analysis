@@ -17,7 +17,10 @@ Look into alternatives for reading images: https://pypi.org/project/pylibCZIrw/
 https://github.com/sebi06/czitools
 
 """
+
 from __future__ import annotations
+
+from zia import CZI_EXAMPLE, CZI_IMAGES_AXIOS, CZI_IMAGES_INITIAL, OME_TIFF_EXAMPLE
 
 import logging
 import pickle
@@ -30,7 +33,7 @@ import javabridge
 import numpy as np
 import xmltodict
 from rich.console import Console
-
+import tifffile
 
 console = Console()
 logger = logging.getLogger(__name__)
@@ -132,6 +135,7 @@ def read_czi_images(czi_images: Iterable[Path]) -> List[Path]:
         image = FluorescenceImage(sid=sid, data=data, ome=ome)
 
         pickle_path = czi_path.parent / f"{sid}.pickle"
+        print(pickle_path)
         pickle_paths.append(pickle_path)
         image.to_file(pickle_path)
 
@@ -139,10 +143,38 @@ def read_czi_images(czi_images: Iterable[Path]) -> List[Path]:
     return pickle_paths
 
 
+def read_czi_images_tifffile(czi_image_path:Path) -> Path:
+    """Read and store CZI image data."""
+
+    javabridge.start_vm(class_path=bioformats.JARS)
+
+    #sid = czi_image_path.stem
+    #tifffile_path = czi_image_path.parent / f"{sid}.ome.tif"
+    data, ome = read_czi(czi_image_path)
+
+    def frames():
+            for frame in data:
+                yield frame
+
+    tifffile.imwrite(
+        OME_TIFF_EXAMPLE,
+        frames(),
+        shape=data.shape,
+        dtype=data.dtype,
+        #metadata=FluorescenceImage.parse_metadata(ome),
+        metadata=ome
+    )
+
+    return OME_TIFF_EXAMPLE
+
+
+
+
 if __name__ == "__main__":
 
-    from zia import CZI_EXAMPLE, CZI_IMAGES_AXIOS, CZI_IMAGES_INITIAL
     from zia.zonation import plots
 
-    # read_czi_images(czi_images=[CZI_EXAMPLE])
-    read_czi_images(czi_images=CZI_IMAGES_AXIOS)
+
+
+    read_czi_images(czi_images=[CZI_EXAMPLE])
+    # read_czi_images(czi_images=[CZI_IMAGES_AXIOS])

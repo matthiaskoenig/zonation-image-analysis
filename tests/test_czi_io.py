@@ -2,8 +2,9 @@
 from pathlib import Path
 from typing import List
 
-from zia import CZI_EXAMPLE
-from zia.czi_io import FluorescenceImage, Fluorophor, read_czi_images
+from zia.czi_io import FluorescenceImage, Fluorophor, read_czi_images, \
+    read_czi_images_tifffile
+from zia import CZI_EXAMPLE, CZI_IMAGES_AXIOS, CZI_IMAGES_INITIAL
 
 
 def test_read_czi_example() -> None:
@@ -21,3 +22,13 @@ def test_read_czi_example() -> None:
     assert cyp2e1 is not None
     assert ecad is not None
     assert dapi is not None
+
+
+def test_czi_to_ome_tiff() -> None:
+    """
+    Testing reformat file from czi to OME-TIFF
+    """
+    read_czi_images_tifffile(CZI_EXAMPLE)
+
+
+

@@ -41,7 +41,64 @@ build pyramid image
 https://github.com/libvips/pyvips/issues/157  
 https://github.com/libvips/pyvips/issues/170  
 
-## Openseadragon & DeepZoom
+## Pyhthon libraries for image import/export
+### tifffile
+https://github.com/cgohlke/tifffile
+
+Tifffile is a Python library to
+* store NumPy arrays in TIFF (Tagged Image File Format) files, and
+* read image and metadata from TIFF-like files used in bioimaging.
+
+Image and metadata can be read from TIFF, BigTIFF, OME-TIFF, STK, LSM, SGI, NIHImage, ImageJ, MicroManager, FluoView, ScanImage, SEQ, GEL, SVS, SCN, SIS, BIF, ZIF (Zoomable Image File Format), QPTIFF (QPI), NDPI, and GeoTIFF files.
+Image data can be read as NumPy arrays or Zarr arrays/groups from strips, tiles, pages (IFDs), SubIFDs, higher order series, and pyramidal levels.
+Image data can be written to TIFF, BigTIFF, OME-TIFF, and ImageJ hyperstack compatible files in multi-page, volumetric, pyramidal, memory-mappable, tiled, predicted, or compressed form.
+
+Tifffile can also be used to inspect TIFF structures, read image data from multi-dimensional file sequences, write fsspec ReferenceFileSystem for TIFF files and image file sequences, patch TIFF tag values, and parse many proprietary metadata formats.
+
+### AICSImageIO
+Image Reading, Metadata Conversion, and Image Writing for Microscopy Images in Pure Python.
+https://allencellmodeling.github.io/aicsimageio/
+
+## Storage formats
+### Zarr
+https://zarr.readthedocs.io/en/stable/
+
+Zarr is a format for the storage of chunked, compressed, N-dimensional arrays inspired by HDF5, h5py and bcolz.
+* Create N-dimensional arrays with any NumPy dtype.
+* Chunk arrays along any dimension.
+* Compress and/or filter chunks using any NumCodecs codec.
+* Store arrays in memory, on disk, inside a Zip file, on S3, …
+* Read an array concurrently from multiple threads or processes.
+* Write to an array concurrently from multiple threads or processes.
+* Organize arrays into hierarchies via groups.
+
+
+
+
+## Whole-slide image viewers
+### QuPath
+https://qupath.github.io/
+
+QuPath is often used for digital pathology applications because it offers a powerful set of tools for working with whole slide images - but it can be applied to lots of other kinds of image as well.
+
+Features include:
+- Powerful annotation & visualization tools using a modern JavaFX interface
+- Built-in algorithms for common tasks, including cell and tissue detection
+- Interactive machine learning, both for object and pixel classification
+- Compatibility with other popular open tools, including ImageJ, OpenCV, Java Topology Suite and OMERO
+- Support for many image formats through Bio-Formats and OpenSlide, including whole slide images and multiplexed data
+- Groovy scripting for customization and deeper data interrogation
+
+### Napari
+napari is a fast, interactive, multi-dimensional image viewer for Python. It’s designed for browsing, annotating, and analyzing large multi-dimensional images. It’s built on top of Qt (for the GUI), vispy (for performant GPU-based rendering), and the scientific Python stack (numpy, scipy). It includes critical viewer features out-of-the-box, such as support for large multi-dimensional data, and layering and annotation. By integrating closely with the Python ecosystem, napari can be easily coupled to leading machine learning and image analysis tools (e.g. scikit-image, scikit-learn, TensorFlow, PyTorch), enabling more user-friendly automated analysis.
+
+https://napari.org/stable/
+https://www.youtube.com/watch?v=vismuuc4y1I&list=PLYx7XA2nY5Gfxu98P_HL1MnFb_BSkpxLV&index=11
+
+### Openseadragon & DeepZoom
+https://openseadragon.github.io/
+
+An open-source, web-based viewer for high-resolution zoomable images, implemented in pure JavaScript, for desktop and mobile.
 
 Overlay images:  
 https://github.com/openseadragon/openseadragon
@@ -49,11 +106,3 @@ https://github.com/openseadragon/openseadragon
 https://github.com/openslide/openslide-python/blob/main/examples/deepzoom/deepzoom_server.py  
 https://github.com/openseadragon/openseadragon/issues/1399  
 https://github.com/WasMachenSachen/openseadragon-opacity-slider  
-
-## Viewer
-### QuPath
-
-
-### Napari
-https://napari.org/stable/
-https://www.youtube.com/watch?v=vismuuc4y1I&list=PLYx7XA2nY5Gfxu98P_HL1MnFb_BSkpxLV&index=11
