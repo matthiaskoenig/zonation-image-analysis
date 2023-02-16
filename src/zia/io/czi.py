@@ -7,16 +7,45 @@ https://allencellmodeling.github.io/aicsimageio/
 
 """
 from pathlib import Path
-from typing import List, Tuple
+from typing import List, Tuple, Dict
 from xml.etree.ElementTree import XML
 
 import numpy as np
 import dask.array as da
 import zarr
 from aicsimageio import AICSImage, readers
+from ome_types import OME
 from tifffile import TiffFileError, tifffile
 
 from zia.io.core import check_image_path
+from zia.console import console
+
+
+def parse_metadata(ome_dict: dict) -> Dict:
+    """Parse metadata from OME dictionary."""
+
+    info = {
+        "NominalMagnification": float(
+            ome_dict["OME"]["Instrument"]["Objective"]["@NominalMagnification"]
+        ),
+        "AquisitionDate": ome_dict["OME"]["Image"]["AcquisitionDate"],
+        "SizeX": ome_dict["OME"]["Image"]["Pixels"]["@SizeX"],
+        "SizeY": ome_dict["OME"]["Image"]["Pixels"]["@SizeY"],
+        "PhysicalSizeX": float(
+            ome_dict["OME"]["Image"]["Pixels"]["@PhysicalSizeX"]
+        ),
+        "PhysicalSizeXUnit": ome_dict["OME"]["Image"]["Pixels"][
+            "@PhysicalSizeXUnit"
+        ],
+        "PhysicalSizeY": float(
+            ome_dict["OME"]["Image"]["Pixels"]["@PhysicalSizeY"]
+        ),
+        "PhysicalSizeYUnit": ome_dict["OME"]["Image"]["Pixels"][
+            "@PhysicalSizeYUnit"
+        ],
+        "Channels": ome_dict["OME"]["Image"]["Pixels"]["Channel"],
+    }
+    return info
 
 
 def read_czi(image_path: Path) -> np.ndarray:
@@ -25,11 +54,42 @@ def read_czi(image_path: Path) -> np.ndarray:
 
     img = readers.czi_reader.CziReader(image_path)
 
+    metadata: OME = img.ome_metadata
+    ome_dict = metadata.dict()
+    console.print(metadata.dict())
+    # info = parse_metadata(ome_dict=ome_dict)
+    # print(info)
+
+
+    # info = {
+    #     "NominalMagnification": float(
+    #         ome_dict["OME"]["Instrument"]["Objective"]["@NominalMagnification"]
+    #     ),
+    #     "AquisitionDate": ome_dict["OME"]["Image"]["AcquisitionDate"],
+    #     "SizeX": ome_dict["OME"]["Image"]["Pixels"]["@SizeX"],
+    #     "SizeY": ome_dict["OME"]["Image"]["Pixels"]["@SizeY"],
+    #     "PhysicalSizeX": float(
+    #         ome_dict["OME"]["Image"]["Pixels"]["@PhysicalSizeX"]
+    #     ),
+    #     "PhysicalSizeXUnit": ome_dict["OME"]["Image"]["Pixels"][
+    #         "@PhysicalSizeXUnit"
+    #     ],
+    #     "PhysicalSizeY": float(
+    #         ome_dict["OME"]["Image"]["Pixels"]["@PhysicalSizeY"]
+    #     ),
+    #     "PhysicalSizeYUnit": ome_dict["OME"]["Image"]["Pixels"][
+    #         "@PhysicalSizeYUnit"
+    #     ],
+    #     "Channels": ome_dict["OME"]["Image"]["Pixels"]["Channel"],
+    # }
+
     # czi = CziFile(file_path)
     # dimensions = czi.get_dims_shape()
     # print(dimensions)
 
     # img = AICSImage(file_path, reconstruct_mosaic=False)  # selects the first scene found
+
+    # Read pyramidal data (1 2 4 8 16 32 64 128)
 
     properties = [
         img.dims,  # returns a Dimensions object
@@ -48,10 +108,7 @@ def read_czi(image_path: Path) -> np.ndarray:
     print(data.shape)  # (1, 3, 1, 1040, 1388, 1)
     # handle pyramidal information correctly
 
-
     return data
-
-    # raise e
 
 
 if __name__ == "__main__":
@@ -66,8 +123,15 @@ if __name__ == "__main__":
         example_czi_axios4,
     )
 
+    data = read_czi(example_czi)
 
-    data: List[da.Array] = read_czi(example_czi_axios2)
+    napari_viewer.view_czi_data(
+        data=read_czi(example_czi),
+        channel_names=["channel 1", "channel 2", "channel 3"]
+    )
 
-    # FIXME: display channels
-    napari_viewer.view_ndpi_data(data=data)
+    # # FIXME: read image metadata
+    # napari_viewer.view_czi_data(
+    #     data=read_czi(example_czi_axios2),
+    #     channel_names=["channel 1", "channel 2", "channel 3"]
+    # )
