@@ -106,3 +106,6 @@ https://github.com/openseadragon/openseadragon
 https://github.com/openslide/openslide-python/blob/main/examples/deepzoom/deepzoom_server.py  
 https://github.com/openseadragon/openseadragon/issues/1399  
 https://github.com/WasMachenSachen/openseadragon-opacity-slider  
+
+# 3D data visualization
+https://developer.nvidia.com/nvidia-index
