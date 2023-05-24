@@ -7,8 +7,8 @@ import napari
 import openslide
 import zarr
 
-PATH_TO_FILE = "/home/jkuettner/Development/qpath/J-12-00350_NOR-022_Lewis_CYP2E1- 1 300_Run 14_ML, Sb, rk_MAA_006.geojson"
-PATH_TO_ZARR = "/home/jkuettner/Pictures/zarr/img2.zarr"
+PATH_TO_FILE = "J-12-00350_NOR-022_Lewis_CYP2E1- 1 300_Run 14_ML, Sb, rk_MAA_006.geojson"
+PATH_TO_ZARR = "zarr_files/img2.zarr"
 if __name__ == "__main__":
     with open(PATH_TO_FILE) as f:
         data = gj.load(f)
@@ -34,6 +34,7 @@ if __name__ == "__main__":
 
     zarray = zarr.array(mask_array,
                         store=PATH_TO_ZARR)
+
 
     # zarr.convenience.save_array(PATH_TO_ZARR, mask_array)
 
