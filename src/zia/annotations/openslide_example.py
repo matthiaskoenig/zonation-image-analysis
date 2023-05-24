@@ -19,8 +19,9 @@ if __name__ == "__main__":
     selection = mask.get_basic_selection((slice(y, y + 512), slice(x, x + 512)))
     print(np.max(selection))
     selection = np.ma.masked_where(selection == 0, selection)
-    fig, ax = plt.subplots(1, 1)
+    fig, (ax, ax1) = plt.subplots(1, 2)
     ax: plt.Axes
     ax.imshow(region)
-    ax.imshow(selection, cmap=matplotlib.cm.get_cmap("jet"))
+    ax1.imshow(region)
+    ax.imshow(selection, cmap=matplotlib.colormaps.get_cmap("jet"))
     plt.show()
