@@ -8,7 +8,11 @@ from matplotlib import pyplot as plt, cm
 import cv2
 from shapely.geometry import Polygon
 
+from src.zia.annotations.annotation.annotations import AnnotationParser, AnnotationType, \
+    Annotation
+
 OPENSLIDE_PATH = r'C:\Program Files\OpenSlide\openslide-win64-20230414\bin'
+PATH_TO_FILE = "J-12-00350_NOR-022_Lewis_CYP2E1- 1 300_Run 14_ML, Sb, rk_MAA_006.geojson"
 
 import os
 
@@ -116,4 +120,19 @@ if __name__ == "__main__":
     reduce_shapes(kept, remaining)
     plot_polygons(kept, contour_image)
 
-    # check if organ annotation is inside one of them
+    # load
+    annotations = AnnotationParser.parse_geojson(PATH_TO_FILE)
+    liver_annotation_shape: Annotation = \
+        AnnotationParser.get_annotation_by_type(annotations,
+                                                annotation_type=AnnotationType.LIVER)[
+            0]
+
+    ## find the contour the organ shape that contains the annotation geometry
+
+    liver_shapes = [shape for shape in kept if
+                    shape.contains(liver_annotation_shape.get_resized_geometry(128))]
+
+    print(liver_shapes)
+    ## plot contour
+
+    plot_polygons(liver_shapes, contour_image)
