@@ -7,24 +7,25 @@ import zarr
 from matplotlib import pyplot as plt, cm
 import cv2
 from shapely.geometry import Polygon
+import openslide
 
 from src.zia.annotations.annotation.annotations import AnnotationParser, AnnotationType, \
     Annotation
+from zia.annotations.annotation.roi import Roi, PyramidalLevel
 
-OPENSLIDE_PATH = r'C:\Program Files\OpenSlide\openslide-win64-20230414\bin'
-PATH_TO_FILE = "J-12-00350_NOR-022_Lewis_CYP2E1- 1 300_Run 14_ML, Sb, rk_MAA_006.geojson"
+#OPENSLIDE_PATH = r'C:\Program Files\OpenSlide\openslide-win64-20230414\bin'
+PATH_TO_FILE = "geojsons/J-12-00350_NOR-022_Lewis_CYP2E1- 1 300_Run 14_ML, Sb, rk_MAA_006.geojson"
 
 import os
 
-if hasattr(os, 'add_dll_directory'):
-    # Python >= 3.8 on Windows
-    with os.add_dll_directory(OPENSLIDE_PATH):
-        import openslide
-else:
-    import openslide
+# if hasattr(os, 'add_dll_directory'):
+#    # Python >= 3.8 on Windows
+#    with os.add_dll_directory(OPENSLIDE_PATH):
+#        import openslide
+# else:
+#    import openslide
 
-PATH_TO_PIC = r"C:\Users\jonas\Development\images\J-12-00350_NOR-022_Lewis_CYP2E1- 1 300_Run 14_ML, Sb, rk_MAA_006.ndpi"
-PATH_TO_ZARR = "zarr_files/img2.zarr"
+PATH_TO_PIC = r"image/J-12-00350_NOR-022_Lewis_CYP2E1- 1 300_Run 14_ML, Sb, rk_MAA_006.ndpi"
 
 """
 Reduces the list of shapes. It keeps all toplevel shapes, i.e. shapes that do not contain
@@ -59,7 +60,6 @@ def plot_polygons(polygons: List[Polygon], image_like: np.ndarray):
     new_image = Image.fromarray(np.zeros_like(image_like), "L")
     draw = ImageDraw.ImageDraw(new_image)
     for poly in polygons:
-        print(poly)
         draw.polygon(poly.exterior.coords, outline="white", fill="white")
 
     ax.imshow(new_image, cmap=matplotlib.colormaps.get_cmap("binary"))
@@ -79,12 +79,12 @@ if __name__ == "__main__":
 
     w, h = image.dimensions
 
-    print(image.level_count)
-    print(image.level_downsamples)
+    #print(image.level_count)
+    #print(image.level_downsamples)
 
     level = 7
     factor = image.level_downsamples[level]
-    print((w / factor, h / factor))
+
     region = image.read_region(location=(0, 0), level=7,
                                size=(int(w / factor), int(h / factor)))
 
@@ -127,12 +127,14 @@ if __name__ == "__main__":
                                                 annotation_type=AnnotationType.LIVER)[
             0]
 
-    ## find the contour the organ shape that contains the annotation geometry
+    # find the contour the organ shape that contains the annotation geometry
 
     liver_shapes = [shape for shape in kept if
                     shape.contains(liver_annotation_shape.get_resized_geometry(128))]
 
-    print(liver_shapes)
-    ## plot contour
+    liver_roi = Roi(liver_shapes[0], PyramidalLevel.SEVEN, AnnotationType.LIVER)
 
-    plot_polygons(liver_shapes, contour_image)
+    plot_polygons([liver_roi.get_polygon_for_level(PyramidalLevel.SEVEN)], contour_image)
+
+    ##
+    liver_roi.write_to_geojson("geojsons/result.geojson")

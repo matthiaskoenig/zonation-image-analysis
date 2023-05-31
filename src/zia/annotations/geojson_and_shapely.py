@@ -7,7 +7,7 @@ import napari
 import openslide
 import zarr
 
-PATH_TO_FILE = "J-12-00350_NOR-022_Lewis_CYP2E1- 1 300_Run 14_ML, Sb, rk_MAA_006.geojson"
+PATH_TO_FILE = "geojsons/J-12-00350_NOR-022_Lewis_CYP2E1- 1 300_Run 14_ML, Sb, rk_MAA_006.geojson"
 PATH_TO_ZARR = "zarr_files/img2.zarr"
 if __name__ == "__main__":
     with open(PATH_TO_FILE) as f:

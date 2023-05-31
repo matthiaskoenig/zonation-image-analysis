@@ -6,6 +6,8 @@ from shapely import Polygon, MultiPolygon
 import geojson as gj
 from shapely.geometry import shape
 
+from zia.annotations.annotation.geometry_utils import rescale_coords
+
 PATH_TO_FILE = "..\J-12-00350_NOR-022_Lewis_CYP2E1- 1 300_Run 14_ML, Sb, rk_MAA_006.geojson"
 
 
@@ -31,16 +33,19 @@ class Annotation:
     downsizes the geometry of the annotation by the level. The level should
     correspond to the level of the pyramidal image.
     """
+
     def get_resized_geometry(self, factor) -> Union[Polygon, MultiPolygon]:
         if isinstance(self.geometry, Polygon):
-                return Polygon(Annotation._rescale_coords(self.geometry.exterior.coords, factor))
+            return Polygon(
+                Annotation._rescale_coords(self.geometry.exterior.coords, factor))
         if isinstance(self.geometry, MultiPolygon):
-            return MultiPolygon([Polygon(Annotation._rescale_coords(poly.coords, factor))] for poly in self.geoms)
+            return MultiPolygon(
+                [Polygon(Annotation._rescale_coords(poly.exterior.coords, factor))] for
+                poly in self.geoms)
 
     @classmethod
     def _rescale_coords(cls, coords, level: int) -> List[Tuple[float, float]]:
-        return [(x / level, y / level) for x, y in
-                coords]
+        return rescale_coords(coords, 1 / level)
 
 
 """
