@@ -1,3 +1,4 @@
+import logging
 from dataclasses import dataclass
 from strenum import StrEnum
 from typing import Union, List, Tuple
@@ -10,14 +11,22 @@ from zia.annotations.annotation.geometry_utils import rescale_coords
 
 PATH_TO_FILE = "..\J-12-00350_NOR-022_Lewis_CYP2E1- 1 300_Run 14_ML, Sb, rk_MAA_006.geojson"
 
+logger = logging.getLogger(__name__)
+
 
 class AnnotationType(StrEnum):
-    LUNG = "Lung"
-    KIDNEY = "Kidney"
-    LIVER = "Liver"
-    BUBBLE = "Bubble"
-    FOLD = "Fold"
-    VESSEL = "Vessel"
+    LUNG = "lung"
+    KIDNEY = "kidney"
+    LIVER = "liver"
+    BUBBLE = "bubble"
+    FOLD = "fold"
+    VESSEL = "vessel"
+    DARK = "dark"
+    LIGHT = "light"
+    SCRATCH = "scratch"
+    SHADOW = "shadow"
+    OTHER = "other"
+    TEAR = "tear"
 
     @classmethod
     def get_by_string(cls, string: str):

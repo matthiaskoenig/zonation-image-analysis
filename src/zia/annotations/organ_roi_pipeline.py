@@ -14,7 +14,7 @@ from src.zia.annotations.annotation.annotations import AnnotationParser, Annotat
 from zia.annotations.annotation.roi import Roi, PyramidalLevel
 
 #OPENSLIDE_PATH = r'C:\Program Files\OpenSlide\openslide-win64-20230414\bin'
-PATH_TO_FILE = "geojsons/J-12-00350_NOR-022_Lewis_CYP2E1- 1 300_Run 14_ML, Sb, rk_MAA_006.geojson"
+PATH_TO_FILE = "resources/geojsons/J-12-00350_NOR-022_Lewis_CYP2E1- 1 300_Run 14_ML, Sb, rk_MAA_006.geojson"
 
 import os
 
@@ -25,7 +25,7 @@ import os
 # else:
 #    import openslide
 
-PATH_TO_PIC = r"image/J-12-00350_NOR-022_Lewis_CYP2E1- 1 300_Run 14_ML, Sb, rk_MAA_006.ndpi"
+PATH_TO_PIC = r"resources/image/J-12-00350_NOR-022_Lewis_CYP2E1- 1 300_Run 14_ML, Sb, rk_MAA_006.ndpi"
 
 """
 Reduces the list of shapes. It keeps all toplevel shapes, i.e. shapes that do not contain
@@ -42,7 +42,7 @@ def reduce_shapes(kept_shapes: List[Polygon], remaining_shapes: List[Polygon]) -
             not_in_bigger_shape.append(smaller_shape)
 
     if len(not_in_bigger_shape) == 1:
-        kept.append(not_in_bigger_shape[0])
+        kept_shapes.append(not_in_bigger_shape[0])
     elif len(not_in_bigger_shape) == 0:
         return
     else:
@@ -137,4 +137,4 @@ if __name__ == "__main__":
     plot_polygons([liver_roi.get_polygon_for_level(PyramidalLevel.SEVEN)], contour_image)
 
     ##
-    liver_roi.write_to_geojson("geojsons/result.geojson")
+    liver_roi.write_to_geojson("resources/geojsons/result.geojson")
