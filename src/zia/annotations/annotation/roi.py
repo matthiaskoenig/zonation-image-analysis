@@ -1,6 +1,7 @@
 import json
 from dataclasses import dataclass
 from enum import IntEnum
+from typing import List
 
 import geojson
 from shapely import Polygon
@@ -38,17 +39,22 @@ class Roi:
         factor = 2 ** (level - self._level)
         return Polygon(rescale_coords(self._geometry.exterior.coords, factor))
 
-    def write_to_geojson(self, path: str) -> None:
+    def _to_geojson_feature(self) -> gj.Feature:
         polygon = gj.Polygon(self._geometry.exterior.coords)
         properties = {
             "level": self._level,
             "annotationType": self.annotation_type
         }
 
-        geojson_dict = gj.Feature(geometry=polygon, properties=properties)
+        return gj.Feature(geometry=polygon, properties=properties)
+
+    @classmethod
+    def write_to_geojson(cls, rois: List["Roi"], path: str):
+        features = [roi._to_geojson_feature() for roi in rois]
+        feature_collection = gj.FeatureCollection(features)
 
         with open(path, "w") as f:
-            json.dump(geojson_dict, f)
+            json.dump(feature_collection, f)
 
     @classmethod
     def load_from_file(cls, path: str) -> "Roi":

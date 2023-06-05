@@ -13,8 +13,8 @@ from src.zia.annotations.annotation.annotations import AnnotationParser, Annotat
     Annotation
 from zia.annotations.annotation.roi import Roi, PyramidalLevel
 
-#OPENSLIDE_PATH = r'C:\Program Files\OpenSlide\openslide-win64-20230414\bin'
-PATH_TO_FILE = "resources/geojsons/J-12-00350_NOR-022_Lewis_CYP2E1- 1 300_Run 14_ML, Sb, rk_MAA_006.geojson"
+# OPENSLIDE_PATH = r'C:\Program Files\OpenSlide\openslide-win64-20230414\bin'
+PATH_TO_FILE = "/home/jkuettner/Pictures/wsi_annotations/annotations_species_comparison/mouse_project/objectsjson/MNT-025_Bl6J_J-20-0160_CYP2E1- 1 400_Run 11_LLL, RML, RSL, ICL_MAA_0006.geojson"
 
 import os
 
@@ -25,7 +25,7 @@ import os
 # else:
 #    import openslide
 
-PATH_TO_PIC = r"resources/image/J-12-00350_NOR-022_Lewis_CYP2E1- 1 300_Run 14_ML, Sb, rk_MAA_006.ndpi"
+PATH_TO_PIC = r"/home/jkuettner/qualiperf/P3-MetFun/data/cyp_species_comparison/all/mouse/CYP2E1/MNT-025_Bl6J_J-20-0160_CYP2E1- 1 400_Run 11_LLL, RML, RSL, ICL_MAA_0006.ndpi"
 
 """
 Reduces the list of shapes. It keeps all toplevel shapes, i.e. shapes that do not contain
@@ -79,8 +79,8 @@ if __name__ == "__main__":
 
     w, h = image.dimensions
 
-    #print(image.level_count)
-    #print(image.level_downsamples)
+    # print(image.level_count)
+    # print(image.level_downsamples)
 
     level = 7
     factor = image.level_downsamples[level]
@@ -90,9 +90,14 @@ if __name__ == "__main__":
 
     cv2image = cv2.cvtColor(np.array(region), cv2.COLOR_RGB2GRAY)
 
-    plot_pic(cv2image)
+    # pad the image to handle edge cutting tissue regions
+    padding = 10
 
-    blur = cv2.GaussianBlur(cv2image, (5, 5), 5)
+    padded_copy = cv2.copyMakeBorder(cv2image, padding, padding, padding, padding, cv2.BORDER_CONSTANT, value=255)
+
+    plot_pic(padded_copy)
+
+    blur = cv2.GaussianBlur(padded_copy, (5, 5), 5, borderType=cv2.BORDER_REPLICATE)
 
     plot_pic(blur)
 
@@ -100,9 +105,9 @@ if __name__ == "__main__":
     plot_pic(thresh)
 
     # Find contours in the binary mask
-    contours, _ = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    contours, _ = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE, offset=(-padding, -padding))
     # Create a blank image to draw the contours on
-    contour_image = np.zeros_like(thresh, dtype=np.uint8)
+    contour_image = np.zeros_like(cv2image, dtype=np.uint8)
 
     # Draw contours on the blank image
     cv2.drawContours(contour_image, contours, -1, (255), thickness=2)
@@ -122,19 +127,16 @@ if __name__ == "__main__":
 
     # load
     annotations = AnnotationParser.parse_geojson(PATH_TO_FILE)
-    liver_annotation_shape: Annotation = \
-        AnnotationParser.get_annotation_by_type(annotations,
-                                                annotation_type=AnnotationType.LIVER)[
-            0]
+    liver_annotation_shapes = AnnotationParser.get_annotation_by_type(annotations, annotation_type=AnnotationType.LIVER)
 
     # find the contour the organ shape that contains the annotation geometry
 
-    liver_shapes = [shape for shape in kept if
-                    shape.contains(liver_annotation_shape.get_resized_geometry(128))]
+    liver_shapes = [shape for shape in kept for anno in liver_annotation_shapes
+                    if shape.contains(anno.get_resized_geometry(128))]
 
-    liver_roi = Roi(liver_shapes[0], PyramidalLevel.SEVEN, AnnotationType.LIVER)
+    liver_rois = [Roi(liver_shape, PyramidalLevel.SEVEN, AnnotationType.LIVER) for liver_shape in liver_shapes]
 
-    plot_polygons([liver_roi.get_polygon_for_level(PyramidalLevel.SEVEN)], contour_image)
+    plot_polygons([liver_roi.get_polygon_for_level(PyramidalLevel.SEVEN) for liver_roi in liver_rois], contour_image)
 
     ##
-    liver_roi.write_to_geojson("resources/geojsons/result.geojson")
+    # liver_roi.write_to_geojson("resources/geojsons/result.geojson")

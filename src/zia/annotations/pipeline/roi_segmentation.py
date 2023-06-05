@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 import cv2
 import numpy as np
@@ -12,21 +12,29 @@ from zia.annotations.annotation.geometry_utils import read_full_image_from_slide
 from zia.annotations.annotation.roi import Roi, PyramidalLevel
 
 logger = logging.getLogger(__name__)
+
+
 class RoiSegmentation:
+    visuals = []
 
     @classmethod
-    def find_rois(cls, image: OpenSlide, annotations: List[Annotation],
-                  annotation_type: AnnotationType):
+    def find_rois(cls, image: OpenSlide, annotations: Optional[List[Annotation]],
+                  annotation_type: AnnotationType) -> List[Roi]:
         region = read_full_image_from_slide(image, 7)
 
         cv2image = cv2.cvtColor(np.array(region), cv2.COLOR_RGB2GRAY)
 
-        blur = cv2.GaussianBlur(cv2image, (5, 5), 5)
+        # pad the image to handle edge cutting tissue regions
+        padding = 10
+
+        padded_copy = cv2.copyMakeBorder(cv2image, padding, padding, padding, padding, cv2.BORDER_CONSTANT, value=255)
+
+        blur = cv2.GaussianBlur(padded_copy, (5, 5), 5, borderType=cv2.BORDER_REPLICATE)
 
         _, thresh = cv2.threshold(blur, 200, 255, cv2.THRESH_BINARY)
 
         # Find contours in the binary mask
-        contours, _ = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        contours, _ = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE, offset=(-padding, -padding))
 
         # get contour array to shapely coordinates
         contours = RoiSegmentation.filter_shapes(contours)
@@ -47,19 +55,22 @@ class RoiSegmentation:
             logger.warning("No annotations of type 'Liver' where found.")
             return None
 
-        liver_anno = liver_annotations[0]
-
         # find the contour the organ shape that contains the annotation geometry
 
-        contour_shapes = [shape for shape in kept if
-                          shape.contains(liver_anno.get_resized_geometry(128))]
+        contour_shapes = RoiSegmentation._extract_organ_shapes(kept, liver_annotations)
 
         if len(contour_shapes) == 0:
-            logger.warning("No organ contour matches with the annotation geometry.")
+            logger.warning("No organ contour matches with the annotation geometries.")
 
-        liver_roi = Roi(contour_shapes[0], PyramidalLevel.SEVEN, AnnotationType.LIVER)
+        liver_rois = [Roi(cs, PyramidalLevel.SEVEN, AnnotationType.LIVER) for cs in contour_shapes]
 
-        return liver_roi
+        return liver_rois
+
+    @classmethod
+    def _extract_organ_shapes(cls, shapes: List[Polygon], organ_annotations: List[Annotation]) -> List[Polygon]:
+        extracted = [shape for shape in shapes for anno in organ_annotations
+                     if shape.contains(anno.get_resized_geometry(128))]
+        return extracted
 
     @classmethod
     def filter_shapes(cls, contours):

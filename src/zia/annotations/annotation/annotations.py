@@ -1,6 +1,7 @@
 import logging
 from dataclasses import dataclass
 from strenum import StrEnum
+from enum import Enum
 from typing import Union, List, Tuple
 
 from shapely import Polygon, MultiPolygon
@@ -27,6 +28,9 @@ class AnnotationType(StrEnum):
     SHADOW = "shadow"
     OTHER = "other"
     TEAR = "tear"
+    BLUR = "blur"
+
+    UNKNOWN = "-"
 
     @classmethod
     def get_by_string(cls, string: str):
@@ -78,8 +82,10 @@ class AnnotationParser:
 
     @classmethod
     def _get_anno_type_from_feature(cls, feature: dict) -> AnnotationType:
-        name = feature.get("properties").get("classification").get("name")
-        return AnnotationType.get_by_string(name)
+        classification = feature.get("properties").get("classification")
+        if classification is None:
+            return AnnotationType.UNKNOWN
+        return AnnotationType.get_by_string(classification.get("name"))
 
     @classmethod
     def _get_anno_geometry_from_feature(cls, feature: dict) -> Union[
@@ -97,8 +103,14 @@ class AnnotationParser:
 
     @classmethod
     def get_annotation_by_type(cls, features: List[Union[Polygon | MultiPolygon]],
-                               annotation_type: AnnotationType):
+                               annotation_type: AnnotationType) -> List[Union[Polygon | MultiPolygon]]:
         return list(filter(lambda x: x.annotation_class == annotation_type, features))
+
+
+class AnnotationClassMissingException(Exception):
+    def __init__(self, feature_id: str):
+        self.feature_id = feature_id
+        super().__init__(f"Annotation classification is missing for feature with id '{feature_id}'.")
 
 
 if __name__ == "__main__":
