@@ -7,14 +7,12 @@ import zarr
 from matplotlib import pyplot as plt, cm
 import cv2
 from shapely.geometry import Polygon
-#import openslide
 
 from src.zia.annotations.normalization.marcenko import normalizeStaining
 
-OPENSLIDE_PATH = r'C:\Program Files\OpenSlide\openslide-win64-20230414\bin'
-PATH_TO_FILE = "/home/jkuettner/Pictures/wsi_annotations/annotations_species_comparison/mouse_project/objectsjson/MNT-025_Bl6J_J-20-0160_CYP2E1- 1 400_Run 11_LLL, RML, RSL, ICL_MAA_0006.geojson"
-
 import os
+
+from zia.annotations import OPENSLIDE_PATH
 
 if hasattr(os, 'add_dll_directory'):
     # Python >= 3.8 on Windows
@@ -22,6 +20,10 @@ if hasattr(os, 'add_dll_directory'):
         import openslide
 else:
     import openslide
+
+PATH_TO_FILE = "/home/jkuettner/Pictures/wsi_annotations/annotations_species_comparison/mouse_project/objectsjson/MNT-025_Bl6J_J-20-0160_CYP2E1- 1 400_Run 11_LLL, RML, RSL, ICL_MAA_0006.geojson"
+
+
 
 PATH_TO_PIC = r"D:\data\cyp_species_comparison\all\mouse\CYP2E1/MNT-025_Bl6J_J-20-0160_CYP2E1- 1 400_Run 11_LLL, RML, RSL, ICL_MAA_0006.ndpi"
 
@@ -84,5 +86,5 @@ if __name__ == "__main__":
     RC1, RC1N, RC2, RC2N = normalizeStaining(cv2.cvtColor(cv2image, cv2.COLOR_BGR2RGB), Io=240, alpha=1, beta=0.15)
 
     plot_pic(RC2)
-    plot_pic(RC2N)
+    plot_pic(RC1)
     #plot_rgb(INorm, transform_to_bgr=False)

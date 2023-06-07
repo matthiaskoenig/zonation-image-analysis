@@ -5,16 +5,28 @@ from typing import List
 
 from PIL.ImageDraw import ImageDraw
 from PIL.Image import Image
-from openslide import OpenSlide
-from zia.annotations.annotation.annotations import AnnotationParser, AnnotationType, AnnotationClassMissingException
+
+from zia import DATA_PATH, RESULTS_PATH, REPORT_PATH
+from zia.annotations import OPENSLIDE_PATH
+from zia.annotations.annotation.annotations import AnnotationParser, AnnotationType
 from zia.annotations.annotation.geometry_utils import read_full_image_from_slide
 from zia.annotations.annotation.roi import Roi, PyramidalLevel
 from zia.annotations.pipeline.roi_segmentation import RoiSegmentation
 
-IMAGE_PATH = "/home/jkuettner/Pictures/wsi_data/control"
-ANNO_PATH = "/home/jkuettner/Pictures/wsi_annotations/annotations_species_comparison"
-RESULT_PATH = "/home/jkuettner/Pictures/wsi_annotations/annotations_liver_roi"
-REPORT_PATH = "/home/jkuettner/Development/git/zonation-image-analysis/results/liver_rois"
+if hasattr(os, 'add_dll_directory'):
+    # Python >= 3.8 on Windows
+    with os.add_dll_directory(OPENSLIDE_PATH):
+        import openslide
+else:
+    import openslide
+
+IMAGE_PATH = DATA_PATH / "cyp_species_comparison" / "control"
+ANNO_PATH = DATA_PATH / "annotations_species_comparison"
+ROI_RESULT_PATH = RESULTS_PATH / "annotations_liver_roi"
+ROI_REPORT_PATH = REPORT_PATH / "liver_rois"
+
+for p in [ROI_RESULT_PATH, ROI_REPORT_PATH]:
+    p.mkdir(parents=True, exist_ok=True)
 
 logger = logging.getLogger(__name__)
 
@@ -75,7 +87,7 @@ class RoiSegmentationReport:
 
         result = f"Report:\n"
         result += 80 * "-" + "\n"
-        result += f"Total of {self._total}  files processed in {self._time} seconds:\n"
+        result += f"Total of {self._total}  files processed in {self._time:.2f} seconds:\n"
         result += f"Annotation geojson missing: {len(self._annotation_geojson_missing)}\n"
         result += f"Liver annotation missing: {len(self._liver_annotation_missing)}\n"
         result += f"Segmentation success: {len(self._segmentation_success)}\n"
@@ -98,18 +110,19 @@ class RoiSegmentationReport:
             f.write(self.__str__())
 
 
-def draw_result(open_slide: OpenSlide, liver_rois: List[Roi]) -> Image:
+def draw_result(open_slide: openslide.OpenSlide, liver_rois: List[Roi]) -> Image:
     region = read_full_image_from_slide(open_slide, 7)
     draw = ImageDraw(region)
     for liver_roi in liver_rois:
-        poly_points = liver_roi.get_polygon_for_level(PyramidalLevel.SEVEN).exterior.coords
+        poly_points = liver_roi.get_polygon_for_level(
+            PyramidalLevel.SEVEN).exterior.coords
         draw.polygon(list(poly_points), outline="red", width=3)
     return region
 
 
 if __name__ == "__main__":
-    create_paths(RESULT_PATH)
-    create_paths(REPORT_PATH)
+    create_paths(ROI_RESULT_PATH)
+    create_paths(ROI_REPORT_PATH)
     for species in species_list:
         logger.info(f"Start finding liver ROIs for {species}")
         start_time = time.time()
@@ -128,7 +141,8 @@ if __name__ == "__main__":
                     report.register_geojson_missing(file_name)
                     continue
 
-                annotations = AnnotationParser.parse_geojson(os.path.join(get_annotation_path(species), geojson_file))
+                annotations = AnnotationParser.parse_geojson(
+                    os.path.join(get_annotation_path(species), geojson_file))
 
                 liver_annotations = AnnotationParser.get_annotation_by_type(annotations,
                                                                             AnnotationType.LIVER)
@@ -137,7 +151,7 @@ if __name__ == "__main__":
                     report.register_liver_annotation_missing(file_name)
                     continue
 
-                open_slide = OpenSlide(os.path.join(folder_path, file_name))
+                open_slide = openslide.OpenSlide(os.path.join(folder_path, file_name))
                 liver_rois = RoiSegmentation.find_rois(open_slide, annotations,
                                                        AnnotationType.LIVER)
 
@@ -146,16 +160,20 @@ if __name__ == "__main__":
                     report.register_segmentation_fail(file_name)
 
                 else:
-                    Roi.write_to_geojson(liver_rois, os.path.join(RESULT_PATH, species, geojson_file))
+                    Roi.write_to_geojson(liver_rois,
+                                         os.path.join(ROI_RESULT_PATH, species,
+                                                      geojson_file))
                     image = draw_result(open_slide, liver_rois)
-                    image.save(os.path.join(REPORT_PATH, species, os.path.splitext(file_name)[0] + ".png"), "PNG")
+                    image.save(os.path.join(ROI_REPORT_PATH, species,
+                                            os.path.splitext(file_name)[0] + ".png"),
+                               "PNG")
 
                     if len(liver_rois) == len(liver_annotations):
                         report.register_segmentation_success(file_name)
                     else:
                         report.register_segmentation_partial(file_name)
         end_time = time.time()
-        report.time = end_time - start_time
+        report.set_time(end_time - start_time)
         print(report)
-        report.save(os.path.join(REPORT_PATH, species, "report.txt"))
+        report.save(os.path.join(ROI_REPORT_PATH, species, "report.txt"))
         logger.info(f"Finished finding liver ROIs for {species}")

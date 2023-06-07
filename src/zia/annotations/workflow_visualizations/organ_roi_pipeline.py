@@ -7,23 +7,23 @@ import zarr
 from matplotlib import pyplot as plt, cm
 import cv2
 from shapely.geometry import Polygon
-import openslide
 
 from src.zia.annotations.annotation.annotations import AnnotationParser, AnnotationType, \
     Annotation
-from zia.annotations.annotation.roi import Roi, PyramidalLevel
-
-# OPENSLIDE_PATH = r'C:\Program Files\OpenSlide\openslide-win64-20230414\bin'
-PATH_TO_FILE = "/home/jkuettner/Pictures/wsi_annotations/annotations_species_comparison/mouse_project/objectsjson/MNT-025_Bl6J_J-20-0160_CYP2E1- 1 400_Run 11_LLL, RML, RSL, ICL_MAA_0006.geojson"
-
+from src.zia.annotations.annotation.roi import Roi, PyramidalLevel
 import os
 
-# if hasattr(os, 'add_dll_directory'):
-#    # Python >= 3.8 on Windows
-#    with os.add_dll_directory(OPENSLIDE_PATH):
-#        import openslide
-# else:
-#    import openslide
+from zia.annotations import OPENSLIDE_PATH
+
+if hasattr(os, 'add_dll_directory'):
+    # Python >= 3.8 on Windows
+    with os.add_dll_directory(OPENSLIDE_PATH):
+        import openslide
+else:
+    import openslide
+
+PATH_TO_FILE = "/home/jkuettner/Pictures/wsi_annotations/annotations_species_comparison/mouse_project/objectsjson/MNT-025_Bl6J_J-20-0160_CYP2E1- 1 400_Run 11_LLL, RML, RSL, ICL_MAA_0006.geojson"
+
 
 PATH_TO_PIC = r"/home/jkuettner/qualiperf/P3-MetFun/data/cyp_species_comparison/all/mouse/CYP2E1/MNT-025_Bl6J_J-20-0160_CYP2E1- 1 400_Run 11_LLL, RML, RSL, ICL_MAA_0006.ndpi"
 
@@ -93,7 +93,8 @@ if __name__ == "__main__":
     # pad the image to handle edge cutting tissue regions
     padding = 10
 
-    padded_copy = cv2.copyMakeBorder(cv2image, padding, padding, padding, padding, cv2.BORDER_CONSTANT, value=255)
+    padded_copy = cv2.copyMakeBorder(cv2image, padding, padding, padding, padding,
+                                     cv2.BORDER_CONSTANT, value=255)
 
     plot_pic(padded_copy)
 
@@ -105,7 +106,8 @@ if __name__ == "__main__":
     plot_pic(thresh)
 
     # Find contours in the binary mask
-    contours, _ = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE, offset=(-padding, -padding))
+    contours, _ = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE,
+                                   offset=(-padding, -padding))
     # Create a blank image to draw the contours on
     contour_image = np.zeros_like(cv2image, dtype=np.uint8)
 
@@ -127,16 +129,20 @@ if __name__ == "__main__":
 
     # load
     annotations = AnnotationParser.parse_geojson(PATH_TO_FILE)
-    liver_annotation_shapes = AnnotationParser.get_annotation_by_type(annotations, annotation_type=AnnotationType.LIVER)
+    liver_annotation_shapes = AnnotationParser.get_annotation_by_type(annotations,
+                                                                      annotation_type=AnnotationType.LIVER)
 
     # find the contour the organ shape that contains the annotation geometry
 
     liver_shapes = [shape for shape in kept for anno in liver_annotation_shapes
                     if shape.contains(anno.get_resized_geometry(128))]
 
-    liver_rois = [Roi(liver_shape, PyramidalLevel.SEVEN, AnnotationType.LIVER) for liver_shape in liver_shapes]
+    liver_rois = [Roi(liver_shape, PyramidalLevel.SEVEN, AnnotationType.LIVER) for
+                  liver_shape in liver_shapes]
 
-    plot_polygons([liver_roi.get_polygon_for_level(PyramidalLevel.SEVEN) for liver_roi in liver_rois], contour_image)
+    plot_polygons(
+        [liver_roi.get_polygon_for_level(PyramidalLevel.SEVEN) for liver_roi in
+         liver_rois], contour_image)
 
     ##
     # liver_roi.write_to_geojson("resources/geojsons/result.geojson")

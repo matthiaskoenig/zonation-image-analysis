@@ -10,6 +10,7 @@ coverage.xml
 
 data
 results
+reports
 src/zonation_image_analysis.egg-info/
 image
 
