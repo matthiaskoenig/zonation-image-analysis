@@ -2,7 +2,7 @@ import logging
 from dataclasses import dataclass
 from strenum import StrEnum
 from enum import Enum
-from typing import Union, List, Tuple
+from typing import Union, List, Tuple, Set
 
 from shapely import Polygon, MultiPolygon
 import geojson as gj
@@ -36,6 +36,11 @@ class AnnotationType(StrEnum):
     def get_by_string(cls, string: str):
         return getattr(cls, string.upper())
 
+    @classmethod
+    def get_artifacts(cls) -> Set["AnnotationType"]:
+        return {cls.BUBBLE, cls.FOLD, cls.DARK, cls.LIGHT,
+                cls.SCRATCH, cls.SHADOW, cls.OTHER, cls.TEAR, cls.BLUR}
+
 
 @dataclass
 class Annotation:
@@ -47,18 +52,19 @@ class Annotation:
     correspond to the level of the pyramidal image.
     """
 
-    def get_resized_geometry(self, factor) -> Union[Polygon, MultiPolygon]:
+    def get_resized_geometry(self, factor, offset=(0, 0)) -> Union[
+        Polygon, MultiPolygon]:
         if isinstance(self.geometry, Polygon):
             return Polygon(
-                Annotation._rescale_coords(self.geometry.exterior.coords, factor))
+                Annotation._rescale_coords(self.geometry.exterior.coords, factor, offset))
         if isinstance(self.geometry, MultiPolygon):
             return MultiPolygon(
-                [Polygon(Annotation._rescale_coords(poly.exterior.coords, factor))] for
+                [Polygon(Annotation._rescale_coords(poly.exterior.coords, factor, offset))] for
                 poly in self.geoms)
 
     @classmethod
-    def _rescale_coords(cls, coords, level: int) -> List[Tuple[float, float]]:
-        return rescale_coords(coords, 1 / level)
+    def _rescale_coords(cls, coords, level: int, offset: Tuple[int, int]) -> List[Tuple[float, float]]:
+        return rescale_coords(coords, 1 / level, offset)
 
 
 """
@@ -97,20 +103,29 @@ class AnnotationParser:
         return [AnnotationParser._create_annotation(feature) for feature in features]
 
     @classmethod
-    def _create_annotation(cls, feature: dict):
+    def _create_annotation(cls, feature: dict) -> Annotation:
         return Annotation(AnnotationParser._get_anno_geometry_from_feature(feature),
                           AnnotationParser._get_anno_type_from_feature(feature))
 
     @classmethod
     def get_annotation_by_type(cls, features: List[Union[Polygon | MultiPolygon]],
-                               annotation_type: AnnotationType) -> List[Union[Polygon | MultiPolygon]]:
+                               annotation_type: AnnotationType) -> List[Annotation]:
         return list(filter(lambda x: x.annotation_class == annotation_type, features))
+
+    @classmethod
+    def get_annotation_by_types(cls, features: List[Union[Polygon | MultiPolygon]],
+                                annotation_types: Set[AnnotationType]) -> List[
+        Annotation]:
+        nested_list = [AnnotationParser.get_annotation_by_type(features, anno_type) for
+                       anno_type in annotation_types]
+        return [anno for sub_list in nested_list for anno in sub_list]
 
 
 class AnnotationClassMissingException(Exception):
     def __init__(self, feature_id: str):
         self.feature_id = feature_id
-        super().__init__(f"Annotation classification is missing for feature with id '{feature_id}'.")
+        super().__init__(
+            f"Annotation classification is missing for feature with id '{feature_id}'.")
 
 
 if __name__ == "__main__":

@@ -13,6 +13,8 @@ from src.zia.annotations.normalization.marcenko import normalizeStaining
 import os
 
 from zia.annotations import OPENSLIDE_PATH
+from zia.annotations.workflow_visualizations.util.image_plotting import plot_rgb, \
+    plot_pic
 
 if hasattr(os, 'add_dll_directory'):
     # Python >= 3.8 on Windows
@@ -31,32 +33,6 @@ PATH_TO_PIC = r"D:\data\cyp_species_comparison\all\mouse\CYP2E1/MNT-025_Bl6J_J-2
 Reduces the list of shapes. It keeps all toplevel shapes, i.e. shapes that do not contain
 another shape
 """
-
-
-def plot_pic(array):
-    fig, ax = plt.subplots(1, 1)
-    ax.imshow(array, cmap=matplotlib.colormaps.get_cmap("binary"))
-    plt.show()
-
-
-def plot_rgb(array, transform_to_bgr=True):
-    fig, ax = plt.subplots(1, 1)
-    if transform_to_bgr:
-        array = cv2.cvtColor(array, cv2.COLOR_BGR2RGB)
-    ax.imshow(array)
-    plt.show()
-
-
-def plot_polygons(polygons: List[Polygon], image_like: np.ndarray):
-    fig, ax = plt.subplots(1, 1)
-    new_image = Image.fromarray(np.zeros_like(image_like), "L")
-    draw = ImageDraw.ImageDraw(new_image)
-    for poly in polygons:
-        draw.polygon(poly.exterior.coords, outline="white", fill="white")
-
-    ax.imshow(new_image, cmap=matplotlib.colormaps.get_cmap("binary"))
-    plt.show()
-
 
 def transform_contour_to_shapely_coords(contour):
     return tuple([(x, y) for x, y in contour[:, 0, :]])

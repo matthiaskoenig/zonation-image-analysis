@@ -13,9 +13,9 @@ else:
     import openslide
 
 
-def rescale_coords(coords: List[Tuple[float, float]], factor: float) -> List[
-    Tuple[float, float]]:
-    return [(x * factor, y * factor) for x, y in
+def rescale_coords(coords: List[Tuple[float, float]], factor: float,
+                   offset=(0, 0)) -> List[Tuple[float, float]]:
+    return [((x - offset[0]) * factor, (y - offset[1]) * factor) for x, y in
             coords]
 
 

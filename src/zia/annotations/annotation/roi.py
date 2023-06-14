@@ -1,11 +1,13 @@
 import json
 from dataclasses import dataclass
 from enum import IntEnum
-from typing import List
+from typing import List, Tuple
 
 import geojson
+from geojson import FeatureCollection
 from shapely import Polygon
 import geojson as gj
+from shapely.geometry import shape
 
 from zia.annotations.annotation.annotations import AnnotationType
 from zia.annotations.annotation.geometry_utils import rescale_coords
@@ -22,8 +24,8 @@ class PyramidalLevel(IntEnum):
     SEVEN = 7
 
     @classmethod
-    def get_by_numeric_level(cls, level: int):
-        return getattr(cls, level)
+    def get_by_numeric_level(cls, level: int) -> "PyramidalLevel":
+        return PyramidalLevel(level)
 
 
 class Roi:
@@ -35,12 +37,14 @@ class Roi:
         self._level = level
         self.annotation_type = annotation_type
 
-    def get_polygon_for_level(self, level: PyramidalLevel) -> Polygon:
-        factor = 2 ** (level - self._level)
-        return Polygon(rescale_coords(self._geometry.exterior.coords, factor))
+    def get_polygon_for_level(self, level: PyramidalLevel, offset=(0, 0)) -> Polygon:
+        factor = 2 ** (self._level - level)
+        offset = tuple(x / factor for x in offset)
+        return Polygon(rescale_coords(self._geometry.exterior.coords, factor, offset))
 
     def _to_geojson_feature(self) -> gj.Feature:
-        polygon = gj.Polygon(self._geometry.exterior.coords)
+        geojson_dict = self._geometry.__geo_interface__
+        polygon = gj.Polygon(coordinates=geojson_dict["coordinates"])
         properties = {
             "level": self._level,
             "annotationType": self.annotation_type
@@ -57,14 +61,20 @@ class Roi:
             json.dump(feature_collection, f)
 
     @classmethod
-    def load_from_file(cls, path: str) -> "Roi":
-        with open(path, "r") as f:
-            geojson_dict = gj.load(path)
+    def load_from_file(cls, path: str) -> List["Roi"]:
 
-        if not isinstance(geojson_dict.get("geometry"), gj.Polygon):
+        with open(path, "r") as f:
+            feature_collection = gj.load(f)
+
+        return [Roi._parse_feature(feature) for feature in
+                feature_collection["features"]]
+
+    @classmethod
+    def _parse_feature(cls, feature: dict) -> "Roi":
+        if not isinstance(feature.get("geometry"), gj.Polygon):
             raise ImportError("The parsed geojson geometry for a ROI must be a Polygon")
 
-        properties: dict = geojson_dict.get("properties")
+        properties: dict = feature.get("properties")
         if "level" not in properties.keys():
             raise KeyError(
                 "The geojson object must contain a the element 'properties.level'")
@@ -72,8 +82,17 @@ class Roi:
             raise KeyError(
                 "The geojson object must contain a the element 'properties.level'")
 
-        geometry = geojson_dict.get("geometry")
+        print(feature.get("geometry"))
+        geometry = shape(feature.get("geometry"))
         level = PyramidalLevel.get_by_numeric_level(properties.get("level"))
         annotation_type = AnnotationType.get_by_string(properties.get("annotationType"))
 
         return Roi(geometry, level, annotation_type)
+
+    def get_bound(self, level: PyramidalLevel) -> Tuple[slice, slice]:
+        poly = self.get_polygon_for_level(level)
+        b = poly.bounds
+
+        xs = slice(int(b[0]), int(b[2]))
+        ys = slice(int(b[1]), int(b[3]))
+        return xs, ys

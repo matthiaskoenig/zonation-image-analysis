@@ -4,6 +4,7 @@ BASE_PATH = Path(__file__).parent.parent.parent
 RESOURCES_PATH = BASE_PATH / "src" / "zia" / "resources"
 #DATA_PATH = BASE_PATH / "data"
 DATA_PATH = Path("D:/data")
+ZARR_PATH = Path("D:/zarr")
 RESULTS_PATH = BASE_PATH / "results"
 REPORT_PATH = BASE_PATH / "reports"
 

@@ -53,7 +53,7 @@ class RoiSegmentation:
 
         if len(liver_annotations) == 0:
             logger.warning("No annotations of type 'Liver' where found.")
-            return None
+            return []
 
         # find the contour the organ shape that contains the annotation geometry
 

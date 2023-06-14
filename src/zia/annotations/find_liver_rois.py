@@ -20,7 +20,7 @@ if hasattr(os, 'add_dll_directory'):
 else:
     import openslide
 
-IMAGE_PATH = DATA_PATH / "cyp_species_comparison" / "control"
+IMAGE_PATH = DATA_PATH / "cyp_species_comparison" / "all"
 ANNO_PATH = DATA_PATH / "annotations_species_comparison"
 ROI_RESULT_PATH = RESULTS_PATH / "annotations_liver_roi"
 ROI_REPORT_PATH = REPORT_PATH / "liver_rois"

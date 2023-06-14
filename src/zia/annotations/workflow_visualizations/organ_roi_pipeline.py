@@ -1,19 +1,15 @@
+import os
 from typing import List
 
-from PIL import Image, ImageDraw
-import matplotlib.cm
-import numpy as np
-import zarr
-from matplotlib import pyplot as plt, cm
 import cv2
+import numpy as np
 from shapely.geometry import Polygon
 
-from src.zia.annotations.annotation.annotations import AnnotationParser, AnnotationType, \
-    Annotation
+from src.zia.annotations.annotation.annotations import AnnotationParser, AnnotationType
 from src.zia.annotations.annotation.roi import Roi, PyramidalLevel
-import os
-
 from zia.annotations import OPENSLIDE_PATH
+from zia.annotations.workflow_visualizations.util.image_plotting import plot_pic, \
+    plot_polygons
 
 if hasattr(os, 'add_dll_directory'):
     # Python >= 3.8 on Windows
@@ -47,23 +43,6 @@ def reduce_shapes(kept_shapes: List[Polygon], remaining_shapes: List[Polygon]) -
         return
     else:
         reduce_shapes(kept_shapes, not_in_bigger_shape)
-
-
-def plot_pic(array):
-    fig, ax = plt.subplots(1, 1)
-    ax.imshow(array, cmap=matplotlib.colormaps.get_cmap("binary"))
-    plt.show()
-
-
-def plot_polygons(polygons: List[Polygon], image_like: np.ndarray):
-    fig, ax = plt.subplots(1, 1)
-    new_image = Image.fromarray(np.zeros_like(image_like), "L")
-    draw = ImageDraw.ImageDraw(new_image)
-    for poly in polygons:
-        draw.polygon(poly.exterior.coords, outline="white", fill="white")
-
-    ax.imshow(new_image, cmap=matplotlib.colormaps.get_cmap("binary"))
-    plt.show()
 
 
 def transform_contour_to_shapely_coords(contour):
