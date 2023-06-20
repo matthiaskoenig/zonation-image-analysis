@@ -1,48 +1,29 @@
-import os.path
-from typing import Optional, List, Tuple
+import logging
+from typing import List, Tuple, Union
 
 import cv2
-from dask.array import from_zarr
 import numpy as np
 import shapely
+from dask.array import from_zarr
 from shapely import Polygon
 
-from zia import DATA_PATH, RESULTS_PATH
-from zia.annotations.annotation.annotations import AnnotationParser, AnnotationType, \
-    Annotation
+from zia.annotations.annotation.annotations import Annotation
 from zia.annotations.annotation.roi import Roi, PyramidalLevel
+from zia.annotations.path_utils.path_util import FileManager
 from zia.annotations.workflow_visualizations.util.image_plotting import plot_rgb
-from zia.annotations.zarr_image.zarr_image import ZarrImage
+from zia.annotations.zarr_image.zarr_image import ZarrImage, ZarrGroups
 
 IMAGE_NAME = "J-12-00348_NOR-021_Lewis_CYP2E1- 1 300_Run 14_ML, Sb, rk_MAA_006"
 
-ROI_ANNOTATION_PATH = RESULTS_PATH / "annotations_liver_roi" / "rat"
-IMAGE_PATH = DATA_PATH / "cyp_species_comparison" / "all" / "rat" / "CYP2E1"
-ZARR_PATH = DATA_PATH / "zarr_files"
-
-
-def get_annotation_path(image_name: str) -> Optional[str]:
-    json_file = image_name + ".geojson"
-    base = DATA_PATH / "annotations_species_comparison"
-    for subfolder in os.listdir(base):
-        image_path = os.path.join(base, subfolder, "objectsjson", json_file)
-        if os.path.isfile(image_path):
-            return image_path
-
-
+logger = logging.getLogger(__name__)
 class MaskGenerator:
 
     @classmethod
-    def create_mask(cls, zarr_image: ZarrImage) -> None:
-
-        # parse the annotations and filter for artifacts
-        annotations = AnnotationParser.get_annotation_by_types(
-            AnnotationParser.parse_geojson(get_annotation_path(zarr_image.name)),
-            AnnotationType.get_artifacts())
+    def create_mask(cls, zarr_image: ZarrImage, annotations: List[Annotation]) -> None:
 
         # iterate over the range of interests
-        for roi_no, (leveled_roi, roi) in enumerate(
-            zip(zarr_image.rois, zarr_image.roi_annos)):
+        for roi_no, (leveled_roi, roi) in enumerate(zip(zarr_image.rois,
+                                                        zarr_image._roi_annos)):
             (arr, bounds) = leveled_roi.get_by_level(
                 PyramidalLevel.ZERO)
 
@@ -53,8 +34,8 @@ class MaskGenerator:
             # create initial mask array
             mask = np.zeros(arr.shape[:-1])
 
-            offset = (bounds[0], bounds[1])
             # draw polygon for roi
+            offset = (bounds[0], bounds[1])
             mask = MaskGenerator._draw_roi_polygon(roi, mask, offset)
             mask = MaskGenerator._draw_artifact_polygons(artifacts, mask, offset)
 
@@ -90,11 +71,23 @@ class MaskGenerator:
         return mask
 
     @classmethod
-    def _draw_polygon(cls, geometry: shapely.Polygon,
+    def _draw_polygon(cls, geometry: Union[shapely.Polygon, shapely.MultiPolygon],
                       mask: np.ndarray,
                       color: int) -> np.ndarray:
-        points = [[x, y] for x, y in zip(*geometry.boundary.coords.xy)]
-        return cv2.fillPoly(mask, np.array([points]).astype(np.int32), color=color)
+        if isinstance(geometry, Polygon):
+            points = [[x, y] for x, y in zip(*geometry.boundary.coords.xy)]
+            return cv2.fillPoly(mask, np.array([points]).astype(np.int32), color=color)
+
+        if isinstance(geometry, shapely.MultiPolygon):
+            for poly in geometry.geoms:
+                points = [[x, y] for x, y in zip(*poly.boundary.coords.xy)]
+                mask = cv2.fillPoly(mask, np.array([points]).astype(np.int32), color=color)
+            return mask
+
+        logger.warning(f"Another geometry type encountered, "
+                       f"which was not drawn: '{type(geometry)}'")
+
+        return mask
 
     @classmethod
     def _write_mask_to_zarr(cls, zarr_image: ZarrImage,
@@ -109,23 +102,21 @@ class MaskGenerator:
                                       interpolation=cv2.INTER_NEAREST)
             data_dict[i] = resized_mask.astype(bool)
 
-        zarr_image.create_multilevel_group("liver_mask", roi_no, data_dict)
+        zarr_image.create_multilevel_group(ZarrGroups.LIVER_MASK, roi_no, data_dict)
 
 
 if __name__ == "__main__":
-    rois = Roi.load_from_file(
-        os.path.join(ROI_ANNOTATION_PATH, f"{IMAGE_NAME}.geojson"))
 
-    zarr_image = ZarrImage(IMAGE_NAME, rois)
+    file_manager = FileManager()
 
-    ## reading image with tiffile as zarr store
+    for species, name in file_manager.get_image_names():
+        zarr_image = ZarrImage(name, file_manager)
+        MaskGenerator.create_mask(zarr_image)
 
-    MaskGenerator.create_mask(zarr_image)
+        image_4, _ = zarr_image.rois[0].get_by_level(PyramidalLevel.FOUR)
+        mask = from_zarr(zarr_image.data.get("liver_mask/0/4"))
 
-    image_4, _ = zarr_image.rois[0].get_by_level(PyramidalLevel.FOUR)
-    mask = from_zarr(zarr_image.data.get("liver_mask/0/4"))
+        to_plot = image_4.compute()
+        to_plot[~mask.compute()] = [255, 255, 255]
 
-    to_plot = image_4.compute()
-    to_plot[~mask.compute()] = [255, 255, 255]
-
-    plot_rgb(to_plot, False)
+        plot_rgb(to_plot, False)

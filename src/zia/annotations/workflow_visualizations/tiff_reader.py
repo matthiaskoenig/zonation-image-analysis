@@ -73,7 +73,7 @@ if __name__ == "__main__":
     ## reading image with tiffile as zarr store
 
     for roi_no, (leveled_roi, roi) in enumerate(
-        zip(zarr_image.rois, zarr_image.roi_annos)):
+        zip(zarr_image.rois, zarr_image._roi_annos)):
         (arr, (x_min, y_min, x_max, y_max)) = leveled_roi.get_by_level(
             PyramidalLevel.ZERO)
         bound_poly = shapely.box(x_min, y_min, x_max, y_max)

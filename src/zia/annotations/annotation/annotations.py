@@ -1,8 +1,10 @@
 import logging
 from dataclasses import dataclass
+
+import shapely.affinity
 from strenum import StrEnum
 from enum import Enum
-from typing import Union, List, Tuple, Set
+from typing import Union, List, Tuple, Set, Optional
 
 from shapely import Polygon, MultiPolygon
 import geojson as gj
@@ -52,15 +54,18 @@ class Annotation:
     correspond to the level of the pyramidal image.
     """
 
-    def get_resized_geometry(self, factor, offset=(0, 0)) -> Union[
-        Polygon, MultiPolygon]:
+    def get_resized_geometry(self, factor, offset=(0, 0)) -> Optional[Union[
+        Polygon, MultiPolygon]]:
         if isinstance(self.geometry, Polygon):
             return Polygon(
                 Annotation._rescale_coords(self.geometry.exterior.coords, factor, offset))
         if isinstance(self.geometry, MultiPolygon):
             return MultiPolygon(
-                [Polygon(Annotation._rescale_coords(poly.exterior.coords, factor, offset))] for
-                poly in self.geoms)
+                [Polygon(Annotation._rescale_coords(poly.exterior.coords, factor, offset)) for
+                poly in self.geometry.geoms])
+
+        logger.warning(f"Another geometry type encountered, "
+                       f"which was not drawn: '{type(self.geometry)}'")
 
     @classmethod
     def _rescale_coords(cls, coords, level: int, offset: Tuple[int, int]) -> List[Tuple[float, float]]:

@@ -82,7 +82,6 @@ class Roi:
             raise KeyError(
                 "The geojson object must contain a the element 'properties.level'")
 
-        print(feature.get("geometry"))
         geometry = shape(feature.get("geometry"))
         level = PyramidalLevel.get_by_numeric_level(properties.get("level"))
         annotation_type = AnnotationType.get_by_string(properties.get("annotationType"))
@@ -91,8 +90,9 @@ class Roi:
 
     def get_bound(self, level: PyramidalLevel) -> Tuple[slice, slice]:
         poly = self.get_polygon_for_level(level)
-        b = poly.bounds
-
-        xs = slice(int(b[0]), int(b[2]))
-        ys = slice(int(b[1]), int(b[3]))
+        bounds = poly.bounds
+        # bounds where generated from padded image. setting negative bounds to zero to have valid slices
+        norm_bounds = tuple([b if b >= 0 else 0 for b in bounds])
+        xs = slice(int(norm_bounds[0]), int(norm_bounds[2]))
+        ys = slice(int(norm_bounds[1]), int(norm_bounds[3]))
         return xs, ys
