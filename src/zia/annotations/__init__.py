@@ -1,1 +1,1 @@
-OPENSLIDE_PATH = r"C:\Program Files\OpenSlide\openslide-win64-20230414\bin"
+"""Utilities for working with image annotations."""

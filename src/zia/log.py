@@ -1,6 +1,6 @@
 """Module for logging.
 
-Using rich for output formating.
+Using rich for output formatting.
 """
 import logging
 

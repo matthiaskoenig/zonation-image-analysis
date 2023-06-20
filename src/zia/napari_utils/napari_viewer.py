@@ -1,3 +1,5 @@
+"""Napari viewer."""
+
 from typing import List
 
 import dask.array as da
