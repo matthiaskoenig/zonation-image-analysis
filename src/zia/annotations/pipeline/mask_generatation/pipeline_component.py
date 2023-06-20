@@ -6,19 +6,22 @@ from zia.annotations.path_utils.path_util import FileManager, ResultDir
 from zia.annotations.pipeline.mask_generatation.image_analysis import MaskGenerator
 from zia.annotations.pipeline.pipeline import IPipelineComponent
 from zia.annotations.zarr_image.image_repository import ImageRepository
-from zia.annotations.zarr_image.zarr_image import ZarrImage, ZarrGroups
+from zia.annotations.zarr_image.zarr_image import ZarrGroups, ZarrImage
 
 
 class MaskCreationComponent(IPipelineComponent):
-
-    def __init__(self, file_manager: FileManager, image_repo: ImageRepository,
-                 draw=True, overwrite=False):
+    def __init__(
+        self,
+        file_manager: FileManager,
+        image_repo: ImageRepository,
+        draw=True,
+        overwrite=False,
+    ):
         IPipelineComponent.__init__(self, file_manager, image_repo)
         self._draw = draw
         self._overwrite = overwrite
 
     def run(self):
-
         for species, image_name in self._file_manager.get_image_names():
             print(species, image_name)
             zarr_image = self._image_repo.zarr_images.get(image_name)
@@ -26,7 +29,8 @@ class MaskCreationComponent(IPipelineComponent):
                 continue
 
             annotations = AnnotationParser.parse_geojson(
-                self._file_manager.get_annotation_path(image_name))
+                self._file_manager.get_annotation_path(image_name)
+            )
             MaskGenerator.create_mask(zarr_image, annotations)
             self._draw_mask(zarr_image, species)
 
@@ -41,9 +45,11 @@ class MaskCreationComponent(IPipelineComponent):
             image_7[~mask] = [255, 255, 255]
 
             cv2.imwrite(
-                self._file_manager.get_report_path(ResultDir.LIVER_MASK, species,
-                                                   f"{zarr_image.name}.jpeg"),
-                image_7)
+                self._file_manager.get_report_path(
+                    ResultDir.LIVER_MASK, species, f"{zarr_image.name}.jpeg"
+                ),
+                image_7,
+            )
 
     def _check_if_exists(self, zarr_image: ZarrImage) -> bool:
         if ZarrGroups.LIVER_MASK.value in zarr_image.data.keys():

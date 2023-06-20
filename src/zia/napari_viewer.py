@@ -1,8 +1,8 @@
 from typing import List
 
-import numpy as np
 import dask.array as da
 import napari
+import numpy as np
 
 
 def view_ndpi_data(data: List[da.Array]) -> None:

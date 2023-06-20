@@ -13,7 +13,3 @@ class IPipelineComponent(ABC):
     @abstractmethod
     def run(self):
         pass
-
-
-
-

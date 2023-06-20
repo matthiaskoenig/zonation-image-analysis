@@ -4,11 +4,12 @@ Handles the metadata correctly and better handling of store
 https://github.com/AstraZeneca/napari-wsi
 
 """
+from pathlib import Path
+from typing import List
+
 import dask.array as da
 import zarr
 from tifffile import TiffFileError, ZarrStore, tiffcomment, tifffile
-from pathlib import Path
-from typing import List
 
 from zia.io.core import check_image_path
 

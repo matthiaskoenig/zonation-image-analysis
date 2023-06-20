@@ -4,11 +4,14 @@ import numpy as np
 
 from zia import DATA_PATH, RESULTS_PATH
 from zia.annotations import OPENSLIDE_PATH
-from zia.annotations.annotation.roi import Roi, PyramidalLevel
-from zia.annotations.workflow_visualizations.util.image_plotting import plot_pic, \
-    plot_rgb
+from zia.annotations.annotation.roi import PyramidalLevel, Roi
+from zia.annotations.workflow_visualizations.util.image_plotting import (
+    plot_pic,
+    plot_rgb,
+)
 
-if hasattr(os, 'add_dll_directory'):
+
+if hasattr(os, "add_dll_directory"):
     # Python >= 3.8 on Windows
     with os.add_dll_directory(OPENSLIDE_PATH):
         import openslide
@@ -32,9 +35,10 @@ if __name__ == "__main__":
 
     open_slide = openslide.OpenSlide(os.path.join(IMAGE_PATH, f"{IMAGE_NAME}.ndpi"))
     print(open_slide.properties)
-    image = open_slide.read_region(location=(int(b1[0]), int(b1[1])),
-                                   level=PyramidalLevel.FIVE,
-                                   size=(int(b[2] - b[0]), int(b[3] - b[1]))
-                                   )
+    image = open_slide.read_region(
+        location=(int(b1[0]), int(b1[1])),
+        level=PyramidalLevel.FIVE,
+        size=(int(b[2] - b[0]), int(b[3] - b[1])),
+    )
 
     plot_rgb(np.array(image), transform_to_bgr=False)

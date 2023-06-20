@@ -4,9 +4,9 @@ from enum import IntEnum
 from typing import List, Tuple
 
 import geojson
+import geojson as gj
 from geojson import FeatureCollection
 from shapely import Polygon
-import geojson as gj
 from shapely.geometry import shape
 
 from zia.annotations.annotation.annotations import AnnotationType
@@ -29,10 +29,9 @@ class PyramidalLevel(IntEnum):
 
 
 class Roi:
-    def __init__(self,
-                 polygon: Polygon,
-                 level: PyramidalLevel,
-                 annotation_type: AnnotationType):
+    def __init__(
+        self, polygon: Polygon, level: PyramidalLevel, annotation_type: AnnotationType
+    ):
         self._geometry = polygon
         self._level = level
         self.annotation_type = annotation_type
@@ -45,10 +44,7 @@ class Roi:
     def _to_geojson_feature(self) -> gj.Feature:
         geojson_dict = self._geometry.__geo_interface__
         polygon = gj.Polygon(coordinates=geojson_dict["coordinates"])
-        properties = {
-            "level": self._level,
-            "annotationType": self.annotation_type
-        }
+        properties = {"level": self._level, "annotationType": self.annotation_type}
 
         return gj.Feature(geometry=polygon, properties=properties)
 
@@ -62,12 +58,12 @@ class Roi:
 
     @classmethod
     def load_from_file(cls, path: str) -> List["Roi"]:
-
         with open(path, "r") as f:
             feature_collection = gj.load(f)
 
-        return [Roi._parse_feature(feature) for feature in
-                feature_collection["features"]]
+        return [
+            Roi._parse_feature(feature) for feature in feature_collection["features"]
+        ]
 
     @classmethod
     def _parse_feature(cls, feature: dict) -> "Roi":
@@ -77,10 +73,12 @@ class Roi:
         properties: dict = feature.get("properties")
         if "level" not in properties.keys():
             raise KeyError(
-                "The geojson object must contain a the element 'properties.level'")
+                "The geojson object must contain a the element 'properties.level'"
+            )
         if "annotationType" not in properties.keys():
             raise KeyError(
-                "The geojson object must contain a the element 'properties.level'")
+                "The geojson object must contain a the element 'properties.level'"
+            )
 
         geometry = shape(feature.get("geometry"))
         level = PyramidalLevel.get_by_numeric_level(properties.get("level"))

@@ -1,11 +1,12 @@
 import geojson as gj
-import numpy as np
-from shapely.geometry import shape, Polygon, MultiPolygon
-from PIL import Image, ImageDraw
 import matplotlib.pyplot as plt
 import napari
+import numpy as np
 import openslide
 import zarr
+from PIL import Image, ImageDraw
+from shapely.geometry import MultiPolygon, Polygon, shape
+
 
 PATH_TO_FILE = "../resources/geojsons/J-12-00350_NOR-022_Lewis_CYP2E1- 1 300_Run 14_ML, Sb, rk_MAA_006.geojson"
 PATH_TO_ZARR = "../resources/zarr_files/img2.zarr"
@@ -32,9 +33,7 @@ if __name__ == "__main__":
 
     mask_array = np.array(mask)
 
-    zarray = zarr.array(mask_array,
-                        store=PATH_TO_ZARR)
-
+    zarray = zarr.array(mask_array, store=PATH_TO_ZARR)
 
     # zarr.convenience.save_array(PATH_TO_ZARR, mask_array)
 

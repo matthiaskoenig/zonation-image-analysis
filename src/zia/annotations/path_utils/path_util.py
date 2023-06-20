@@ -1,8 +1,8 @@
 import os
 from enum import Enum
-from typing import Optional, Iterator, Tuple
+from typing import Iterator, Optional, Tuple
 
-from zia import DATA_PATH, ZARR_PATH, RESULTS_PATH, REPORT_PATH
+from zia import DATA_PATH, REPORT_PATH, RESULTS_PATH, ZARR_PATH
 
 
 class ResultDir(Enum):
@@ -68,8 +68,7 @@ class FileManager:
     def get_zarr_file(self, image_name: str):
         return ZARR_PATH / f"{image_name}.zarr"
 
-    def get_results_path(self, result_dir: ResultDir, species: str,
-                         file_name: str):
+    def get_results_path(self, result_dir: ResultDir, species: str, file_name: str):
         report_folder = os.path.join(self.results_path, result_dir.value)
         if not os.path.exists(report_folder):
             os.mkdir(report_folder)
@@ -91,9 +90,7 @@ class FileManager:
 
         return os.path.join(species_folder, file_name)
 
-
     def initialize(self):
         for path in [self.results_path, self.zarr_path]:
             if not os.path.exists(path):
                 os.mkdir(path)
-

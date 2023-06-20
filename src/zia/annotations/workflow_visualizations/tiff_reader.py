@@ -1,5 +1,5 @@
 import os.path
-from typing import List, Tuple, Optional
+from typing import List, Optional, Tuple
 
 import cv2
 import dask.array
@@ -7,23 +7,24 @@ import numpy as np
 import shapely
 import tifffile
 import zarr.convenience
-from PIL.ImageDraw import ImageDraw
-from tifffile.tifffile import ZarrTiffStore
 from dask.array import from_zarr
+from PIL.ImageDraw import ImageDraw
+from tifffile import imread
+from tifffile.tifffile import ZarrTiffStore
+from zarr.hierarchy import Group
 
 from zia import DATA_PATH, RESULTS_PATH
 from zia.annotations import OPENSLIDE_PATH
 from zia.annotations.annotation.annotations import AnnotationParser, AnnotationType
-from zia.annotations.annotation.roi import Roi, PyramidalLevel
-from zia.annotations.workflow_visualizations.util.image_plotting import plot_pic, \
-    plot_rgb
-from zarr.hierarchy import Group
+from zia.annotations.annotation.roi import PyramidalLevel, Roi
+from zia.annotations.workflow_visualizations.util.image_plotting import (
+    plot_pic,
+    plot_rgb,
+)
+from zia.annotations.zarr_image.zarr_image import LeveledRoi, ZarrImage
 
-from tifffile import imread
 
-from zia.annotations.zarr_image.zarr_image import ZarrImage, LeveledRoi
-
-if hasattr(os, 'add_dll_directory'):
+if hasattr(os, "add_dll_directory"):
     # Python >= 3.8 on Windows
     with os.add_dll_directory(OPENSLIDE_PATH):
         import openslide
@@ -64,23 +65,26 @@ def create_polygon_from_slice_bounds():
 
 
 if __name__ == "__main__":
-
     rois = Roi.load_from_file(
-        os.path.join(ROI_ANNOTATION_PATH, f"{IMAGE_NAME}.geojson"))
+        os.path.join(ROI_ANNOTATION_PATH, f"{IMAGE_NAME}.geojson")
+    )
 
     zarr_image = ZarrImage(IMAGE_NAME, rois)
 
     ## reading image with tiffile as zarr store
 
     for roi_no, (leveled_roi, roi) in enumerate(
-        zip(zarr_image.rois, zarr_image._roi_annos)):
+        zip(zarr_image.rois, zarr_image._roi_annos)
+    ):
         (arr, (x_min, y_min, x_max, y_max)) = leveled_roi.get_by_level(
-            PyramidalLevel.ZERO)
+            PyramidalLevel.ZERO
+        )
         bound_poly = shapely.box(x_min, y_min, x_max, y_max)
 
         annotations = AnnotationParser.get_annotation_by_types(
             AnnotationParser.parse_geojson(get_annotation_path(IMAGE_NAME)),
-            AnnotationType.get_artifacts())
+            AnnotationType.get_artifacts(),
+        )
 
         roi_artifacts = []
         print(len(annotations))
@@ -94,8 +98,14 @@ if __name__ == "__main__":
         print(len(roi_artifacts))
         mask = np.zeros(arr.shape[:-1])
 
-        points = [[x, y] for x, y in zip(*roi.get_polygon_for_level(
-            PyramidalLevel.ZERO, offset=(x_min, y_min)).boundary.coords.xy)]
+        points = [
+            [x, y]
+            for x, y in zip(
+                *roi.get_polygon_for_level(
+                    PyramidalLevel.ZERO, offset=(x_min, y_min)
+                ).boundary.coords.xy
+            )
+        ]
         print(points)
         mask = cv2.fillPoly(mask, np.array([points]).astype(np.int32), color=1)
 
@@ -108,9 +118,10 @@ if __name__ == "__main__":
         h, w = mask.shape
         data_dict = {0: mask.astype(bool)}
         for i in [2, 4]:
-            new_h, new_w = int(h / 2 ** i), int(w / 2 ** i)
-            resized_mask = cv2.resize(mask, dsize=(new_w, new_h),
-                                      interpolation=cv2.INTER_NEAREST)
+            new_h, new_w = int(h / 2**i), int(w / 2**i)
+            resized_mask = cv2.resize(
+                mask, dsize=(new_w, new_h), interpolation=cv2.INTER_NEAREST
+            )
             data_dict[i] = resized_mask.astype(bool)
 
         zarr_image.create_multilevel_group("liver_mask", roi_no, data_dict)

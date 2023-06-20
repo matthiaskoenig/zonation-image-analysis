@@ -41,8 +41,12 @@ class RoiSegmentationReport:
     def report(self):
         result = f"Report:\n"
         result += 80 * "-" + "\n"
-        result += f"Total of {self._total}  files processed in {self._time:.2f} seconds:\n"
-        result += f"Annotation geojson missing: {len(self._annotation_geojson_missing)}\n"
+        result += (
+            f"Total of {self._total}  files processed in {self._time:.2f} seconds:\n"
+        )
+        result += (
+            f"Annotation geojson missing: {len(self._annotation_geojson_missing)}\n"
+        )
         result += f"Liver annotation missing: {len(self._liver_annotation_missing)}\n"
         result += f"Segmentation success: {len(self._segmentation_success)}\n"
         result += f"Segmentation partial success: {len(self._segmentation_partial)}\n"
