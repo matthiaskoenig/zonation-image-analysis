@@ -15,7 +15,7 @@ class ImageRepository:
     """
 
     def __init__(self, file_manager: FileManager):
-        self._file_manager = file_manager
+        self.file_manager: FileManager = file_manager
         self._zarr_images: Dict[str, ZarrImage] = {}
 
     @property
@@ -23,8 +23,8 @@ class ImageRepository:
         """Get zarr images."""
         if not self._zarr_images:
             self._zarr_images = {
-                name: ZarrImage(name, self._file_manager)
-                for name, name in self._file_manager.get_image_names()
+                name: ZarrImage(name, self.file_manager)
+                for name, name in self.file_manager.get_image_names()
             }
 
         return self._zarr_images

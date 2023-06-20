@@ -1,3 +1,4 @@
+from __future__ import annotations
 import os
 from enum import Enum
 from pathlib import Path
@@ -5,12 +6,13 @@ from typing import Iterator, Optional, Tuple
 
 
 class ResultDir(Enum):
+    """Reused directories."""
     ANNOTATIONS_LIVER_ROI = "annotations_liver_roi"
     LIVER_MASK = "liver_mask"
 
     @classmethod
-    def values(cls) -> Iterator["ResultDir"]:
-        for const in ResultDir.__members__.values():
+    def values(cls) -> Iterator[ResultDir]:
+        for const in cls.__members__.values():
             yield const
 
 

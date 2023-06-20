@@ -12,7 +12,7 @@ from tifffile import imread
 from zarr import Group
 
 from zia.annotations.annotation.roi import PyramidalLevel, Roi
-from zia.annotations.path_utils.path_util import FileManager
+from zia.annotations.path_utils import FileManager
 
 
 class ZarrGroups(Enum):

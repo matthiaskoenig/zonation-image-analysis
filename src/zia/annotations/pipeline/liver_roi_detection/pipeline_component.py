@@ -1,46 +1,49 @@
+"""Run the image processing pipeline."""
+
 import logging
 import time
 from pathlib import Path
 from typing import List
 
 from PIL.ImageDraw import ImageDraw
-
+from zia.console import console
 from zia.annotations.annotation.annotations import AnnotationParser, AnnotationType
-from zia.annotations.annotation.geometry_utils import read_full_image_from_slide
 from zia.annotations.annotation.roi import PyramidalLevel, Roi
 from zia.annotations.path_utils import FileManager, ResultDir
 from zia.annotations.pipeline.liver_roi_detection.image_analysis import RoiSegmentation
 from zia.annotations.pipeline.liver_roi_detection.report import RoiSegmentationReport
 from zia.annotations.pipeline.pipeline import IPipelineComponent
 from zia.annotations.zarr_image.image_repository import ImageRepository
-from zia.io.wsi_openslide import openslide, read_wsi
+from zia.io.wsi_openslide import openslide, read_wsi, read_full_image_from_slide
 
 
 logger = logging.getLogger(__name__)
 
 
 class RoiFinderComponent(IPipelineComponent):
-    _reports_dict = {}
+    """Pipeline step for ROI processing."""
+    _reports_dict = {}  # FIXME: not class
 
     def __init__(
         self,
-        file_manager: FileManager,
         image_repository: ImageRepository,
         draw: bool = True,
     ):
-        IPipelineComponent.__init__(self, file_manager, image_repository)
+        IPipelineComponent.__init__(self, image_repository)
         self._draw = draw
 
     def run(self) -> None:
-        for species, image_name in self._file_manager.get_image_names():
-            print(species, image_name)
+        """Run the analysis/Roi processing."""
+        for species, image_name in self.file_manager.get_image_names():
+            console.print(species, image_name)
             self._find_rois(species, image_name)
+
         self._save_reports()
 
     def _find_rois(self, species: str, image_name: str) -> None:
         report = self._get_report(species)
         start_time = time.time()
-        geojson_path = self._file_manager.get_annotation_path(image_name)
+        geojson_path = self.file_manager.get_annotation_path(image_name)
 
         if not geojson_path:
             # logger.warning("No annotation geojson file found for '" + image_name + "'.")
@@ -56,7 +59,7 @@ class RoiFinderComponent(IPipelineComponent):
         if len(liver_annotations) == 0:
             report.register_liver_annotation_missing(image_name)
             return
-        image_path: Path = self._file_manager.get_image_path(image_name)
+        image_path: Path = self.file_manager.get_image_path(image_name)
         open_slide = read_wsi(image_path)
 
         liver_rois = RoiSegmentation.find_rois(
@@ -83,9 +86,9 @@ class RoiFinderComponent(IPipelineComponent):
 
     def _save_reports(self) -> None:
         for species, report in self._reports_dict.items():
-            print(report)
+            console.print(report)
             report.save(
-                self._file_manager.get_report_path(
+                self.file_manager.get_report_path(
                     ResultDir.ANNOTATIONS_LIVER_ROI, species, "report.txt"
                 )
             )
@@ -99,7 +102,7 @@ class RoiFinderComponent(IPipelineComponent):
         if len(rois) != 0:
             Roi.write_to_geojson(
                 rois,
-                self._file_manager.get_results_path(
+                self.file_manager.get_results_path(
                     ResultDir.ANNOTATIONS_LIVER_ROI, species, f"{image_name}.geojson"
                 ),
             )
@@ -123,7 +126,7 @@ class RoiFinderComponent(IPipelineComponent):
             draw.polygon(list(poly_points), outline="red", width=3)
 
         region.save(
-            self._file_manager.get_report_path(
+            self.file_manager.get_report_path(
                 ResultDir.ANNOTATIONS_LIVER_ROI, species, f"{image_name}.png"
             ),
             "PNG",
@@ -143,5 +146,5 @@ if __name__ == "__main__":
     # manages the actual image data
     image_repository = ImageRepository(file_manager)
 
-    # roi_segmentation = RoiFinderComponent(file_manager, image_repository)
-    # roi_segmentation.run()
+    roi_segmentation = RoiFinderComponent(image_repository)
+    roi_segmentation.run()

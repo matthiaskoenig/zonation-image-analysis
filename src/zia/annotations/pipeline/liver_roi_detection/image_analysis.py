@@ -11,7 +11,7 @@ from zia.annotations.annotation.annotations import (
     AnnotationParser,
     AnnotationType,
 )
-from zia.annotations.annotation.geometry_utils import read_full_image_from_slide
+from zia.io.wsi_openslide import read_full_image_from_slide
 from zia.annotations.annotation.roi import PyramidalLevel, Roi
 
 

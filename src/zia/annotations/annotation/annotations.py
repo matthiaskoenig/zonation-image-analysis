@@ -1,6 +1,6 @@
 """Annotations in whole-slide image.
 
-Annotations have been generated with Qupath and stored in geojson.
+Annotations have been generated with QuPath and stored in geojson.
 """
 from __future__ import annotations
 

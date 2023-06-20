@@ -22,14 +22,14 @@ class MaskCreationComponent(IPipelineComponent):
         self._overwrite = overwrite
 
     def run(self):
-        for species, image_name in self._file_manager.get_image_names():
+        for species, image_name in self.file_manager.get_image_names():
             print(species, image_name)
-            zarr_image = self._image_repository.zarr_images.get(image_name)
+            zarr_image = self.image_repository.zarr_images.get(image_name)
             if self._check_if_exists(zarr_image) & ~self._overwrite:
                 continue
 
             annotations = AnnotationParser.parse_geojson(
-                self._file_manager.get_annotation_path(image_name)
+                self.file_manager.get_annotation_path(image_name)
             )
             MaskGenerator.create_mask(zarr_image, annotations)
             self._draw_mask(zarr_image, species)
@@ -45,7 +45,7 @@ class MaskCreationComponent(IPipelineComponent):
             image_7[~mask] = [255, 255, 255]
 
             cv2.imwrite(
-                self._file_manager.get_report_path(
+                self.file_manager.get_report_path(
                     ResultDir.LIVER_MASK, species, f"{zarr_image.name}.jpeg"
                 ),
                 image_7,

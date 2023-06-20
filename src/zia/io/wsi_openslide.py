@@ -24,7 +24,7 @@ else:
 
 def read_wsi(image_path: Path) -> openslide.OpenSlide:
     """Read image with openslide library."""
-    check_image_path(image_path)
+    check_image_path(Path(image_path))
     return openslide.OpenSlide(image_path)
 
 
