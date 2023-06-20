@@ -1,3 +1,5 @@
+"""Zarr image storage."""
+
 from enum import Enum
 from typing import Dict, Iterator, List, Optional, Tuple
 

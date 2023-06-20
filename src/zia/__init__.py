@@ -18,16 +18,9 @@ for p in [RESULTS_PATH, REPORT_PATH]:
     p.mkdir(parents=True, exist_ok=True)
 
 
+# FIXME: handle better
 OPENSLIDE_PATH = r"C:\Program Files\OpenSlide\openslide-win64-20230414\bin"
-DATA_PATH = Path("D:/data")
-ZARR_PATH = Path("D:/zarr")
-
-CZI_IMAGES_INITIAL = sorted(
-    [p for p in (BASE_PATH / "data" / "czi" / "Initial").glob("*.czi")]
-)
-CZI_IMAGES_AXIOS = sorted(
-    [p for p in (BASE_PATH / "data" / "czi" / "AxioScanZeiss").glob("*.czi")]
-)
-
-
-
+prefix = "/media/mkoenig/Extreme Pro"
+# prefix = "D:"
+DATA_PATH = Path(f"{prefix}/data")
+ZARR_PATH = Path(f"{prefix}/zarr")

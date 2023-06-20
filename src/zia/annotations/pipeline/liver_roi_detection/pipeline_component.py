@@ -1,28 +1,20 @@
 import logging
-import os
 import time
+from pathlib import Path
 from typing import List
 
 from PIL.ImageDraw import ImageDraw
 
-from zia.annotations import OPENSLIDE_PATH
 from zia.annotations.annotation.annotations import AnnotationParser, AnnotationType
 from zia.annotations.annotation.geometry_utils import read_full_image_from_slide
 from zia.annotations.annotation.roi import PyramidalLevel, Roi
-from zia.annotations.path_utils.path_util import FileManager, ResultDir
+from zia.annotations.path_utils import FileManager, ResultDir
 from zia.annotations.pipeline.liver_roi_detection.image_analysis import RoiSegmentation
 from zia.annotations.pipeline.liver_roi_detection.report import RoiSegmentationReport
 from zia.annotations.pipeline.pipeline import IPipelineComponent
 from zia.annotations.zarr_image.image_repository import ImageRepository
-from zia.annotations.zarr_image.zarr_image import ZarrImage
+from zia.io.wsi_openslide import openslide, read_wsi
 
-
-if hasattr(os, "add_dll_directory"):
-    # Python >= 3.8 on Windows
-    with os.add_dll_directory(OPENSLIDE_PATH):
-        import openslide
-else:
-    import openslide
 
 logger = logging.getLogger(__name__)
 
@@ -31,9 +23,12 @@ class RoiFinderComponent(IPipelineComponent):
     _reports_dict = {}
 
     def __init__(
-        self, file_manager: FileManager, image_repo: ImageRepository, draw: bool = True
+        self,
+        file_manager: FileManager,
+        image_repository: ImageRepository,
+        draw: bool = True,
     ):
-        IPipelineComponent.__init__(self, file_manager, image_repo)
+        IPipelineComponent.__init__(self, file_manager, image_repository)
         self._draw = draw
 
     def run(self) -> None:
@@ -61,8 +56,8 @@ class RoiFinderComponent(IPipelineComponent):
         if len(liver_annotations) == 0:
             report.register_liver_annotation_missing(image_name)
             return
-
-        open_slide = openslide.OpenSlide(self._file_manager.get_image_path(image_name))
+        image_path: Path = self._file_manager.get_image_path(image_name)
+        open_slide = read_wsi(image_path)
 
         liver_rois = RoiSegmentation.find_rois(
             open_slide, annotations, AnnotationType.LIVER
@@ -136,7 +131,17 @@ class RoiFinderComponent(IPipelineComponent):
 
 
 if __name__ == "__main__":
-    file_manager = FileManager()
-    image_repo = ImageRepository(file_manager)
-    roi_segmentation = RoiFinderComponent(file_manager, image_repo)
-    roi_segmentation.run()
+    from zia import DATA_PATH, REPORT_PATH, RESULTS_PATH, ZARR_PATH
+
+    # manages the paths
+    file_manager = FileManager(
+        data_path=DATA_PATH,
+        zarr_path=ZARR_PATH,
+        results_path=RESULTS_PATH,
+        report_path=REPORT_PATH,
+    )
+    # manages the actual image data
+    image_repository = ImageRepository(file_manager)
+
+    # roi_segmentation = RoiFinderComponent(file_manager, image_repository)
+    # roi_segmentation.run()

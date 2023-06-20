@@ -24,7 +24,7 @@ class MaskCreationComponent(IPipelineComponent):
     def run(self):
         for species, image_name in self._file_manager.get_image_names():
             print(species, image_name)
-            zarr_image = self._image_repo.zarr_images.get(image_name)
+            zarr_image = self._image_repository.zarr_images.get(image_name)
             if self._check_if_exists(zarr_image) & ~self._overwrite:
                 continue
 

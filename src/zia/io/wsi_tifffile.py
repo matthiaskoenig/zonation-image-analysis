@@ -11,7 +11,7 @@ import dask.array as da
 import zarr
 from tifffile import TiffFileError, ZarrStore, tiffcomment, tifffile
 
-from zia.io.core import check_image_path
+from zia.io.utils import check_image_path
 
 
 def read_ndpi(image_path: Path) -> List[da.Array]:
@@ -31,14 +31,14 @@ def read_ndpi(image_path: Path) -> List[da.Array]:
 
 
 if __name__ == "__main__":
+    from zia import BASE_PATH
+
+    example_ndpi = BASE_PATH / "data" / "ndpi" / "LQF1_LM_HE_PVL.ndpi"
+
     import dask.array as da
 
-    from zia import example_npdi, napari_viewer
+    data: List[da.Array] = read_ndpi(example_ndpi)
 
-    data: List[da.Array] = read_ndpi(example_npdi)
+    from zia.napari_utils import napari_viewer
+
     napari_viewer.view_ndpi_data(data=data)
-
-    # import napari
-    # viewer = napari.Viewer()
-    # viewer.open(example_ndpi)
-    # napari.run()

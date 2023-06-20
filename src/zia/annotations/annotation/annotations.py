@@ -1,25 +1,27 @@
+"""Annotations in whole-slide image.
+
+Annotations have been generated with Qupath and stored in geojson.
+"""
+from __future__ import annotations
+
 import logging
 from dataclasses import dataclass
 from enum import Enum
 from typing import List, Optional, Set, Tuple, Union
 
 import geojson as gj
-import shapely.affinity
 from shapely import MultiPolygon, Polygon
 from shapely.geometry import shape
-from strenum import StrEnum
 
 from zia.annotations.annotation.geometry_utils import rescale_coords
 
 
-PATH_TO_FILE = (
-    "..\J-12-00350_NOR-022_Lewis_CYP2E1- 1 300_Run 14_ML, Sb, rk_MAA_006.geojson"
-)
-
 logger = logging.getLogger(__name__)
 
 
-class AnnotationType(StrEnum):
+class AnnotationType(str, Enum):
+    """Types of annotations."""
+
     LUNG = "lung"
     KIDNEY = "kidney"
     LIVER = "liver"
@@ -41,7 +43,7 @@ class AnnotationType(StrEnum):
         return getattr(cls, string.upper())
 
     @classmethod
-    def get_artifacts(cls) -> Set["AnnotationType"]:
+    def get_artifacts(cls) -> Set[AnnotationType]:
         return {
             cls.BUBBLE,
             cls.FOLD,
@@ -169,6 +171,10 @@ class AnnotationClassMissingException(Exception):
 
 
 if __name__ == "__main__":
+    PATH_TO_FILE = (
+        "..\J-12-00350_NOR-022_Lewis_CYP2E1- 1 300_Run 14_ML, Sb, rk_MAA_006.geojson"
+    )
+
     shapes = AnnotationParser.parse_geojson(PATH_TO_FILE)
     liver_annotations = AnnotationParser.get_annotation_by_type(
         shapes, AnnotationType.LIVER
