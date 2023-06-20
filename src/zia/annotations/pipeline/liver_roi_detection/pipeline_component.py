@@ -35,6 +35,7 @@ class RoiFinderComponent(IPipelineComponent):
 
     def run(self) -> None:
         for species, image_name in self._file_manager.get_image_names():
+            print(species, image_name)
             self._find_rois(species, image_name)
         self._save_reports()
 
