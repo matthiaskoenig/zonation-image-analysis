@@ -4,7 +4,7 @@ zonation-image analysis - Python utilities for image analyses of zonation patter
 from pathlib import Path
 
 __author__ = "Matthias König"
-__version__ = "0.0.0"
+__version__ = "0.0.1"
 
 program_name = "zonation-image-analysis"
 
