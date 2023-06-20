@@ -27,8 +27,6 @@ https://github.com/matthiaskoenig/zonation-image-analysis/issues/2
 - [ ] perform test whole-slide scans
 - [ ] perform example scan on the Fluorescence Microscope (ITB)
 
-
-
 # TODO: Mohamed analysis
 - [ ] overview slides & samples for analysis
 - [ ] read all examples slides

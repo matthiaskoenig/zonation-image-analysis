@@ -4,8 +4,9 @@ from PIL import Image
 
 # copied from https://github.com/schaugf/HEnorm_python/blob/master/normalizeStaining.py
 
+
 def normalizeStaining(img, Io=240, alpha=1, beta=0.15):
-    ''' Normalize staining appearence of H&E stained images
+    """Normalize staining appearence of H&E stained images
 
     Example use:
         see test.py
@@ -22,7 +23,7 @@ def normalizeStaining(img, Io=240, alpha=1, beta=0.15):
     Reference:
         A method for normalizing histology slides for quantitative analysis. M.
         Macenko et al., ISBI 2009
-    '''
+    """
 
     """
     seems to be a reference matrix [v1, v2] where v1 and v2 are the reference
@@ -39,7 +40,7 @@ def normalizeStaining(img, Io=240, alpha=1, beta=0.15):
     It should not be relevant anyway, because we care about relative intensities in the DAB
     channel to find out about CYP expression."""
 
-    #maxCRef = np.array([1, 1])
+    # maxCRef = np.array([1, 1])
 
     # define height and width of image
     h, w, c = img.shape
@@ -86,7 +87,7 @@ def normalizeStaining(img, Io=240, alpha=1, beta=0.15):
 
     # normalize stain concentrations
     maxC = np.array([np.percentile(C[0, :], 99), np.percentile(C[1, :], 99)])
-    #tmp = np.divide(maxC, maxCRef) # normalization for ref concentrations, leave it out
+    # tmp = np.divide(maxC, maxCRef) # normalization for ref concentrations, leave it out
     C2 = np.divide(C, maxC[:, np.newaxis])
 
     RC1 = np.reshape(C[0, :], (h, w, 1))  # intensities channel 1
@@ -102,13 +103,21 @@ def normalizeStaining(img, Io=240, alpha=1, beta=0.15):
     # Inorm = np.reshape(Inorm.T, (h, w, 3)).astype(np.uint8)
 
     # unmix hematoxylin and eosin
-    H = np.multiply(Io, np.exp
-    (np.expand_dims(-HERef[:, 0], axis=1).dot(np.expand_dims(C2[0, :], axis=0))))
+    H = np.multiply(
+        Io,
+        np.exp(
+            np.expand_dims(-HERef[:, 0], axis=1).dot(np.expand_dims(C2[0, :], axis=0))
+        ),
+    )
     H[H > 255] = 254
     H = np.reshape(H.T, (h, w, 3)).astype(np.uint8)
 
-    E = np.multiply(Io, np.exp
-    (np.expand_dims(-HERef[:, 1], axis=1).dot(np.expand_dims(C2[1, :], axis=0))))
+    E = np.multiply(
+        Io,
+        np.exp(
+            np.expand_dims(-HERef[:, 1], axis=1).dot(np.expand_dims(C2[1, :], axis=0))
+        ),
+    )
     E[E > 255] = 254
     E = np.reshape(E.T, (h, w, 3)).astype(np.uint8)
 

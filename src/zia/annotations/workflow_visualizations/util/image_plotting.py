@@ -1,11 +1,11 @@
 from typing import List
 
-import matplotlib.pyplot as plt
-import matplotlib
-from PIL import Image, ImageDraw
-import numpy as np
-from shapely import Polygon
 import cv2 as cv2
+import matplotlib
+import matplotlib.pyplot as plt
+import numpy as np
+from PIL import Image, ImageDraw
+from shapely import Polygon
 
 
 def plot_pic(array):
@@ -23,6 +23,7 @@ def plot_polygons(polygons: List[Polygon], image_like: np.ndarray):
 
     ax.imshow(new_image, cmap=matplotlib.colormaps.get_cmap("binary"))
     plt.show()
+
 
 def plot_rgb(array, transform_to_bgr=True):
     fig, ax = plt.subplots(1, 1)

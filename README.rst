@@ -36,34 +36,23 @@ Features include among others
 Installation
 ============
 
-Setup bioformats
-----------------
-Using bioformats with python-javabridge requires a working java installation.
-For more information see
-
-`https://pypi.org/project/python-javabridge>`__
-`https://pythonhosted.org/javabridge/installation.html>`__
-
-A minimum requirement is installation of Java::
-
-    sudo apt-get install openjdk-11-jdk
-    export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
-
 Install python package
 ----------------------
-For the installation to work numpy must already be installed.
-
 The latest develop version can be installed from source via::
 
-    pip install numpy>=1.24.1
     pip install git+https://github.com/matthiaskoenig/zonation-image-analysis.git@develop
 
 Or via cloning the repository and installing via::
 
+    mkvirtualenv zonation --python=python3.10
     git clone https://github.com/matthiaskoenig/zonation-image-analysis.git
     cd zonation-image-analysis
-    pip install numpy>=1.24.1
-    pip install -e .
+    pip install -e . --upgrade
+    
+For developing use::
+
+    pip install -e .[development] --upgrade
+
 
 License
 =======
@@ -92,4 +81,4 @@ and by the German Research Foundation (DFG) within the Research Unit Programme F
 A Systems Medicine Approach)" by grant number 436883643 and by grant number 
 465194077 (Priority Programme SPP 2311, Subproject SimLivA).
 
-© 2021-2022 Matthias König and Jan Grzegorzewski
+© 2022-2023 Jonas Küttner, Jan Grzegorzewski, and Matthias König 

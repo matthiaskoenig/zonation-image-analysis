@@ -1,48 +1,49 @@
+"""Run the image processing pipeline."""
+
 import logging
-import os
 import time
+from pathlib import Path
 from typing import List
 
 from PIL.ImageDraw import ImageDraw
-
-from zia.annotations import OPENSLIDE_PATH
+from zia.console import console
 from zia.annotations.annotation.annotations import AnnotationParser, AnnotationType
-from zia.annotations.annotation.geometry_utils import read_full_image_from_slide
-from zia.annotations.annotation.roi import Roi, PyramidalLevel
-from zia.annotations.path_utils.path_util import FileManager, ResultDir
+from zia.annotations.annotation.roi import PyramidalLevel, Roi
+from zia.annotations.path_utils import FileManager, ResultDir
 from zia.annotations.pipeline.liver_roi_detection.image_analysis import RoiSegmentation
 from zia.annotations.pipeline.liver_roi_detection.report import RoiSegmentationReport
 from zia.annotations.pipeline.pipeline import IPipelineComponent
 from zia.annotations.zarr_image.image_repository import ImageRepository
-from zia.annotations.zarr_image.zarr_image import ZarrImage
+from zia.io.wsi_openslide import openslide, read_wsi, read_full_image_from_slide
 
-if hasattr(os, 'add_dll_directory'):
-    # Python >= 3.8 on Windows
-    with os.add_dll_directory(OPENSLIDE_PATH):
-        import openslide
-else:
-    import openslide
 
 logger = logging.getLogger(__name__)
 
 
 class RoiFinderComponent(IPipelineComponent):
-    _reports_dict = {}
+    """Pipeline step for ROI processing."""
+    _reports_dict = {}  # FIXME: not class
 
-    def __init__(self, file_manager: FileManager, image_repo: ImageRepository, draw: bool = True):
-        IPipelineComponent.__init__(self, file_manager, image_repo)
+    def __init__(
+        self,
+        image_repository: ImageRepository,
+        draw: bool = True,
+    ):
+        IPipelineComponent.__init__(self, image_repository)
         self._draw = draw
 
     def run(self) -> None:
-        for species, image_name in self._file_manager.get_image_names():
-            print(species, image_name)
+        """Run the analysis/Roi processing."""
+        for species, image_name in self.file_manager.get_image_names():
+            console.print(species, image_name)
             self._find_rois(species, image_name)
+
         self._save_reports()
 
     def _find_rois(self, species: str, image_name: str) -> None:
         report = self._get_report(species)
         start_time = time.time()
-        geojson_path = self._file_manager.get_annotation_path(image_name)
+        geojson_path = self.file_manager.get_annotation_path(image_name)
 
         if not geojson_path:
             # logger.warning("No annotation geojson file found for '" + image_name + "'.")
@@ -52,17 +53,18 @@ class RoiFinderComponent(IPipelineComponent):
         annotations = AnnotationParser.parse_geojson(geojson_path)
 
         liver_annotations = AnnotationParser.get_annotation_by_type(
-            annotations,
-            AnnotationType.LIVER)
+            annotations, AnnotationType.LIVER
+        )
 
         if len(liver_annotations) == 0:
             report.register_liver_annotation_missing(image_name)
             return
+        image_path: Path = self.file_manager.get_image_path(image_name)
+        open_slide = read_wsi(image_path)
 
-        open_slide = openslide.OpenSlide(self._file_manager.get_image_path(image_name))
-
-        liver_rois = RoiSegmentation.find_rois(open_slide, annotations,
-                                               AnnotationType.LIVER)
+        liver_rois = RoiSegmentation.find_rois(
+            open_slide, annotations, AnnotationType.LIVER
+        )
 
         if len(liver_rois) == 0:
             logger.warning("No ROI found for '" + image_name + "'.")
@@ -84,11 +86,12 @@ class RoiFinderComponent(IPipelineComponent):
 
     def _save_reports(self) -> None:
         for species, report in self._reports_dict.items():
-            print(report)
+            console.print(report)
             report.save(
-                self._file_manager.get_report_path(ResultDir.ANNOTATIONS_LIVER_ROI,
-                                                   species,
-                                                   "report.txt"))
+                self.file_manager.get_report_path(
+                    ResultDir.ANNOTATIONS_LIVER_ROI, species, "report.txt"
+                )
+            )
 
     def _get_report(self, species: str) -> RoiSegmentationReport:
         if species not in self._reports_dict.keys():
@@ -97,14 +100,20 @@ class RoiFinderComponent(IPipelineComponent):
 
     def _save_rois(self, rois: List[Roi], species: str, image_name: str):
         if len(rois) != 0:
-            Roi.write_to_geojson(rois,
-                                 self._file_manager.get_results_path(
-                                     ResultDir.ANNOTATIONS_LIVER_ROI,
-                                     species,
-                                     f"{image_name}.geojson"))
+            Roi.write_to_geojson(
+                rois,
+                self.file_manager.get_results_path(
+                    ResultDir.ANNOTATIONS_LIVER_ROI, species, f"{image_name}.geojson"
+                ),
+            )
 
-    def _draw_result(self, open_slide: openslide.OpenSlide,
-                     liver_rois: List[Roi], species: str, image_name: str) -> None:
+    def _draw_result(
+        self,
+        open_slide: openslide.OpenSlide,
+        liver_rois: List[Roi],
+        species: str,
+        image_name: str,
+    ) -> None:
         if not self._draw:
             return
 
@@ -112,17 +121,30 @@ class RoiFinderComponent(IPipelineComponent):
         draw = ImageDraw(region)
         for liver_roi in liver_rois:
             poly_points = liver_roi.get_polygon_for_level(
-                PyramidalLevel.SEVEN).exterior.coords
+                PyramidalLevel.SEVEN
+            ).exterior.coords
             draw.polygon(list(poly_points), outline="red", width=3)
 
-        region.save(self._file_manager.get_report_path(ResultDir.ANNOTATIONS_LIVER_ROI,
-                                                       species,
-                                                       f"{image_name}.png"),
-                    "PNG")
+        region.save(
+            self.file_manager.get_report_path(
+                ResultDir.ANNOTATIONS_LIVER_ROI, species, f"{image_name}.png"
+            ),
+            "PNG",
+        )
 
 
 if __name__ == "__main__":
-    file_manager = FileManager()
-    image_repo = ImageRepository(file_manager)
-    roi_segmentation = RoiFinderComponent(file_manager, image_repo)
+    from zia import DATA_PATH, REPORT_PATH, RESULTS_PATH, ZARR_PATH
+
+    # manages the paths
+    file_manager = FileManager(
+        data_path=DATA_PATH,
+        zarr_path=ZARR_PATH,
+        results_path=RESULTS_PATH,
+        report_path=REPORT_PATH,
+    )
+    # manages the actual image data
+    image_repository = ImageRepository(file_manager)
+
+    roi_segmentation = RoiFinderComponent(image_repository)
     roi_segmentation.run()

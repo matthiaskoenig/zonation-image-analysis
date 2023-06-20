@@ -7,18 +7,18 @@ https://allencellmodeling.github.io/aicsimageio/
 
 """
 from pathlib import Path
-from typing import List, Tuple, Dict
+from typing import Dict, List, Tuple
 from xml.etree.ElementTree import XML
 
-import numpy as np
 import dask.array as da
+import numpy as np
 import zarr
 from aicsimageio import AICSImage, readers
 from ome_types import OME
 from tifffile import TiffFileError, tifffile
 
-from zia.io.core import check_image_path
 from zia.console import console
+from zia.io.core import check_image_path
 
 
 def parse_metadata(ome_dict: dict) -> Dict:
@@ -31,18 +31,10 @@ def parse_metadata(ome_dict: dict) -> Dict:
         "AquisitionDate": ome_dict["OME"]["Image"]["AcquisitionDate"],
         "SizeX": ome_dict["OME"]["Image"]["Pixels"]["@SizeX"],
         "SizeY": ome_dict["OME"]["Image"]["Pixels"]["@SizeY"],
-        "PhysicalSizeX": float(
-            ome_dict["OME"]["Image"]["Pixels"]["@PhysicalSizeX"]
-        ),
-        "PhysicalSizeXUnit": ome_dict["OME"]["Image"]["Pixels"][
-            "@PhysicalSizeXUnit"
-        ],
-        "PhysicalSizeY": float(
-            ome_dict["OME"]["Image"]["Pixels"]["@PhysicalSizeY"]
-        ),
-        "PhysicalSizeYUnit": ome_dict["OME"]["Image"]["Pixels"][
-            "@PhysicalSizeYUnit"
-        ],
+        "PhysicalSizeX": float(ome_dict["OME"]["Image"]["Pixels"]["@PhysicalSizeX"]),
+        "PhysicalSizeXUnit": ome_dict["OME"]["Image"]["Pixels"]["@PhysicalSizeXUnit"],
+        "PhysicalSizeY": float(ome_dict["OME"]["Image"]["Pixels"]["@PhysicalSizeY"]),
+        "PhysicalSizeYUnit": ome_dict["OME"]["Image"]["Pixels"]["@PhysicalSizeYUnit"],
         "Channels": ome_dict["OME"]["Image"]["Pixels"]["Channel"],
     }
     return info
@@ -59,7 +51,6 @@ def read_czi(image_path: Path) -> np.ndarray:
     console.print(metadata.dict())
     # info = parse_metadata(ome_dict=ome_dict)
     # print(info)
-
 
     # info = {
     #     "NominalMagnification": float(
@@ -114,20 +105,20 @@ def read_czi(image_path: Path) -> np.ndarray:
 if __name__ == "__main__":
     import dask.array as da
 
-    from zia import napari_viewer
     from zia import (
         example_czi,
         example_czi_axios1,
         example_czi_axios2,
         example_czi_axios3,
         example_czi_axios4,
+        napari_viewer,
     )
 
     data = read_czi(example_czi)
 
     napari_viewer.view_czi_data(
         data=read_czi(example_czi),
-        channel_names=["channel 1", "channel 2", "channel 3"]
+        channel_names=["channel 1", "channel 2", "channel 3"],
     )
 
     # # FIXME: read image metadata

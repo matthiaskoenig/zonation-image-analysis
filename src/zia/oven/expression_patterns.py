@@ -1,7 +1,8 @@
+import cv2
 import numpy as np
 import openslide
 from matplotlib import pyplot as plt
-import cv2
+
 
 PATH_TO_PIC = "/home/jkuettner/Pictures/wsi/J-12-00350_NOR-022_Lewis_CYP2E1- 1 300_Run 14_ML, Sb, rk_MAA_006.ndpi"
 
