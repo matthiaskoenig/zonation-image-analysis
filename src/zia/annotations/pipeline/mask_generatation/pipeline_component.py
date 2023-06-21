@@ -1,65 +1,53 @@
-import cv2
-
-from zia.annotations.annotation.annotations import AnnotationParser
-from zia.annotations.annotation.roi import PyramidalLevel
-from zia.annotations.path_utils.path_util import FileManager, ResultDir
+from zia.annotations.annotation.annotations import AnnotationParser, AnnotationType
+from zia.annotations.open_slide_image.data_repository import DataRepository
+from zia.annotations.open_slide_image.data_store import DataStore
+from zia.annotations.path_utils import FileManager
 from zia.annotations.pipeline.mask_generatation.image_analysis import MaskGenerator
 from zia.annotations.pipeline.pipeline import IPipelineComponent
-from zia.annotations.zarr_image.image_repository import ImageRepository
-from zia.annotations.zarr_image.zarr_image import ZarrGroups, ZarrImage
+from zia.annotations.zarr_image.zarr_image import ZarrGroups
 
 
 class MaskCreationComponent(IPipelineComponent):
-    def __init__(
-        self,
-        file_manager: FileManager,
-        image_repo: ImageRepository,
-        draw=True,
-        overwrite=False,
-    ):
-        IPipelineComponent.__init__(self, file_manager, image_repo)
+    def __init__(self, data_repository: DataRepository, draw=True, overwrite=False):
+        IPipelineComponent.__init__(self, data_repository)
         self._draw = draw
         self._overwrite = overwrite
 
     def run(self):
         for species, image_name in self.file_manager.get_image_names():
             print(species, image_name)
-            zarr_image = self.image_repository.zarr_images.get(image_name)
-            if self._check_if_exists(zarr_image) & ~self._overwrite:
+            data_store = self.data_repository.image_data_stores.get(image_name)
+
+            # prevent from overwriting data from previous runs during development
+            if self._check_if_exists(data_store) & ~self._overwrite:
                 continue
 
-            annotations = AnnotationParser.parse_geojson(
-                self.file_manager.get_annotation_path(image_name)
-            )
-            MaskGenerator.create_mask(zarr_image, annotations)
-            self._draw_mask(zarr_image, species)
+            annotations = AnnotationParser.parse_geojson(self.file_manager.get_annotation_path(image_name))
+            annotations = AnnotationParser.get_annotation_by_types(annotations, AnnotationType.get_artifacts())
 
-    def _draw_mask(self, zarr_image: ZarrImage, species: str):
-        if not self._draw:
-            return
+            MaskGenerator.create_mask(data_store, annotations)
 
-        for i, (leveled_roi, _) in enumerate(zarr_image.iter_rois()):
-            image_7, _ = leveled_roi.get_down_sized_level(PyramidalLevel.SEVEN)
-            mask = zarr_image.get_liver_mask(i, PyramidalLevel.SEVEN)
+            #self._draw_mask(zarr_image, species)
 
-            image_7[~mask] = [255, 255, 255]
-
-            cv2.imwrite(
-                self.file_manager.get_report_path(
-                    ResultDir.LIVER_MASK, species, f"{zarr_image.name}.jpeg"
-                ),
-                image_7,
-            )
-
-    def _check_if_exists(self, zarr_image: ZarrImage) -> bool:
-        if ZarrGroups.LIVER_MASK.value in zarr_image.data.keys():
+    @classmethod
+    def _check_if_exists(cls, data_store: DataStore) -> bool:
+        if ZarrGroups.LIVER_MASK.value in data_store.data.keys():
             return True
         else:
             return False
 
 
 if __name__ == "__main__":
-    file_manager = FileManager()
-    image_repo = ImageRepository(file_manager)
-    mask_generator = MaskCreationComponent(file_manager, image_repo, False)
+    from zia import DATA_PATH, REPORT_PATH, RESULTS_PATH, ZARR_PATH
+
+    # manages the paths
+    file_manager = FileManager(
+        data_path=DATA_PATH,
+        zarr_path=ZARR_PATH,
+        results_path=RESULTS_PATH,
+        report_path=REPORT_PATH,
+    )
+
+    data_repository = DataRepository(file_manager)
+    mask_generator = MaskCreationComponent(data_repository, False, True)
     mask_generator.run()

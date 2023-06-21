@@ -9,6 +9,7 @@ class ResultDir(Enum):
     """Reused directories."""
     ANNOTATIONS_LIVER_ROI = "annotations_liver_roi"
     LIVER_MASK = "liver_mask"
+    MASKED_PNG_IMAGES = "masked_png_images"
 
     @classmethod
     def values(cls) -> Iterator[ResultDir]:

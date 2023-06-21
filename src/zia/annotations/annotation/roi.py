@@ -1,31 +1,13 @@
 import json
-from dataclasses import dataclass
-from enum import IntEnum
 from typing import List, Tuple
 
-import geojson
 import geojson as gj
-from geojson import FeatureCollection
 from shapely import Polygon
 from shapely.geometry import shape
 
 from zia.annotations.annotation.annotations import AnnotationType
 from zia.annotations.annotation.geometry_utils import rescale_coords
-
-
-class PyramidalLevel(IntEnum):
-    ZERO = 0
-    ONE = 1
-    TWO = 2
-    THREE = 3
-    FOUR = 4
-    FIVE = 5
-    SIX = 6
-    SEVEN = 7
-
-    @classmethod
-    def get_by_numeric_level(cls, level: int) -> "PyramidalLevel":
-        return PyramidalLevel(level)
+from zia.annotations.annotation.util import PyramidalLevel
 
 
 class Roi:
@@ -87,6 +69,9 @@ class Roi:
         return Roi(geometry, level, annotation_type)
 
     def get_bound(self, level: PyramidalLevel) -> Tuple[slice, slice]:
+        """
+        returns slice for tuple of from ((slice(min_x, max_x), slice(min_y, max_y))
+        """
         poly = self.get_polygon_for_level(level)
         bounds = poly.bounds
         # bounds where generated from padded image. setting negative bounds to zero to have valid slices

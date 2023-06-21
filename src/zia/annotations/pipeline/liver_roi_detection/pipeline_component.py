@@ -2,20 +2,20 @@
 
 import logging
 import time
-from pathlib import Path
 from typing import List
 
 from PIL.ImageDraw import ImageDraw
-from zia.console import console
+
 from zia.annotations.annotation.annotations import AnnotationParser, AnnotationType
-from zia.annotations.annotation.roi import PyramidalLevel, Roi
+from zia.annotations.annotation.roi import Roi
+from zia.annotations.annotation.util import PyramidalLevel
+from zia.annotations.open_slide_image.data_repository import DataRepository
 from zia.annotations.path_utils import FileManager, ResultDir
 from zia.annotations.pipeline.liver_roi_detection.image_analysis import RoiSegmentation
 from zia.annotations.pipeline.liver_roi_detection.report import RoiSegmentationReport
 from zia.annotations.pipeline.pipeline import IPipelineComponent
-from zia.annotations.zarr_image.image_repository import ImageRepository
-from zia.io.wsi_openslide import openslide, read_wsi, read_full_image_from_slide
-
+from zia.console import console
+from zia.io.wsi_openslide import openslide, read_full_image_from_slide
 
 logger = logging.getLogger(__name__)
 
@@ -24,12 +24,8 @@ class RoiFinderComponent(IPipelineComponent):
     """Pipeline step for ROI processing."""
     _reports_dict = {}  # FIXME: not class
 
-    def __init__(
-        self,
-        image_repository: ImageRepository,
-        draw: bool = True,
-    ):
-        IPipelineComponent.__init__(self, image_repository)
+    def __init__(self, data_repository: DataRepository, draw: bool = True):
+        IPipelineComponent.__init__(self, data_repository)
         self._draw = draw
 
     def run(self) -> None:
@@ -59,8 +55,8 @@ class RoiFinderComponent(IPipelineComponent):
         if len(liver_annotations) == 0:
             report.register_liver_annotation_missing(image_name)
             return
-        image_path: Path = self.file_manager.get_image_path(image_name)
-        open_slide = read_wsi(image_path)
+
+        open_slide = self.data_repository.image_data_stores.get(image_name).image
 
         liver_rois = RoiSegmentation.find_rois(
             open_slide, annotations, AnnotationType.LIVER
@@ -108,11 +104,11 @@ class RoiFinderComponent(IPipelineComponent):
             )
 
     def _draw_result(
-        self,
-        open_slide: openslide.OpenSlide,
-        liver_rois: List[Roi],
-        species: str,
-        image_name: str,
+            self,
+            open_slide: openslide.OpenSlide,
+            liver_rois: List[Roi],
+            species: str,
+            image_name: str,
     ) -> None:
         if not self._draw:
             return
@@ -144,7 +140,7 @@ if __name__ == "__main__":
         report_path=REPORT_PATH,
     )
     # manages the actual image data
-    image_repository = ImageRepository(file_manager)
+    data_repository = DataRepository(file_manager)
 
-    roi_segmentation = RoiFinderComponent(image_repository)
+    roi_segmentation = RoiFinderComponent(data_repository)
     roi_segmentation.run()

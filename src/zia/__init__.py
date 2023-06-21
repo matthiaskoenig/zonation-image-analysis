@@ -20,7 +20,7 @@ for p in [RESULTS_PATH, REPORT_PATH]:
 
 # FIXME: handle better
 OPENSLIDE_PATH = r"C:\Program Files\OpenSlide\openslide-win64-20230414\bin"
-prefix = "/media/mkoenig/Extreme Pro"
+prefix = "/media/jkuettner/Extreme Pro"
 # prefix = "D:"
 DATA_PATH = Path(f"{prefix}/data")
 ZARR_PATH = Path(f"{prefix}/zarr")

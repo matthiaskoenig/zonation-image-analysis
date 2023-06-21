@@ -4,15 +4,15 @@ from typing import List, Tuple, Union
 import cv2
 import numpy as np
 import shapely
-from dask.array import from_zarr
-from shapely import Polygon
+from shapely import Polygon, MultiPolygon, LineString, GeometryCollection
+from shapely.validation import make_valid
 
 from zia.annotations.annotation.annotations import Annotation
-from zia.annotations.annotation.roi import PyramidalLevel, Roi
-from zia.annotations.path_utils.path_util import FileManager
-from zia.annotations.workflow_visualizations.util.image_plotting import plot_rgb
-from zia.annotations.zarr_image.zarr_image import ZarrGroups, ZarrImage
-
+from zia.annotations.annotation.geometry_utils import rescale_coords
+from zia.annotations.annotation.util import PyramidalLevel
+from zia.annotations.open_slide_image.data_store import DataStore
+from zia.annotations.workflow_visualizations.util.image_plotting import plot_pic
+from zia.annotations.open_slide_image.data_store import ZarrGroups
 
 IMAGE_NAME = "J-12-00348_NOR-021_Lewis_CYP2E1- 1 300_Run 14_ML, Sb, rk_MAA_006"
 
@@ -20,114 +20,162 @@ logger = logging.getLogger(__name__)
 
 
 class MaskGenerator:
+
     @classmethod
-    def create_mask(cls, zarr_image: ZarrImage, annotations: List[Annotation]) -> None:
+    def get_tile_slices(cls, shape: Tuple[int, int], tile_size=10000) -> List[Tuple[slice, slice]]:
+        r, c = shape
+        num_col = int(np.ceil(c / tile_size))
+        num_row = int(np.ceil(r / tile_size))
+        slices = []
+        for i in range(num_col):
+            for k in range(num_row):
+                col_end = min(c, (i + 1) * tile_size)
+                cs = slice(i * tile_size, col_end)
+
+                row_end = min(r, (k + 1) * tile_size)
+                rs = slice(k * tile_size, row_end)
+
+                slices.append((rs, cs))
+        return slices
+
+    @classmethod
+    def _draw_polygons(cls,
+                       mask: np.ndarray,
+                       polygons:
+                       Union[Polygon | MultiPolygon],
+                       offset: Tuple[int, int],
+                       color: bool) -> None:
+
+        if isinstance(polygons, Polygon):
+            cls._draw_polygon(polygons, mask, offset, color)
+
+        elif isinstance(polygons, MultiPolygon):
+            for polygon in polygons.geoms:
+                cls._draw_polygon(polygon, mask, offset, color)
+        else:
+            print(f"Non polygon type geometry encountered {type(polygons)}")
+
+    @classmethod
+    def _draw_polygon(cls,
+                      polygon: Polygon,
+                      mask: np.ndarray,
+                      offset: Tuple[int, int],
+                      color: bool
+                      ) -> None:
+        if polygon.is_empty:
+            return
+        tile_poly_coords = rescale_coords(polygon.exterior.coords, offset=offset)  # (cs.start, rs.start)
+        tile_poly_coords = np.array(tile_poly_coords, dtype=np.int32)
+        cv2.fillPoly(mask, [tile_poly_coords], 1 if color else 0)
+
+    @classmethod
+    def _draw_line_string(cls,
+                          line_string: LineString,
+                          mask: np.ndarray,
+                          offset: Tuple[int, int],
+                          color: bool
+                          ) -> None:
+        if line_string.is_empty:
+            return
+        line_string_coords = rescale_coords(line_string.coords, offset=offset)  # (cs.start, rs.start)
+        line_string_coords = np.array(line_string_coords, dtype=np.int32)
+        cv2.polylines(mask, [line_string_coords], isClosed=False, color=1 if color else 0, thickness=1)
+
+    @classmethod
+    def _intersect_polygons_with_tile(cls, polygons: Union[Polygon, MultiPolygon], tile_polygon: Polygon) -> Union[Polygon | MultiPolygon]:
+        i_polygons: List[Union[MultiPolygon | Polygon]] = []
+        i_line_strings: List[LineString] = []
+
+        intersection = polygons.intersection(tile_polygon)
+        # print(type(intersection))
+
+        if isinstance(intersection, (Polygon, MultiPolygon)):
+            i_polygons.append(intersection)
+
+        elif isinstance(intersection, LineString):
+            i_line_strings.append(intersection)
+
+        elif isinstance(intersection, GeometryCollection):
+            for geometry in intersection.geoms:
+                if isinstance(geometry, (Polygon, MultiPolygon)):
+                    i_polygons.append(geometry)
+
+                elif isinstance(geometry, LineString):
+                    i_line_strings.append(geometry)
+
+                else:
+                    print(f"Geometry Collection geometry type not yet handled: {type(intersection)}")
+
+        else:
+            print(f"Intersection geometry type not yet handled: {type(intersection)}")
+
+        return i_polygons, i_line_strings
+
+    @classmethod
+    def _draw_geometry_on_tile(cls,
+                               polygon: Union[MultiPolygon | Polygon],
+                               mask: np.ndarray,
+                               slices: Tuple[slice, slice],
+                               color: bool):
+        rs, cs = slices
+        # shapely polygon of for the tile
+        tile_polygon = shapely.geometry.box(cs.start, rs.start, cs.stop, rs.stop)
+
+        # calculate intersection of the tile polygon and the roi polygon(s)
+        polygons, line_strings = cls._intersect_polygons_with_tile(polygons=polygon, tile_polygon=tile_polygon)
+
+        for polygon in polygons:
+            cls._draw_polygons(polygons=polygon, mask=mask, offset=(cs.start, rs.start), color=color)
+
+        for line_string in line_strings:
+            cls._draw_line_string(line_string, mask=mask, offset=(cs.start, rs.start), color=color)
+        # plot_pic(base_mask)
+
+    @classmethod
+    def create_mask(cls, data_store: DataStore, annotations: List[Annotation]) -> None:
         # iterate over the range of interests
-        for roi_no, (leveled_roi, roi) in enumerate(
-            zip(zarr_image.rois, zarr_image._roi_annos)
-        ):
-            (arr, bounds) = leveled_roi.get_by_level(PyramidalLevel.ZERO)
+        for roi_no, roi in enumerate(data_store.rois):
+            cs, rs = roi.get_bound(PyramidalLevel.ZERO)
+            x_min, x_max, y_min, y_max = cs.start, cs.stop, rs.start, rs.stop
 
-            # filter artifact annotations that are located within this roi
-            artifacts = MaskGenerator._filter_artifact_annos_for_roi(
-                bounds, annotations
-            )
+            # shape of the roi
+            shape = (rs.stop - rs.start, cs.stop - cs.start)
 
-            # create initial mask array
-            mask = np.zeros(arr.shape[:-1])
+            # create zeros array in zarr group with shape of roi
+            mask_array = data_store.create_mask_array(ZarrGroups.LIVER_MASK, roi_no, shape)
 
-            # draw polygon for roi
-            offset = (bounds[0], bounds[1])
-            mask = MaskGenerator._draw_roi_polygon(roi, mask, offset)
-            mask = MaskGenerator._draw_artifact_polygons(artifacts, mask, offset)
+            # get a list of slice that slices the area of the roi in tiles
+            slices = cls.get_tile_slices(shape)
 
-            # generate lower resolution mask arrays and save as zarr
-            MaskGenerator._write_mask_to_zarr(zarr_image, mask, roi_no)
+            # get the roi polygon and offset it to the origin of the created array
+            roi_poly = roi.get_polygon_for_level(PyramidalLevel.ZERO, offset=(x_min, y_min))
 
-    @classmethod
-    def _is_artifact_in_roi(cls, bound_poly: Polygon, anno: Annotation) -> bool:
-        return anno.geometry.within(bound_poly) | anno.geometry.intersects(bound_poly)
+            # one roi was not valid in terms if self intersections... this fixes that
+            if not roi_poly.is_simple:
+                roi_poly = make_valid(roi_poly)
+                print(f"not simple: {type(roi_poly)}")
 
-    @classmethod
-    def _filter_artifact_annos_for_roi(
-        cls, bounds: Tuple[int, int, int, int], annotations: List[Annotation]
-    ) -> List[Annotation]:
-        bound_poly = shapely.box(*bounds)
-        return [
-            anno
-            for anno in annotations
-            if MaskGenerator._is_artifact_in_roi(bound_poly, anno)
-        ]
+            # iterate over the tiles
+            for rs, cs in slices:
+                # tile shape -> don't change to tile size, because tiles at the edges of the roi are not squares but rectangles
+                tile_shape = (rs.stop - rs.start, cs.stop - cs.start)
 
-    @classmethod
-    def _draw_roi_polygon(
-        cls, roi: Roi, mask: np.ndarray, offset: Tuple[int, int]
-    ) -> np.ndarray:
-        geo = roi.get_polygon_for_level(PyramidalLevel.ZERO, offset=offset)
-        return MaskGenerator._draw_polygon(geo, mask, 1)
+                # transient mask for tile
+                base_mask = np.zeros(shape=tile_shape, dtype=np.uint8)
 
-    @classmethod
-    def _draw_artifact_polygons(
-        cls, artifacts: List[Annotation], mask: np.ndarray, offset: Tuple[int, int]
-    ) -> np.ndarray:
-        for anno in artifacts:
-            geo = anno.get_resized_geometry(1, offset)
-            mask = MaskGenerator._draw_polygon(geo, mask, 0)
-        return mask
+                # draw the roi poly on the mask
+                cls._draw_geometry_on_tile(polygon=roi_poly, mask=base_mask, slices=(rs, cs), color=True)
 
-    @classmethod
-    def _draw_polygon(
-        cls,
-        geometry: Union[shapely.Polygon, shapely.MultiPolygon],
-        mask: np.ndarray,
-        color: int,
-    ) -> np.ndarray:
-        if isinstance(geometry, Polygon):
-            points = [[x, y] for x, y in zip(*geometry.boundary.coords.xy)]
-            return cv2.fillPoly(mask, np.array([points]).astype(np.int32), color=color)
-
-        if isinstance(geometry, shapely.MultiPolygon):
-            for poly in geometry.geoms:
-                points = [[x, y] for x, y in zip(*poly.boundary.coords.xy)]
-                mask = cv2.fillPoly(
-                    mask, np.array([points]).astype(np.int32), color=color
-                )
-            return mask
-
-        logger.warning(
-            f"Another geometry type encountered, "
-            f"which was not drawn: '{type(geometry)}'"
-        )
-
-        return mask
-
-    @classmethod
-    def _write_mask_to_zarr(
-        cls, zarr_image: ZarrImage, mask: np.ndarray, roi_no: int
-    ) -> None:
-        h, w = mask.shape
-        data_dict = {0: mask.astype(bool)}
-        for i in [2, 4]:
-            new_h, new_w = int(h / 2**i), int(w / 2**i)
-            resized_mask = cv2.resize(
-                mask, dsize=(new_w, new_h), interpolation=cv2.INTER_NEAREST
-            )
-            data_dict[i] = resized_mask.astype(bool)
-
-        zarr_image.create_multilevel_group(ZarrGroups.LIVER_MASK, roi_no, data_dict)
+                # draw annotations on the mask
+                for annotation in annotations:
+                    polygon = annotation.get_resized_geometry(level=PyramidalLevel.ZERO, offset=(x_min, y_min))
+                    if isinstance(polygon, (Polygon, MultiPolygon, LineString)):
+                        cls._draw_geometry_on_tile(polygon=polygon, mask=base_mask, slices=(rs, cs), color=False)
+                    else:
+                        print(f"different geometry type encountered. {type(polygon)}")
+                mask_array[rs, cs] = base_mask.astype(bool)
+            plot_pic(mask_array[::16, ::16])
 
 
 if __name__ == "__main__":
-    file_manager = FileManager()
-
-    for species, name in file_manager.get_image_names():
-        zarr_image = ZarrImage(name, file_manager)
-        MaskGenerator.create_mask(zarr_image)
-
-        image_4, _ = zarr_image.rois[0].get_by_level(PyramidalLevel.FOUR)
-        mask = from_zarr(zarr_image.data.get("liver_mask/0/4"))
-
-        to_plot = image_4.compute()
-        to_plot[~mask.compute()] = [255, 255, 255]
-
-        plot_rgb(to_plot, False)
+    pass

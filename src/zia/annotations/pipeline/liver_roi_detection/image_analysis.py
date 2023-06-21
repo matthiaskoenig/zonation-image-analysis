@@ -3,6 +3,7 @@ from typing import List, Optional
 
 import cv2
 import numpy as np
+import skimage.measure
 from openslide import OpenSlide
 from shapely import Polygon
 
@@ -12,8 +13,8 @@ from zia.annotations.annotation.annotations import (
     AnnotationType,
 )
 from zia.io.wsi_openslide import read_full_image_from_slide
-from zia.annotations.annotation.roi import PyramidalLevel, Roi
-
+from zia.annotations.annotation.roi import Roi
+from zia.annotations.annotation.util import PyramidalLevel
 
 logger = logging.getLogger(__name__)
 
@@ -23,10 +24,10 @@ class RoiSegmentation:
 
     @classmethod
     def find_rois(
-        cls,
-        image: OpenSlide,
-        annotations: Optional[List[Annotation]],
-        annotation_type: AnnotationType,
+            cls,
+            image: OpenSlide,
+            annotations: Optional[List[Annotation]],
+            annotation_type: AnnotationType,
     ) -> List[Roi]:
         region = read_full_image_from_slide(image, 7)
 
@@ -77,15 +78,28 @@ class RoiSegmentation:
         if len(contour_shapes) == 0:
             logger.warning("No organ contour matches with the annotation geometries.")
 
+        ## reduce the polygons to have fewer points
+
+        reduced_polys = []
+
+        for polygon in contour_shapes:
+            coords = np.array(polygon.exterior.coords)
+            len_before = len(coords)
+            tolerance = 2
+            reduced_coords = skimage.measure.approximate_polygon(coords, tolerance)
+            len_after = len(reduced_coords)
+            print(len_after / len_before)
+            reduced_polys.append(Polygon(reduced_coords))
+
         liver_rois = [
-            Roi(cs, PyramidalLevel.SEVEN, AnnotationType.LIVER) for cs in contour_shapes
+            Roi(poly, PyramidalLevel.SEVEN, AnnotationType.LIVER) for poly in reduced_polys
         ]
 
         return liver_rois
 
     @classmethod
     def _extract_organ_shapes(
-        cls, shapes: List[Polygon], organ_annotations: List[Annotation]
+            cls, shapes: List[Polygon], organ_annotations: List[Annotation]
     ) -> List[Polygon]:
         extracted = [
             shape
@@ -105,7 +119,7 @@ class RoiSegmentation:
 
     @classmethod
     def reduce_shapes(
-        cls, kept_shapes: List[Polygon], remaining_shapes: List[Polygon]
+            cls, kept_shapes: List[Polygon], remaining_shapes: List[Polygon]
     ) -> None:
         not_in_bigger_shape = []
         big_shape = remaining_shapes.pop(0)
