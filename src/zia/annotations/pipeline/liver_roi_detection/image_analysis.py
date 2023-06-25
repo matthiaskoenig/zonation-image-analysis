@@ -105,7 +105,7 @@ class RoiSegmentation:
             shape
             for shape in shapes
             for anno in organ_annotations
-            if shape.contains(anno.get_resized_geometry(128))
+            if shape.contains(anno.get_resized_geometry(PyramidalLevel.SEVEN))
         ]
         return extracted
 

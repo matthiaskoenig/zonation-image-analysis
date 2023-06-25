@@ -1,11 +1,9 @@
 from zia.annotations.annotation.annotations import AnnotationParser, AnnotationType
 from zia.annotations.open_slide_image.data_repository import DataRepository
-from zia.annotations.open_slide_image.data_store import DataStore
+from zia.annotations.open_slide_image.data_store import DataStore, ZarrGroups
 from zia.annotations.path_utils import FileManager
 from zia.annotations.pipeline.mask_generatation.image_analysis import MaskGenerator
-from zia.annotations.pipeline.pipeline import IPipelineComponent
-from zia.annotations.zarr_image.zarr_image import ZarrGroups
-
+from zia.annotations.pipeline.abstract_pipeline.pipeline import IPipelineComponent
 
 class MaskCreationComponent(IPipelineComponent):
     def __init__(self, data_repository: DataRepository, draw=True, overwrite=False):

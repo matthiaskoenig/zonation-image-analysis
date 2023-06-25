@@ -13,7 +13,7 @@ from zia.annotations.open_slide_image.data_repository import DataRepository
 from zia.annotations.path_utils import FileManager, ResultDir
 from zia.annotations.pipeline.liver_roi_detection.image_analysis import RoiSegmentation
 from zia.annotations.pipeline.liver_roi_detection.report import RoiSegmentationReport
-from zia.annotations.pipeline.pipeline import IPipelineComponent
+from zia.annotations.pipeline.abstract_pipeline.pipeline import IPipelineComponent
 from zia.console import console
 from zia.io.wsi_openslide import openslide, read_full_image_from_slide
 

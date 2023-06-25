@@ -20,3 +20,5 @@ src/zia/resources/RH0422_1x2.5.pickle
 src/zia/annotations/resources/image/*
 src/zia/annotations/resources/geojsons/*
 
+path_config.ini
+
