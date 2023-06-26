@@ -5,11 +5,11 @@ from zia.annotations.path_utils import FileManager
 from zia.annotations.pipeline.mask_generatation.image_analysis import MaskGenerator
 from zia.annotations.pipeline.abstract_pipeline.pipeline import IPipelineComponent
 
+
 class MaskCreationComponent(IPipelineComponent):
-    def __init__(self, data_repository: DataRepository, draw=True, overwrite=False):
-        IPipelineComponent.__init__(self, data_repository)
+    def __init__(self, data_repository: DataRepository, overwrite=False, draw=True):
+        IPipelineComponent.__init__(self, data_repository, overwrite)
         self._draw = draw
-        self._overwrite = overwrite
 
     def run(self):
         for species, image_name in self.file_manager.get_image_names():
@@ -17,7 +17,7 @@ class MaskCreationComponent(IPipelineComponent):
             data_store = self.data_repository.image_data_stores.get(image_name)
 
             # prevent from overwriting data from previous runs during development
-            if self._check_if_exists(data_store) & ~self._overwrite:
+            if self._check_if_exists(data_store) & ~self.overwrite:
                 continue
 
             annotations = AnnotationParser.parse_geojson(self.file_manager.get_annotation_path(image_name))
@@ -25,7 +25,7 @@ class MaskCreationComponent(IPipelineComponent):
 
             MaskGenerator.create_mask(data_store, annotations)
 
-            #self._draw_mask(zarr_image, species)
+            # self._draw_mask(zarr_image, species)
 
     @classmethod
     def _check_if_exists(cls, data_store: DataStore) -> bool:

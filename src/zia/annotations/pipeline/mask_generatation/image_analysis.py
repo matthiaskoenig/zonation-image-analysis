@@ -9,6 +9,7 @@ from shapely.validation import make_valid
 
 from zia.annotations.annotation.annotations import Annotation
 from zia.annotations.annotation.geometry_utils import rescale_coords
+from zia.annotations.annotation.slicing import get_tile_slices
 from zia.annotations.annotation.util import PyramidalLevel
 from zia.annotations.open_slide_image.data_store import DataStore
 from zia.annotations.workflow_visualizations.util.image_plotting import plot_pic
@@ -20,23 +21,6 @@ logger = logging.getLogger(__name__)
 
 
 class MaskGenerator:
-
-    @classmethod
-    def get_tile_slices(cls, shape: Tuple[int, int], tile_size=10000) -> List[Tuple[slice, slice]]:
-        r, c = shape
-        num_col = int(np.ceil(c / tile_size))
-        num_row = int(np.ceil(r / tile_size))
-        slices = []
-        for i in range(num_col):
-            for k in range(num_row):
-                col_end = min(c, (i + 1) * tile_size)
-                cs = slice(i * tile_size, col_end)
-
-                row_end = min(r, (k + 1) * tile_size)
-                rs = slice(k * tile_size, row_end)
-
-                slices.append((rs, cs))
-        return slices
 
     @classmethod
     def _draw_polygons(cls,
@@ -145,7 +129,7 @@ class MaskGenerator:
             mask_array = data_store.create_mask_array(ZarrGroups.LIVER_MASK, roi_no, shape)
 
             # get a list of slice that slices the area of the roi in tiles
-            slices = cls.get_tile_slices(shape)
+            slices = get_tile_slices(shape)
 
             # get the roi polygon and offset it to the origin of the created array
             roi_poly = roi.get_polygon_for_level(PyramidalLevel.ZERO, offset=(x_min, y_min))

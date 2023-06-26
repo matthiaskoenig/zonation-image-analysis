@@ -15,8 +15,8 @@ class Pipeline:
         self.data_repository = data_repository
         self.pipeline_components: List[IPipelineComponent] = []
 
-    def register_component(self, pipeline_component_class: Type[IPipelineComponent]) -> None:
-        self.pipeline_components.append(pipeline_component_class(self.data_repository))
+    def register_component(self, pipeline_component_class: Type[IPipelineComponent], overwrite: bool = False) -> None:
+        self.pipeline_components.append(pipeline_component_class(self.data_repository, overwrite))
 
     def run(self, slice: slice = None) -> None:
         components_to_run = self.pipeline_components
@@ -43,7 +43,7 @@ if __name__ == "__main__":
     pipeline = Pipeline(data_repository)
 
     pipeline.register_component(RoiFinderComponent)
-    pipeline.register_component(MaskCreationComponent)
+    pipeline.register_component(MaskCreationComponent, overwrite=True)
 
     pipeline.run()
 

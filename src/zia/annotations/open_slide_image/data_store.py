@@ -1,31 +1,26 @@
 """Zarr image storage."""
 
 from enum import Enum
-from typing import Dict, Iterator, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
-import cv2
-import dask.array
 import numpy as np
 import zarr
-
-from zia.io.wsi_openslide import openslide, read_wsi
-from dask.array import from_zarr
-from tifffile import imread
-from zarr import Group
+from PIL.Image import Image
 
 from zia.annotations.annotation.roi import Roi
 from zia.annotations.annotation.util import PyramidalLevel
 from zia.annotations.path_utils import FileManager
+from zia.io.wsi_openslide import read_wsi
 
 
-class ZarrGroups(Enum):
+class ZarrGroups(str, Enum):
     LIVER_MASK = "liver_mask"
     DAB_STAIN = "dab_stain"
 
 
 class DataStore:
     """
-    Class manages persisting image data that is produces during
+    Class manages persisting image data that is produced during
     subsequent analysis in the image analysis pipeline like masks
     """
 
@@ -68,7 +63,30 @@ class DataStore:
         return roi_group.zeros(
             str(0),
             shape=shape,
-            chunks=(1024 * 4, 1024 * 4),
+            chunks=(2 ** 12, 2 ** 12),  # 4096
             dtype=bool,
             overwrite=True,
         )
+
+    def read_roi_from_slide(self, roi: Roi, level: PyramidalLevel) -> Image:
+        xs_ref, ys_ref = roi.get_bound(PyramidalLevel.ZERO)
+        ref_loc = xs_ref.start, ys_ref.start
+
+        xs, ys = roi.get_bound(level)
+        size = (xs.stop - xs.start, ys.stop - ys.start)
+
+        return self.image.read_region(location=ref_loc, level=level, size=size)
+
+    def read_region_from_roi(self, roi_no: int, location: Tuple[int, int], level: PyramidalLevel, size: Tuple[int, int]) -> Image:
+        """
+        same as read region, but offsets location to roi
+        size is absolute. So the size for the level must be calculated beforehand.
+        """
+        roi = self.rois[roi_no]
+        xs, ys = roi.get_bound(PyramidalLevel.ZERO)
+        loc_x, loc_y = location
+
+        shifted_location = xs.start + loc_x, ys.start + loc_y
+
+        return self.image.read_region(shifted_location, level, size)
+

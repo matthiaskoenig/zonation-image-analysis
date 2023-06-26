@@ -1,27 +1,63 @@
 import numpy as np
 
+
 # copied from https://github.com/schaugf/HEnorm_python/blob/master/normalizeStaining.py
 
 
-def normalizeStaining(img, Io=240, alpha=1, beta=0.15):
+def normalize_staining(image, Io=240, alpha=1, beta=0.15):
+    # define height and width of image
+    optical_density = calculate_optical_density(image, Io)
+    stain_matrix = calculate_stain_matrix(optical_density, alpha, beta)
+
+    return deconvolve_image(optical_density, image.shape, stain_matrix)
+
+
+def deconvolve_image(optical_density: np.ndarray, image_shape: tuple[int, int, int], stain_matrix: np.ndarray) -> \
+        tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """
+    uses the stain base vectors to deconvolve the image
+    returns tuple of (hematoxylin, hematoxylin_normalized, dab, dab_normalized)
+    """
+    h, w, c = image_shape
+
+    y = np.reshape(optical_density, (-1, 3)).T
+
+    # determine concentrations of the individual stains
+    # This should be connected to the intensity by lambert beer or sth.
+    concentrations = np.linalg.lstsq(stain_matrix, y, rcond=None)[0]
+
+    # normalize stain concentrations
+    max_concentration = np.array([np.percentile(concentrations[0, :], 99), np.percentile(concentrations[1, :], 99)])
+    # tmp = np.divide(max_concentration, maxCRef) # normalization for ref concentrations, leave it out
+    normalized_concentrations = np.divide(concentrations, max_concentration[:, np.newaxis])
+
+    hematoxylin = np.reshape(concentrations[0, :], (h, w, 1))  # intensities channel 1
+    hematoxylin_norm = np.reshape(normalized_concentrations[0, :], (h, w, 1))  # normalized intensities channel 1
+
+    dab = np.reshape(concentrations[1, :], (h, w, 1))  # intensities channel 2
+    dab_norm = np.reshape(normalized_concentrations[1, :], (h, w, 1))  # normalized intensities channel 2
+    return hematoxylin, hematoxylin_norm, dab, dab_norm
+
+
+def calculate_stain_matrix(od: np.ndarray, alpha=1, beta=0.15) -> np.ndarray:
     """Normalize staining appearence of H&E stained images
 
-    Example use:
-        see test.py
+        Example use:
+            see test.py
 
-    Input:
-        I: RGB input image
-        Io: (optional) transmitted light intensity
+        Input:
+            I: RGB input image
+            Io: (optional) transmitted light intensity
 
-    Output:
-        Inorm: normalized image
-        H: hematoxylin image
-        E: eosin image
+        Output:
+            Inorm: normalized image
+            H: hematoxylin image
+            E: eosin image
 
-    Reference:
-        A method for normalizing histology slides for quantitative analysis. M.
-        Macenko et al., ISBI 2009
-    """
+        Reference:
+            A method for normalizing histology slides for quantitative analysis. M.
+            Macenko et al., ISBI 2009
+        """
 
     """
     seems to be a reference matrix [v1, v2] where v1 and v2 are the reference
@@ -38,59 +74,44 @@ def normalizeStaining(img, Io=240, alpha=1, beta=0.15):
     It should not be relevant anyway, because we care about relative intensities in the DAB
     channel to find out about CYP expression."""
 
-    # maxCRef = np.array([1, 1])
-
-    # define height and width of image
-    h, w, c = img.shape
-
-    # reshape image
-    img = img.reshape((-1, 3))
-
-    # calculate optical density
-    OD = -np.log((img.astype(float) + 1) / Io)
-
     # remove transparent pixels
-    ODhat = OD[~np.any(OD < beta, axis=1)]
+    od_hat = od[~np.any(od < beta, axis=1)]
 
     # compute eigenvectors
-    eigvals, eigvecs = np.linalg.eigh(np.cov(ODhat.T))
+    eig_vals, eig_vecs = np.linalg.eigh(np.cov(od_hat.T))
 
-    # eigvecs *= -1
+    # eig_vecs *= -1
 
     # project on the plane spanned by the eigenvectors corresponding to the two
     # largest eigenvalues
-    That = ODhat.dot(eigvecs[:, 1:3])
+    t_hat = od_hat.dot(eig_vecs[:, 1:3])
 
-    phi = np.arctan2(That[:, 1], That[:, 0])
+    phi = np.arctan2(t_hat[:, 1], t_hat[:, 0])
 
-    minPhi = np.percentile(phi, alpha)
-    maxPhi = np.percentile(phi, 100 - alpha)
+    min_phi = np.percentile(phi, alpha)
+    max_phi = np.percentile(phi, 100 - alpha)
 
-    vMin = eigvecs[:, 1:3].dot(np.array([(np.cos(minPhi), np.sin(minPhi))]).T)
-    vMax = eigvecs[:, 1:3].dot(np.array([(np.cos(maxPhi), np.sin(maxPhi))]).T)
+    v_min = eig_vecs[:, 1:3].dot(np.array([(np.cos(min_phi), np.sin(min_phi))]).T)
+    v_max = eig_vecs[:, 1:3].dot(np.array([(np.cos(max_phi), np.sin(max_phi))]).T)
 
     # a heuristic to make the vector corresponding to hematoxylin first and the
-    # one corresponding to eosin second
-    if vMin[0] > vMax[0]:
-        HE = np.array((vMin[:, 0], vMax[:, 0])).T
+    # one corresponding to eosin second -> in this case dab
+    if v_min[0] > v_max[0]:
+        stain_vectors = np.array((v_min[:, 0], v_max[:, 0])).T
     else:
-        HE = np.array((vMax[:, 0], vMin[:, 0])).T
+        stain_vectors = np.array((v_max[:, 0], v_min[:, 0])).T
 
-    # rows correspond to channels (RGB), columns to OD values
-    Y = np.reshape(OD, (-1, 3)).T
+    return stain_vectors
 
-    # determine concentrations of the individual stains
-    # This should be connected to the intensity by lambert beer or sth.
-    C = np.linalg.lstsq(HE, Y, rcond=None)[0]
 
-    # normalize stain concentrations
-    maxC = np.array([np.percentile(C[0, :], 99), np.percentile(C[1, :], 99)])
-    # tmp = np.divide(maxC, maxCRef) # normalization for ref concentrations, leave it out
-    C2 = np.divide(C, maxC[:, np.newaxis])
+def calculate_optical_density(image: np.ndarray, transmission_intensity: float = 240) -> np.ndarray:
+    """
+    calculates the optical density over an image array
+    img is of shape (m, n, 3)
+    the return array is of shape (m * n, 3)
+    """
+    # reshape image
+    image = image.reshape((-1, 3))
 
-    RC1 = np.reshape(C[0, :], (h, w, 1))  # intensities channel 1
-    RC1N = np.reshape(C2[0, :], (h, w, 1))  # normalized intensities channel 1
-
-    RC2 = np.reshape(C[1, :], (h, w, 1))  # intensities channel 2
-    RC2N = np.reshape(C2[1, :], (h, w, 1))  # normalized intensities channel 2
-    return RC1, RC1N, RC2, RC2N
+    # calculate optical density
+    return -np.log((image.astype(float) + 1) / transmission_intensity)

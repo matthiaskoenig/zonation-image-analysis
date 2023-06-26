@@ -3,18 +3,18 @@ from typing import List, Optional
 
 import cv2
 import numpy as np
-import skimage.measure
-from openslide import OpenSlide
-from shapely import Polygon
+from shapely import Polygon, make_valid
 
 from zia.annotations.annotation.annotations import (
     Annotation,
     AnnotationParser,
     AnnotationType,
 )
-from zia.io.wsi_openslide import read_full_image_from_slide
 from zia.annotations.annotation.roi import Roi
 from zia.annotations.annotation.util import PyramidalLevel
+from zia.annotations.open_slide_image.data_store import DataStore
+from zia.console import console
+from zia.io.wsi_openslide import read_full_image_from_slide
 
 logger = logging.getLogger(__name__)
 
@@ -25,11 +25,11 @@ class RoiSegmentation:
     @classmethod
     def find_rois(
             cls,
-            image: OpenSlide,
+            data_store: DataStore,
             annotations: Optional[List[Annotation]],
             annotation_type: AnnotationType,
     ) -> List[Roi]:
-        region = read_full_image_from_slide(image, 7)
+        region = read_full_image_from_slide(data_store.image, PyramidalLevel.SEVEN)
 
         cv2image = cv2.cvtColor(np.array(region), cv2.COLOR_RGB2GRAY)
 
@@ -78,18 +78,27 @@ class RoiSegmentation:
         if len(contour_shapes) == 0:
             logger.warning("No organ contour matches with the annotation geometries.")
 
-        ## reduce the polygons to have fewer points
+        # reduce the polygons to have fewer points
 
         reduced_polys = []
 
+        # reduces the number of points in the polygon
+        # this may result in invalid polygons which have to be fixed
         for polygon in contour_shapes:
-            coords = np.array(polygon.exterior.coords)
-            len_before = len(coords)
+            len_before = len(polygon.exterior.coords)
             tolerance = 2
-            reduced_coords = skimage.measure.approximate_polygon(coords, tolerance)
-            len_after = len(reduced_coords)
-            print(len_after / len_before)
-            reduced_polys.append(Polygon(reduced_coords))
+            reduced_geometry = polygon.simplify(tolerance, False)
+            reduced_polygon = Polygon(reduced_geometry)
+
+            len_after = len(reduced_polygon.exterior.coords)
+            factor = len_before / len_after
+            console.print(f"Reduced polygon vertices by factor {factor:.1f}")
+            if not reduced_polygon.is_valid:
+                console.print(f"Invalid Polygon encountered after reduction for '{data_store.name}'")
+                reduced_polygon = make_valid(reduced_polygon)
+                console.print(f"Made Polygon valid for '{data_store.name}'")
+
+            reduced_polys.append(reduced_polygon)
 
         liver_rois = [
             Roi(poly, PyramidalLevel.SEVEN, AnnotationType.LIVER) for poly in reduced_polys
