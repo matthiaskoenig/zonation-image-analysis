@@ -11,7 +11,7 @@ from PIL import Image, ImageDraw
 from shapely.geometry import Polygon
 
 from src.zia.annotations.normalization.marcenko import normalizeStaining
-from zia.annotations import OPENSLIDE_PATH
+from zia import OPENSLIDE_PATH
 from zia.annotations.workflow_visualizations.util.image_plotting import (
     plot_pic,
     plot_rgb,

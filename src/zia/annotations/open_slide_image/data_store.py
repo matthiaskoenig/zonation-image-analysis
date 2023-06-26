@@ -20,6 +20,7 @@ from zia.annotations.path_utils import FileManager
 
 class ZarrGroups(Enum):
     LIVER_MASK = "liver_mask"
+    DAB_STAIN = "dab_stain"
 
 
 class DataStore:
