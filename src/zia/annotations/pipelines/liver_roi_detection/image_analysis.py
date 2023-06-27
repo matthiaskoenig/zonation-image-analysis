@@ -12,7 +12,7 @@ from zia.annotations.annotation.annotations import (
 )
 from zia.annotations.annotation.roi import Roi
 from zia.annotations.annotation.util import PyramidalLevel
-from zia.annotations.open_slide_image.data_store import DataStore
+from zia.data_store import DataStore
 from zia.console import console
 from zia.io.wsi_openslide import read_full_image_from_slide
 

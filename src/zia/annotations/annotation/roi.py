@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 from typing import List, Tuple
 
 import geojson as gj
@@ -31,7 +32,7 @@ class Roi:
         return gj.Feature(geometry=polygon, properties=properties)
 
     @classmethod
-    def write_to_geojson(cls, rois: List["Roi"], path: str):
+    def write_to_geojson(cls, rois: List["Roi"], path: Path):
         features = [roi._to_geojson_feature() for roi in rois]
         feature_collection = gj.FeatureCollection(features)
 

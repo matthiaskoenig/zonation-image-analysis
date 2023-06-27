@@ -19,7 +19,7 @@ class StainSeparationPipelineComponent(IPipelineComponent):
                 return
 
             print(species, image_name)
-            data_store = self.data_repository.image_data_stores.get(image_name)
+            data_store = self.data_repository.data_stores.get(image_name)
 
             # prevent from overwriting data from previous runs during development
             if self._check_if_exists(data_store) & ~self.overwrite:

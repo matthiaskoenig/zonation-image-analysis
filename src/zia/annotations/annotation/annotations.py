@@ -7,6 +7,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from enum import Enum
+from pathlib import Path
 from typing import List, Optional, Set, Union
 
 import geojson as gj
@@ -97,8 +98,8 @@ a shapely geometry and the annotation type (annotation class assigned in QuPath)
 
 class AnnotationParser:
     @classmethod
-    def parse_geojson(cls, file_name: str) -> List[Annotation]:
-        with open(file_name) as f:
+    def parse_geojson(cls, path: Path) -> List[Annotation]:
+        with open(path) as f:
             data = gj.load(f)
 
         features = data["features"]

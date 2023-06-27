@@ -24,7 +24,7 @@ if __name__ == "__main__":
 
     pipeline = Pipeline(data_repository)
 
-    pipeline.register_component(RoiFinderComponent)
-    pipeline.register_component(MaskCreationComponent, overwrite=True)
+    pipeline.add_component(RoiFinderComponent)
+    pipeline.add_component(MaskCreationComponent, overwrite=True)
 
     pipeline.run()

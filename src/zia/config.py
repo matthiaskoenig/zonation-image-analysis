@@ -35,7 +35,7 @@ def read_config(file_path: Path) -> Configuration:
         results_path=Path(config["Paths"]["results_path"]),
         reports_path=Path(config["Paths"]["reports_path"]),
         data_path=Path(config["Paths"]["data_path"]),
-        annotations_path=Path(config["Paths"]["data_path"]),
+        annotations_path=Path(config["Paths"]["annotation_path"]),
         zarr_path=Path(config["Paths"]["zarr_path"]),
         openslide_path=Path(openslide_path) if openslide_path else None,
     )

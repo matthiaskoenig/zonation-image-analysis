@@ -1,20 +1,20 @@
 from zia.annotations.annotation.annotations import AnnotationParser, AnnotationType
-from zia.annotations.open_slide_image.data_repository import DataRepository
-from zia.annotations.open_slide_image.data_store import DataStore, ZarrGroups
-from zia.annotations.path_utils import FileManager
-from zia.annotations.pipeline.abstract_pipeline.pipeline import IPipelineComponent
-from zia.annotations.pipeline.mask_generatation.image_analysis import MaskGenerator
+from zia.data_store import DataStore, ZarrGroups
+
+from zia.annotations.pipelines.pipeline import IPipelineComponent
+from zia.annotations.pipelines.mask_generatation.image_analysis import MaskGenerator
 
 
 class MaskCreationComponent(IPipelineComponent):
-    def __init__(self, data_repository: DataRepository, overwrite=False, draw=True):
-        IPipelineComponent.__init__(self, data_repository, overwrite)
+    def __init__(self, overwrite=False, draw=True):
+        super(IPipelineComponent, self).__init__(overwrite)
         self._draw = draw
 
-    def run(self):
+    def run(self, data_store: DataStore):
+        # FIXME:
         for species, image_name in self.file_manager.image_paths():
             print(species, image_name)
-            data_store = self.data_repository.image_data_stores.get(image_name)
+            data_store = self.data_repository.data_stores.get(image_name)
 
             # prevent from overwriting data from previous runs during development
             if self._check_if_exists(data_store) & ~self.overwrite:
@@ -40,6 +40,7 @@ class MaskCreationComponent(IPipelineComponent):
 
 
 if __name__ == "__main__":
+    from zia.path_utils import FileManager
     from zia import DATA_PATH, REPORT_PATH, RESULTS_PATH, ZARR_PATH
 
     # manages the paths

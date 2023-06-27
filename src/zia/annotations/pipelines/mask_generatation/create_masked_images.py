@@ -21,7 +21,7 @@ if __name__ == "__main__":
     data_repository = DataRepository(file_manager)
 
     for species, name in file_manager.image_paths():
-        data_store = data_repository.image_data_stores.get(name)
+        data_store = data_repository.data_stores.get(name)
 
         for i, roi in enumerate(data_store.rois):
             mask_array = data_store.data.get(f"{ZarrGroups.LIVER_MASK.value}/{i}/{0}")
@@ -35,7 +35,7 @@ if __name__ == "__main__":
 
             size = (xs.stop - xs.start, ys.stop - ys.start)
 
-            roi_image = data_store.image.read_region(
+            roi_image = data_store.image_info.read_region(
                 location=ref_loc, level=PyramidalLevel.FOUR, size=size
             )
 

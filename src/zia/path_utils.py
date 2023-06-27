@@ -4,7 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Callable, Optional, List
+from typing import Callable, Optional, List, Any
 import re
 
 from zia.config import Configuration
@@ -17,6 +17,15 @@ class ResultsDirectories(str, Enum):
     ANNOTATIONS_LIVER_ROI = "annotations_liver_roi"
     LIVER_MASK = "liver_mask"
     MASKED_PNG_IMAGES = "masked_png_images"
+
+
+@dataclass
+class ImageInfo:
+    path: Path
+    zarr_path: Path
+    annotations_path: Path
+    metadata: ImageMetadata
+    roi_path: Optional[Path]
 
 
 class FileManager:
@@ -33,6 +42,21 @@ class FileManager:
 
         self.filter: Optional[Callable] = filter
 
+    def get_images(self) -> List[ImageInfo]:
+        """Get image information."""
+        images: List[ImageInfo] = []
+        for p in self.image_paths():
+            images.append(
+                ImageInfo(
+                    path=p,
+                    zarr_path=self.get_zarr_path(p),
+                    annotations_path=self.get_geojson_path(p),
+                    metadata=image_metadata(p),
+                    roi_path=None
+                )
+            )
+        return images
+
     def image_paths(self, extension="ndpi") -> List[Path]:
         """Get list of images for given extension."""
         paths = self.data_path.glob(f"**/*.{extension}")
@@ -46,7 +70,7 @@ class FileManager:
     def get_geojson_path(self, image: Path) -> Path:
         """Get geojson annotation path for image."""
         # resolve relative path
-        directory = self.annotation_path / image.relative_to(self.data_path).parent
+        directory = self.annotation_path / image.relative_to(self.data_path).parent.parent / "objectsjson"
         return directory / f"{image.stem}.geojson"
 
     #
@@ -162,3 +186,5 @@ if __name__ == "__main__":
             filter=filter_factory(subject="NOR-022")
     )
     file_manager.info()
+    images = file_manager.get_images()
+    console.print(images)

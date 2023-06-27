@@ -48,7 +48,7 @@ if __name__ == "__main__":
 
     data_repository = DataRepository(file_manager)
 
-    image = data_repository.image_data_stores.get(image_name).image
+    image = data_repository.data_stores.get(image_name).image_info
 
     w, h = image.dimensions
 

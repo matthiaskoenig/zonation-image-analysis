@@ -11,11 +11,9 @@ from zia.annotations.annotation.annotations import Annotation
 from zia.annotations.annotation.geometry_utils import rescale_coords
 from zia.annotations.annotation.slicing import get_tile_slices
 from zia.annotations.annotation.util import PyramidalLevel
-from zia.annotations.open_slide_image.data_store import DataStore, ZarrGroups
 from zia.annotations.workflow_visualizations.util.image_plotting import plot_pic
 
-
-IMAGE_NAME = "J-12-00348_NOR-021_Lewis_CYP2E1- 1 300_Run 14_ML, Sb, rk_MAA_006"
+from zia.data_store import DataStore, ZarrGroups
 
 logger = logging.getLogger(__name__)
 
@@ -191,7 +189,3 @@ class MaskGenerator:
                         print(f"different geometry type encountered. {type(polygon)}")
                 mask_array[rs, cs] = base_mask.astype(bool)
             plot_pic(mask_array[::16, ::16])
-
-
-if __name__ == "__main__":
-    pass

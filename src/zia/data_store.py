@@ -1,6 +1,7 @@
 """Zarr image storage."""
 
 from enum import Enum
+from pathlib import Path
 from typing import List, Optional, Tuple
 
 import numpy as np
@@ -9,8 +10,8 @@ from PIL.Image import Image
 
 from zia.annotations.annotation.roi import Roi
 from zia.annotations.annotation.util import PyramidalLevel
-from zia.annotations.path_utils import FileManager
 from zia.io.wsi_openslide import read_wsi
+from zia.path_utils import ImageInfo
 
 
 class ZarrGroups(str, Enum):
@@ -26,28 +27,29 @@ class DataStore:
 
     _chunksize_rgb = (1024, 1024, 3)
 
-    def __init__(self, image_name, file_manager: FileManager):
-        self._rois: Optional[List[Roi]] = None  # lazy initialization
-        self._file_manager = file_manager
-        self.name = image_name
-        self.data = zarr.open_group(
-            self._file_manager.get_zarr_path(self.name), mode="a"
-        )
-        self.image = read_wsi(self._file_manager.get_image_path(self.name))
+    def __init__(self, image_info: ImageInfo):
+
+        self.image_info = image_info
+        self.data = zarr.open_group(self.image_info.zarr_path, mode="a")
+        self.image = read_wsi(self.image_info.path)
+
+        # FIXME: load the ROIS at the beginning! I.e. all the data and ROIs
+        self._rois: Optional[List[Roi]] = None
 
     @property
     def rois(self) -> List[Roi]:
         if not self._rois:
             self._register_rois(None)
+
         return self._rois
 
     def _register_rois(self, rois: Optional[List[Roi]]) -> None:
         if not rois:
-            self._rois = Roi.load_from_file(
+            rois = Roi.load_from_file(
                 self._file_manager.get_roi_geojson_paths(self.name)
             )
-        else:
-            self._rois = rois
+
+        self._rois = rois
 
     def create_multilevel_group(
         self, zarr_group: ZarrGroups, roi_no: int, data: dict[int, np.ndarray]
