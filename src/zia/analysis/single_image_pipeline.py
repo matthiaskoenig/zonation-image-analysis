@@ -26,8 +26,7 @@ if __name__ == "__main__":
             # finds ROI of liver tissue
             RoiFinderComponent(overwrite=False),
             # creates masks
-            # MaskCreationComponent(overwrite=True),
-
+            MaskCreationComponent(overwrite=True),
         ]
     )
 

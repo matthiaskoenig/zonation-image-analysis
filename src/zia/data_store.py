@@ -1,7 +1,6 @@
 """Zarr image storage."""
 
 from enum import Enum
-from pathlib import Path
 from typing import List, Optional, Tuple
 
 import numpy as np
@@ -38,18 +37,30 @@ class DataStore:
 
     @property
     def rois(self) -> List[Roi]:
+        """
+        Lazy loads ROIs. This was implemented like this to allow running the component
+        without running the RoiFinderComponent before during development. In this case
+        the rois will not have not been registered and thus have to be loaded from the
+        file system.
+        """
         if not self._rois:
-            self._register_rois(None)
+            self._rois = self._load_rois_from_file_system()
 
         return self._rois
 
-    def _register_rois(self, rois: Optional[List[Roi]]) -> None:
-        if not rois:
-            rois = Roi.load_from_file(
-                self._file_manager.get_roi_geojson_paths(self.name)
-            )
+    def _load_rois_from_file_system(self) -> List[Roi]:
+        return Roi.load_from_file(self.image_info.roi_path)
 
+    def register_rois(self, rois: Optional[List[Roi]]) -> None:
+        """
+        initializes rois in data store and saves rois to file system.
+        """
         self._rois = rois
+
+        Roi.write_to_geojson(
+            rois=rois,
+            path=self.image_info.roi_path,
+        )
 
     def create_multilevel_group(
         self, zarr_group: ZarrGroups, roi_no: int, data: dict[int, np.ndarray]
@@ -73,7 +84,7 @@ class DataStore:
         return roi_group.zeros(
             str(0),
             shape=shape,
-            chunks=(2**12, 2**12),  # 4096
+            chunks=(2 ** 12, 2 ** 12),  # 4096
             dtype=bool,
             overwrite=True,
         )

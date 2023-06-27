@@ -11,12 +11,10 @@ from zia.annotations.annotation.roi import Roi
 from zia.annotations.annotation.util import PyramidalLevel
 from zia.annotations.pipelines.liver_roi_detection.image_analysis import RoiSegmentation
 from zia.annotations.pipelines.pipeline import IPipelineComponent
-
-from zia.path_utils import ResultsDirectories
 from zia.data_store import DataStore
-from zia.console import console
 from zia.io.wsi_openslide import read_full_image_from_slide
-from zia.log import get_logger
+from zia.log import get_logger, create_message
+from zia.path_utils import ResultsDirectories
 
 logger = get_logger(__name__)
 
@@ -24,23 +22,28 @@ logger = get_logger(__name__)
 class RoiFinderComponent(IPipelineComponent):
     """Pipeline step for ROI processing."""
 
-    _reports_dict = {}  # FIXME: not class
-
     def __init__(self, overwrite=False, draw: bool = True):
         super().__init__(overwrite)
         self._draw = draw
 
     def run(self, data_store: DataStore, results_path: Path) -> None:
         """Run analysis."""
-        # report = self._get_report(species)
         image_id = data_store.image_info.metadata.image_id
 
+        # prevent from overwriting existing data
+        if not self.overwrite and data_store.image_info.roi_path.exists():
+            logger.info(create_message(image_id,
+                                       "The ROI file already exists. Set overwrite flag"
+                                       " to True to allow overwriting."))
+            return
+
+        logger.info(f"[{image_id}]\tStarted ROI detection.")
         start_time = time.time()
 
         geojson_path = data_store.image_info.annotations_path
+
         if not geojson_path:
-            logger.warning(f"No annotation geojson file found for {image_id}.")
-            # report.register_geojson_missing(image_name)
+            logger.warning(f"[{image_id}]\tNo annotation geojson file found.")
             return
 
         annotations = AnnotationParser.parse_geojson(
@@ -59,36 +62,29 @@ class RoiFinderComponent(IPipelineComponent):
             data_store, annotations, AnnotationType.LIVER
         )
 
+        # writing this as a subdirectory to the zarr store because this is reused.
         if len(liver_rois) > 0:
-            roi_path = results_path / ResultsDirectories.ANNOTATIONS_LIVER_ROI / f"{image_id}.geojson"
-            Roi.write_to_geojson(
-                rois=liver_rois,
-                path=roi_path,
-            )
-            # update roi path
-            data_store.image_info.roi_path = roi_path
+            # adding data to the data_store.
+            data_store.register_rois(liver_rois)
 
             if self._draw:
-                image_path = results_path / ResultsDirectories.ANNOTATIONS_LIVER_ROI / f"{image_id}.png"
+                image_path = results_path / ResultsDirectories.LIVER_ROIS_IMAGES.value
+                image_path.mkdir(exist_ok=True)
+
                 self._draw_rois(
                     liver_rois=liver_rois,
-                    image_path=image_path,
+                    image_path=image_path / f"{image_id}.png",
                     data_store=data_store,
                 )
 
         else:
-            logger.warning(f"No ROI found for {image_id}")
-            # report.register_segmentation_fail(image_name)
-
-            # if len(liver_rois) == len(liver_annotations):
-            #     report.register_segmentation_success(image_name)
-            # else:
-            #     report.register_segmentation_partial(image_name)
+            logger.warning(f"[{image_id}]\tNo ROIs found.")
 
         end_time = time.time()
-        # report.set_time(end_time - start_time)
+        run_time = end_time - start_time
 
-        logger.info(f"Finished finding liver ROIs for {image_id}")
+        logger.info(
+            f"[{image_id}]\tFinished ROI detection in {run_time:.2f} s. Found {len(liver_rois)} ROI.")
         # self._save_reports()
 
     @staticmethod
@@ -107,18 +103,3 @@ class RoiFinderComponent(IPipelineComponent):
             draw.polygon(list(poly_points), outline="red", width=3)
 
         region.save(image_path, "PNG")
-
-    #
-    # def _save_reports(self) -> None:
-    #     for species, report in self._reports_dict.items():
-    #         console.print(report)
-    #         report.save(
-    #             self.file_manager.get_report_path(
-    #                 ResultsDirectories.ANNOTATIONS_LIVER_ROI, species, "report.txt"
-    #             )
-    #         )
-    #
-    # def _get_report(self, species: str) -> RoiSegmentationReport:
-    #     if species not in self._reports_dict.keys():
-    #         self._reports_dict[species] = RoiSegmentationReport()
-    #     return self._reports_dict[species]

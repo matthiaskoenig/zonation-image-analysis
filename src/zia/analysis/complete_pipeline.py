@@ -1,30 +1,35 @@
-from zia.annotations.open_slide_image.data_repository import DataRepository
-from zia.annotations.path_utils import FileManager
-from zia.annotations.pipeline.liver_roi_detection.pipeline_component import (
+"""Run steps on single image."""
+
+from zia.path_utils import FileManager, filter_factory
+from zia.data_store import DataStore
+from zia.annotations.pipelines.liver_roi_detection.pipeline_component import (
     RoiFinderComponent,
 )
-from zia.annotations.pipeline.mask_generatation.pipeline_component import (
+from zia.annotations.pipelines.mask_generatation.pipeline_component import (
     MaskCreationComponent,
 )
-from zia.annotations.pipeline.pipe_line import Pipeline
+from zia.annotations.pipelines.pipeline import Pipeline
+from zia.console import console
 
 
 if __name__ == "__main__":
-    from zia import DATA_PATH, REPORT_PATH, RESULTS_PATH, ZARR_PATH
+    from zia import BASE_PATH
+    from zia.config import read_config
 
-    # manages the paths
     file_manager = FileManager(
-        data_path=DATA_PATH,
-        zarr_path=ZARR_PATH,
-        results_path=RESULTS_PATH,
-        report_path=REPORT_PATH,
+        configuration=read_config(BASE_PATH / "configuration.ini"),
+        filter=None
     )
 
-    data_repository = DataRepository(file_manager)
+    pipeline = Pipeline(
+        components=[
+            # finds ROI of liver tissue
+            RoiFinderComponent(overwrite=False),
+            # creates masks
+            MaskCreationComponent(overwrite=False),
+        ]
+    )
 
-    pipeline = Pipeline(data_repository)
-
-    pipeline.add_component(RoiFinderComponent)
-    pipeline.add_component(MaskCreationComponent, overwrite=True)
-
-    pipeline.run()
+    for image_info in file_manager.get_images():
+        data_store = DataStore(image_info=image_info)
+        pipeline.run(data_store, results_path=file_manager.results_path)

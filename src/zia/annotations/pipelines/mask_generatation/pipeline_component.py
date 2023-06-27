@@ -1,35 +1,52 @@
+from pathlib import Path
+
 from zia.annotations.annotation.annotations import AnnotationParser, AnnotationType
+from zia.annotations.workflow_visualizations.util.image_plotting import plot_pic
 from zia.data_store import DataStore, ZarrGroups
 
 from zia.annotations.pipelines.pipeline import IPipelineComponent
 from zia.annotations.pipelines.mask_generatation.image_analysis import MaskGenerator
+from zia.log import get_logger
+
+logger = get_logger(__name__)
 
 
 class MaskCreationComponent(IPipelineComponent):
     def __init__(self, overwrite=False, draw=True):
-        super(IPipelineComponent, self).__init__(overwrite)
+        super().__init__(overwrite)
         self._draw = draw
 
-    def run(self, data_store: DataStore):
-        # FIXME:
-        for species, image_name in self.file_manager.image_paths():
-            print(species, image_name)
-            data_store = self.data_repository.data_stores.get(image_name)
+    def run(self, data_store: DataStore, results_path: Path) -> None:
+        image_id = data_store.image_info.metadata.image_id
 
-            # prevent from overwriting data from previous runs during development
-            if self._check_if_exists(data_store) & ~self.overwrite:
-                continue
+        # prevent from overwriting data from previous runs during development
+        if self._check_if_exists(data_store) & ~self.overwrite:
+            logger.info(f"[{image_id}]\tMask already exists. To overwrite, set overwrite to True for {self.__class__.__name__}.")
+            return
 
-            annotations = AnnotationParser.parse_geojson(
-                self.file_manager.get_annotation_path(image_name)
-            )
-            annotations = AnnotationParser.get_annotation_by_types(
-                annotations, AnnotationType.get_artifacts()
-            )
+        logger.info(f"[{image_id}]\tStarted Mask generation.")
+        geojson_path = data_store.image_info.annotations_path
 
-            MaskGenerator.create_mask(data_store, annotations)
+        # parse annotations for class
+        annotations = AnnotationParser.parse_geojson(
+            path=geojson_path
+        )
 
-            # self._draw_mask(zarr_image, species)
+        # filter artifact annotations
+        artifact_annotations = AnnotationParser.get_annotation_by_types(
+            annotations, AnnotationType.get_artifacts()
+        )
+
+
+        if len(artifact_annotations) == 0:
+            logger.info(f"[{image_id}]\tNo artifact annotations found.")
+
+        MaskGenerator.create_mask(data_store, artifact_annotations)
+
+        if self._draw:
+            for i in range(len(data_store.rois)):
+                mask = data_store.data.get(f"{ZarrGroups.LIVER_MASK.value}/{i}/{0}")
+                plot_pic(mask[::32, ::32])
 
     @classmethod
     def _check_if_exists(cls, data_store: DataStore) -> bool:
@@ -37,20 +54,3 @@ class MaskCreationComponent(IPipelineComponent):
             return True
         else:
             return False
-
-
-if __name__ == "__main__":
-    from zia.path_utils import FileManager
-    from zia import DATA_PATH, REPORT_PATH, RESULTS_PATH, ZARR_PATH
-
-    # manages the paths
-    file_manager = FileManager(
-        data_path=DATA_PATH,
-        zarr_path=ZARR_PATH,
-        results_path=RESULTS_PATH,
-        report_path=REPORT_PATH,
-    )
-
-    data_repository = DataRepository(file_manager)
-    mask_generator = MaskCreationComponent(data_repository, False, True)
-    mask_generator.run()

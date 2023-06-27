@@ -11,14 +11,80 @@ from zia.annotations.annotation.annotations import Annotation
 from zia.annotations.annotation.geometry_utils import rescale_coords
 from zia.annotations.annotation.slicing import get_tile_slices
 from zia.annotations.annotation.util import PyramidalLevel
-from zia.annotations.workflow_visualizations.util.image_plotting import plot_pic
-
 from zia.data_store import DataStore, ZarrGroups
+from zia.log import create_message
 
 logger = logging.getLogger(__name__)
 
 
 class MaskGenerator:
+
+    @classmethod
+    def create_mask(cls, data_store: DataStore, annotations: List[Annotation]) -> None:
+        image_id = data_store.image_info.metadata.image_id
+        # iterate over the range of interests
+        for roi_no, roi in enumerate(data_store.rois):
+            logger.info(f"[{image_id}]\tStarted Mask Generation for ROI {roi_no}")
+
+            cs, rs = roi.get_bound(PyramidalLevel.ZERO)
+            x_min, x_max, y_min, y_max = cs.start, cs.stop, rs.start, rs.stop
+
+            # shape of the roi
+            shape = (rs.stop - rs.start, cs.stop - cs.start)
+
+            # create zeros array in zarr group with shape of roi
+            mask_array = data_store.create_mask_array(
+                ZarrGroups.LIVER_MASK, roi_no, shape
+            )
+
+            # get a list of slice that slices the area of the roi in tiles
+            slices = get_tile_slices(shape)
+
+            # get the roi polygon and offset it to the origin of the created array
+            roi_poly = roi.get_polygon_for_level(
+                PyramidalLevel.ZERO, offset=(x_min, y_min)
+            )
+
+            # one roi was not valid in terms if self intersections... this fixes that
+            if not roi_poly.is_valid:
+                logger.warning(
+                    create_message(image_id, "Non valid polygon encountered."))
+                roi_poly = make_valid(roi_poly)
+                logger.info(create_message(image_id, "Made Polygon valid."))
+
+            # iterate over the tiles
+            for rs, cs in slices:
+                # tile shape -> don't change to tile size, because tiles at the edges of the roi are not squares but rectangles
+                tile_shape = (rs.stop - rs.start, cs.stop - cs.start)
+
+                # transient mask for tile
+                base_mask = np.zeros(shape=tile_shape, dtype=np.uint8)
+
+                # draw the roi poly on the mask
+                cls._draw_geometry_on_tile(
+                    polygon=roi_poly, mask=base_mask, slices=(rs, cs), color=True
+                )
+
+                # draw annotations on the mask
+                for annotation in annotations:
+                    polygon = annotation.get_resized_geometry(
+                        level=PyramidalLevel.ZERO, offset=(x_min, y_min)
+                    )
+                    if isinstance(polygon, (Polygon, MultiPolygon, LineString)):
+                        cls._draw_geometry_on_tile(
+                            polygon=polygon,
+                            mask=base_mask,
+                            slices=(rs, cs),
+                            color=False,
+                        )
+                    else:
+                        logger.warning(create_message(image_id,
+                                                      f"Different geometry type encountered in annotations: {type(polygon)}."))
+                mask_array[rs, cs] = base_mask.astype(bool)
+            logger.info(create_message(image_id,
+                                       f"Finished mask creation for ROI {roi_no}.")
+                        )
+
     @classmethod
     def _draw_polygons(
         cls,
@@ -34,7 +100,7 @@ class MaskGenerator:
             for polygon in polygons.geoms:
                 cls._draw_polygon(polygon, mask, offset, color)
         else:
-            print(f"Non polygon type geometry encountered {type(polygons)}")
+            logger.warning(f"Non polygon type geometry encountered {type(polygons)}")
 
     @classmethod
     def _draw_polygon(
@@ -77,30 +143,30 @@ class MaskGenerator:
         i_polygons: List[Union[MultiPolygon | Polygon]] = []
         i_line_strings: List[LineString] = []
 
-        intersection = polygons.intersection(tile_polygon)
-        # print(type(intersection))
+        if polygons.intersects(tile_polygon):
 
-        if isinstance(intersection, (Polygon, MultiPolygon)):
-            i_polygons.append(intersection)
+            intersection = polygons.intersection(tile_polygon)
+            # print(type(intersection))
 
-        elif isinstance(intersection, LineString):
-            i_line_strings.append(intersection)
+            if isinstance(intersection, (Polygon, MultiPolygon)):
+                i_polygons.append(intersection)
 
-        elif isinstance(intersection, GeometryCollection):
-            for geometry in intersection.geoms:
-                if isinstance(geometry, (Polygon, MultiPolygon)):
-                    i_polygons.append(geometry)
+            elif isinstance(intersection, LineString):
+                i_line_strings.append(intersection)
 
-                elif isinstance(geometry, LineString):
-                    i_line_strings.append(geometry)
+            elif isinstance(intersection, GeometryCollection):
+                for geometry in intersection.geoms:
+                    if isinstance(geometry, (Polygon, MultiPolygon)):
+                        i_polygons.append(geometry)
 
-                else:
-                    print(
-                        f"Geometry Collection geometry type not yet handled: {type(intersection)}"
-                    )
+                    elif isinstance(geometry, LineString):
+                        i_line_strings.append(geometry)
 
-        else:
-            print(f"Intersection geometry type not yet handled: {type(intersection)}")
+                    else:
+                        logger.warning(f"Geometry Collection geometry type not yet handled: {type(intersection)}")
+
+            else:
+                logger.warning(f"Intersection geometry type not yet handled: {type(intersection)}")
 
         return i_polygons, i_line_strings
 
@@ -131,61 +197,3 @@ class MaskGenerator:
                 line_string, mask=mask, offset=(cs.start, rs.start), color=color
             )
         # plot_pic(base_mask)
-
-    @classmethod
-    def create_mask(cls, data_store: DataStore, annotations: List[Annotation]) -> None:
-        # iterate over the range of interests
-        for roi_no, roi in enumerate(data_store.rois):
-            cs, rs = roi.get_bound(PyramidalLevel.ZERO)
-            x_min, x_max, y_min, y_max = cs.start, cs.stop, rs.start, rs.stop
-
-            # shape of the roi
-            shape = (rs.stop - rs.start, cs.stop - cs.start)
-
-            # create zeros array in zarr group with shape of roi
-            mask_array = data_store.create_mask_array(
-                ZarrGroups.LIVER_MASK, roi_no, shape
-            )
-
-            # get a list of slice that slices the area of the roi in tiles
-            slices = get_tile_slices(shape)
-
-            # get the roi polygon and offset it to the origin of the created array
-            roi_poly = roi.get_polygon_for_level(
-                PyramidalLevel.ZERO, offset=(x_min, y_min)
-            )
-
-            # one roi was not valid in terms if self intersections... this fixes that
-            if not roi_poly.is_simple:
-                roi_poly = make_valid(roi_poly)
-                print(f"not simple: {type(roi_poly)}")
-
-            # iterate over the tiles
-            for rs, cs in slices:
-                # tile shape -> don't change to tile size, because tiles at the edges of the roi are not squares but rectangles
-                tile_shape = (rs.stop - rs.start, cs.stop - cs.start)
-
-                # transient mask for tile
-                base_mask = np.zeros(shape=tile_shape, dtype=np.uint8)
-
-                # draw the roi poly on the mask
-                cls._draw_geometry_on_tile(
-                    polygon=roi_poly, mask=base_mask, slices=(rs, cs), color=True
-                )
-
-                # draw annotations on the mask
-                for annotation in annotations:
-                    polygon = annotation.get_resized_geometry(
-                        level=PyramidalLevel.ZERO, offset=(x_min, y_min)
-                    )
-                    if isinstance(polygon, (Polygon, MultiPolygon, LineString)):
-                        cls._draw_geometry_on_tile(
-                            polygon=polygon,
-                            mask=base_mask,
-                            slices=(rs, cs),
-                            color=False,
-                        )
-                    else:
-                        print(f"different geometry type encountered. {type(polygon)}")
-                mask_array[rs, cs] = base_mask.astype(bool)
-            plot_pic(mask_array[::16, ::16])
