@@ -21,4 +21,4 @@ src/zia/annotations/resources/image/*
 src/zia/annotations/resources/geojsons/*
 
 path_config.ini
-
+config*.ini

@@ -19,7 +19,7 @@ class DataRepository:
         if not self._image_data_stores:
             self._image_data_stores = {
                 name: DataStore(name, file_manager=self.file_manager)
-                for _, name in self.file_manager.get_image_names()
+                for _, name in self.file_manager.image_paths()
             }
 
         return self._image_data_stores

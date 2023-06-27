@@ -7,8 +7,8 @@ from shapely.geometry import Polygon
 
 from src.zia.annotations.annotation.annotations import AnnotationParser, AnnotationType
 from src.zia.annotations.annotation.roi import Roi
-from zia.annotations.annotation.util import PyramidalLevel
 from zia.annotations import OPENSLIDE_PATH
+from zia.annotations.annotation.util import PyramidalLevel
 from zia.annotations.workflow_visualizations.util.image_plotting import (
     plot_pic,
     plot_polygons,

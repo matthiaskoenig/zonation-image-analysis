@@ -1,12 +1,13 @@
 import numpy as np
 from PIL import Image
 
-from zia import DATA_PATH, ZARR_PATH, RESULTS_PATH, REPORT_PATH
+from zia import DATA_PATH, REPORT_PATH, RESULTS_PATH, ZARR_PATH
 from zia.annotations.annotation.util import PyramidalLevel
 from zia.annotations.open_slide_image.data_repository import DataRepository
 from zia.annotations.open_slide_image.data_store import ZarrGroups
-from zia.annotations.path_utils import FileManager, ResultDir
+from zia.annotations.path_utils import FileManager, ResultsDirectories
 from zia.annotations.workflow_visualizations.util.image_plotting import plot_rgb
+
 
 if __name__ == "__main__":
     # manages the paths
@@ -19,7 +20,7 @@ if __name__ == "__main__":
 
     data_repository = DataRepository(file_manager)
 
-    for species, name in file_manager.get_image_names():
+    for species, name in file_manager.image_paths():
         data_store = data_repository.image_data_stores.get(name)
 
         for i, roi in enumerate(data_store.rois):
@@ -34,7 +35,9 @@ if __name__ == "__main__":
 
             size = (xs.stop - xs.start, ys.stop - ys.start)
 
-            roi_image = data_store.image.read_region(location=ref_loc, level=PyramidalLevel.FOUR, size=size)
+            roi_image = data_store.image.read_region(
+                location=ref_loc, level=PyramidalLevel.FOUR, size=size
+            )
 
             image_array = np.array(roi_image)
             print(image_array.shape)
@@ -45,5 +48,8 @@ if __name__ == "__main__":
 
             plot_rgb(masked_image, transform_to_bgr=False)
 
-            masked_image.save(file_manager.get_report_path(ResultDir.MASKED_PNG_IMAGES, species, f"{name}_{i}.png"))
-
+            masked_image.save(
+                file_manager.get_report_path(
+                    ResultsDirectories.MASKED_PNG_IMAGES, species, f"{name}_{i}.png"
+                )
+            )

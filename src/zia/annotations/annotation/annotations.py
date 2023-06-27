@@ -10,11 +10,12 @@ from enum import Enum
 from typing import List, Optional, Set, Union
 
 import geojson as gj
-from shapely import MultiPolygon, Polygon, LineString
+from shapely import LineString, MultiPolygon, Polygon
 from shapely.geometry import shape
 
 from zia.annotations.annotation.geometry_utils import rescale_coords
 from zia.annotations.annotation.util import PyramidalLevel
+
 
 logger = logging.getLogger(__name__)
 
@@ -67,18 +68,25 @@ class Annotation:
     correspond to the level of the pyramidal image.
     """
 
-    def get_resized_geometry(self, level: PyramidalLevel, offset=(0, 0)) -> Optional[Union[Polygon, MultiPolygon | LineString]]:
-        factor = 1 / 2 ** level
+    def get_resized_geometry(
+        self, level: PyramidalLevel, offset=(0, 0)
+    ) -> Optional[Union[Polygon, MultiPolygon | LineString]]:
+        factor = 1 / 2**level
         if isinstance(self.geometry, Polygon):
-            return Polygon(rescale_coords(self.geometry.exterior.coords, factor, offset))
+            return Polygon(
+                rescale_coords(self.geometry.exterior.coords, factor, offset)
+            )
         if isinstance(self.geometry, MultiPolygon):
-            return MultiPolygon([Polygon(rescale_coords(poly.exterior.coords, factor, offset)) for poly in self.geometry.geoms])
+            return MultiPolygon(
+                [
+                    Polygon(rescale_coords(poly.exterior.coords, factor, offset))
+                    for poly in self.geometry.geoms
+                ]
+            )
         if isinstance(self.geometry, LineString):
             return LineString(rescale_coords(self.geometry.coords, factor, offset))
 
-        logger.warning(
-            f"Another geometry type encountered: '{type(self.geometry)}'"
-        )
+        logger.warning(f"Another geometry type encountered: '{type(self.geometry)}'")
 
 
 """
@@ -109,7 +117,7 @@ class AnnotationParser:
 
     @classmethod
     def _get_anno_geometry_from_feature(
-            cls, feature: dict
+        cls, feature: dict
     ) -> Union[Polygon, MultiPolygon]:
         return shape(feature["geometry"])
 
@@ -126,17 +134,17 @@ class AnnotationParser:
 
     @classmethod
     def get_annotation_by_type(
-            cls,
-            features: List[Union[Polygon | MultiPolygon | LineString]],
-            annotation_type: AnnotationType,
+        cls,
+        features: List[Union[Polygon | MultiPolygon | LineString]],
+        annotation_type: AnnotationType,
     ) -> List[Annotation]:
         return list(filter(lambda x: x.annotation_class == annotation_type, features))
 
     @classmethod
     def get_annotation_by_types(
-            cls,
-            features: List[Union[Polygon | MultiPolygon | LineString]],
-            annotation_types: Set[AnnotationType],
+        cls,
+        features: List[Union[Polygon | MultiPolygon | LineString]],
+        annotation_types: Set[AnnotationType],
     ) -> List[Annotation]:
         nested_list = [
             AnnotationParser.get_annotation_by_type(features, anno_type)

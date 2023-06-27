@@ -12,8 +12,11 @@ def normalize_staining(image, Io=240, alpha=1, beta=0.15):
     return deconvolve_image(optical_density, image.shape, stain_matrix)
 
 
-def deconvolve_image(optical_density: np.ndarray, image_shape: tuple[int, int, int], stain_matrix: np.ndarray) -> \
-        tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+def deconvolve_image(
+    optical_density: np.ndarray,
+    image_shape: tuple[int, int, int],
+    stain_matrix: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """
     uses the stain base vectors to deconvolve the image
     returns tuple of (hematoxylin, hematoxylin_normalized, dab, dab_normalized)
@@ -27,37 +30,48 @@ def deconvolve_image(optical_density: np.ndarray, image_shape: tuple[int, int, i
     concentrations = np.linalg.lstsq(stain_matrix, y, rcond=None)[0]
 
     # normalize stain concentrations
-    max_concentration = np.array([np.percentile(concentrations[0, :], 99), np.percentile(concentrations[1, :], 99)])
+    max_concentration = np.array(
+        [
+            np.percentile(concentrations[0, :], 99),
+            np.percentile(concentrations[1, :], 99),
+        ]
+    )
     # tmp = np.divide(max_concentration, maxCRef) # normalization for ref concentrations, leave it out
-    normalized_concentrations = np.divide(concentrations, max_concentration[:, np.newaxis])
+    normalized_concentrations = np.divide(
+        concentrations, max_concentration[:, np.newaxis]
+    )
 
     hematoxylin = np.reshape(concentrations[0, :], (h, w, 1))  # intensities channel 1
-    hematoxylin_norm = np.reshape(normalized_concentrations[0, :], (h, w, 1))  # normalized intensities channel 1
+    hematoxylin_norm = np.reshape(
+        normalized_concentrations[0, :], (h, w, 1)
+    )  # normalized intensities channel 1
 
     dab = np.reshape(concentrations[1, :], (h, w, 1))  # intensities channel 2
-    dab_norm = np.reshape(normalized_concentrations[1, :], (h, w, 1))  # normalized intensities channel 2
+    dab_norm = np.reshape(
+        normalized_concentrations[1, :], (h, w, 1)
+    )  # normalized intensities channel 2
     return hematoxylin, hematoxylin_norm, dab, dab_norm
 
 
 def calculate_stain_matrix(od: np.ndarray, alpha=1, beta=0.15) -> np.ndarray:
     """Normalize staining appearence of H&E stained images
 
-        Example use:
-            see test.py
+    Example use:
+        see test.py
 
-        Input:
-            I: RGB input image
-            Io: (optional) transmitted light intensity
+    Input:
+        I: RGB input image
+        Io: (optional) transmitted light intensity
 
-        Output:
-            Inorm: normalized image
-            H: hematoxylin image
-            E: eosin image
+    Output:
+        Inorm: normalized image
+        H: hematoxylin image
+        E: eosin image
 
-        Reference:
-            A method for normalizing histology slides for quantitative analysis. M.
-            Macenko et al., ISBI 2009
-        """
+    Reference:
+        A method for normalizing histology slides for quantitative analysis. M.
+        Macenko et al., ISBI 2009
+    """
 
     """
     seems to be a reference matrix [v1, v2] where v1 and v2 are the reference
@@ -104,7 +118,9 @@ def calculate_stain_matrix(od: np.ndarray, alpha=1, beta=0.15) -> np.ndarray:
     return stain_vectors
 
 
-def calculate_optical_density(image: np.ndarray, transmission_intensity: float = 240) -> np.ndarray:
+def calculate_optical_density(
+    image: np.ndarray, transmission_intensity: float = 240
+) -> np.ndarray:
     """
     calculates the optical density over an image array
     img is of shape (m, n, 3)

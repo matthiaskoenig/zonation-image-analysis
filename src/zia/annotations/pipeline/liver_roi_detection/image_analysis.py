@@ -16,6 +16,7 @@ from zia.annotations.open_slide_image.data_store import DataStore
 from zia.console import console
 from zia.io.wsi_openslide import read_full_image_from_slide
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -24,10 +25,10 @@ class RoiSegmentation:
 
     @classmethod
     def find_rois(
-            cls,
-            data_store: DataStore,
-            annotations: Optional[List[Annotation]],
-            annotation_type: AnnotationType,
+        cls,
+        data_store: DataStore,
+        annotations: Optional[List[Annotation]],
+        annotation_type: AnnotationType,
     ) -> List[Roi]:
         region = read_full_image_from_slide(data_store.image, PyramidalLevel.SEVEN)
 
@@ -94,21 +95,24 @@ class RoiSegmentation:
             factor = len_before / len_after
             console.print(f"Reduced polygon vertices by factor {factor:.1f}")
             if not reduced_polygon.is_valid:
-                console.print(f"Invalid Polygon encountered after reduction for '{data_store.name}'")
+                console.print(
+                    f"Invalid Polygon encountered after reduction for '{data_store.name}'"
+                )
                 reduced_polygon = make_valid(reduced_polygon)
                 console.print(f"Made Polygon valid for '{data_store.name}'")
 
             reduced_polys.append(reduced_polygon)
 
         liver_rois = [
-            Roi(poly, PyramidalLevel.SEVEN, AnnotationType.LIVER) for poly in reduced_polys
+            Roi(poly, PyramidalLevel.SEVEN, AnnotationType.LIVER)
+            for poly in reduced_polys
         ]
 
         return liver_rois
 
     @classmethod
     def _extract_organ_shapes(
-            cls, shapes: List[Polygon], organ_annotations: List[Annotation]
+        cls, shapes: List[Polygon], organ_annotations: List[Annotation]
     ) -> List[Polygon]:
         extracted = [
             shape
@@ -128,7 +132,7 @@ class RoiSegmentation:
 
     @classmethod
     def reduce_shapes(
-            cls, kept_shapes: List[Polygon], remaining_shapes: List[Polygon]
+        cls, kept_shapes: List[Polygon], remaining_shapes: List[Polygon]
     ) -> None:
         not_in_bigger_shape = []
         big_shape = remaining_shapes.pop(0)

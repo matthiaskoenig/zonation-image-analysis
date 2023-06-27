@@ -11,7 +11,7 @@ class StainSeparationPipelineComponent(IPipelineComponent):
         IPipelineComponent.__init__(self, data_repository, overwrite)
 
     def run(self) -> None:
-        for species, image_name in self.file_manager.get_image_names():
+        for species, image_name in self.file_manager.image_paths():
             # filter cyp images
             if not "CYP" in image_name:
                 continue

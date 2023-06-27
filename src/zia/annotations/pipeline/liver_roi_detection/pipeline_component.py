@@ -11,27 +11,31 @@ from zia.annotations.annotation.roi import Roi
 from zia.annotations.annotation.util import PyramidalLevel
 from zia.annotations.open_slide_image.data_repository import DataRepository
 from zia.annotations.open_slide_image.data_store import DataStore
-from zia.annotations.path_utils import FileManager, ResultDir
+from zia.annotations.path_utils import FileManager, ResultsDirectories
 from zia.annotations.pipeline.abstract_pipeline.pipeline import IPipelineComponent
 from zia.annotations.pipeline.liver_roi_detection.image_analysis import RoiSegmentation
 from zia.annotations.pipeline.liver_roi_detection.report import RoiSegmentationReport
 from zia.console import console
 from zia.io.wsi_openslide import read_full_image_from_slide
 
+
 logger = logging.getLogger(__name__)
 
 
 class RoiFinderComponent(IPipelineComponent):
     """Pipeline step for ROI processing."""
+
     _reports_dict = {}  # FIXME: not class
 
-    def __init__(self, data_repository: DataRepository, overwrite=False, draw: bool = True):
+    def __init__(
+        self, data_repository: DataRepository, overwrite=False, draw: bool = True
+    ):
         IPipelineComponent.__init__(self, data_repository, overwrite)
         self._draw = draw
 
     def run(self) -> None:
         """Run the analysis/Roi processing."""
-        for species, image_name in self.file_manager.get_image_names():
+        for species, image_name in self.file_manager.image_paths():
             console.print(species, image_name)
             self._find_rois(species, image_name)
 
@@ -86,7 +90,7 @@ class RoiFinderComponent(IPipelineComponent):
             console.print(report)
             report.save(
                 self.file_manager.get_report_path(
-                    ResultDir.ANNOTATIONS_LIVER_ROI, species, "report.txt"
+                    ResultsDirectories.ANNOTATIONS_LIVER_ROI, species, "report.txt"
                 )
             )
 
@@ -100,16 +104,18 @@ class RoiFinderComponent(IPipelineComponent):
             Roi.write_to_geojson(
                 rois,
                 self.file_manager.get_results_path(
-                    ResultDir.ANNOTATIONS_LIVER_ROI, species, f"{image_name}.geojson"
+                    ResultsDirectories.ANNOTATIONS_LIVER_ROI,
+                    species,
+                    f"{image_name}.geojson",
                 ),
             )
 
     def _draw_result(
-            self,
-            data_store: DataStore,
-            liver_rois: List[Roi],
-            species: str,
-            image_name: str,
+        self,
+        data_store: DataStore,
+        liver_rois: List[Roi],
+        species: str,
+        image_name: str,
     ) -> None:
         if not self._draw:
             return
@@ -124,7 +130,7 @@ class RoiFinderComponent(IPipelineComponent):
 
         region.save(
             self.file_manager.get_report_path(
-                ResultDir.ANNOTATIONS_LIVER_ROI, species, f"{image_name}.png"
+                ResultsDirectories.ANNOTATIONS_LIVER_ROI, species, f"{image_name}.png"
             ),
             "PNG",
         )

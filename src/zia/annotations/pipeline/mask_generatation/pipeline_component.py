@@ -2,8 +2,8 @@ from zia.annotations.annotation.annotations import AnnotationParser, AnnotationT
 from zia.annotations.open_slide_image.data_repository import DataRepository
 from zia.annotations.open_slide_image.data_store import DataStore, ZarrGroups
 from zia.annotations.path_utils import FileManager
-from zia.annotations.pipeline.mask_generatation.image_analysis import MaskGenerator
 from zia.annotations.pipeline.abstract_pipeline.pipeline import IPipelineComponent
+from zia.annotations.pipeline.mask_generatation.image_analysis import MaskGenerator
 
 
 class MaskCreationComponent(IPipelineComponent):
@@ -12,7 +12,7 @@ class MaskCreationComponent(IPipelineComponent):
         self._draw = draw
 
     def run(self):
-        for species, image_name in self.file_manager.get_image_names():
+        for species, image_name in self.file_manager.image_paths():
             print(species, image_name)
             data_store = self.data_repository.image_data_stores.get(image_name)
 
@@ -20,8 +20,12 @@ class MaskCreationComponent(IPipelineComponent):
             if self._check_if_exists(data_store) & ~self.overwrite:
                 continue
 
-            annotations = AnnotationParser.parse_geojson(self.file_manager.get_annotation_path(image_name))
-            annotations = AnnotationParser.get_annotation_by_types(annotations, AnnotationType.get_artifacts())
+            annotations = AnnotationParser.parse_geojson(
+                self.file_manager.get_annotation_path(image_name)
+            )
+            annotations = AnnotationParser.get_annotation_by_types(
+                annotations, AnnotationType.get_artifacts()
+            )
 
             MaskGenerator.create_mask(data_store, annotations)
 

@@ -30,7 +30,9 @@ class DataStore:
         self._rois: Optional[List[Roi]] = None  # lazy initialization
         self._file_manager = file_manager
         self.name = image_name
-        self.data = zarr.open_group(self._file_manager.get_zarr_file(self.name), mode="a")
+        self.data = zarr.open_group(
+            self._file_manager.get_zarr_path(self.name), mode="a"
+        )
         self.image = read_wsi(self._file_manager.get_image_path(self.name))
 
     @property
@@ -41,11 +43,15 @@ class DataStore:
 
     def _register_rois(self, rois: Optional[List[Roi]]) -> None:
         if not rois:
-            self._rois = Roi.load_from_file(self._file_manager.get_roi_geojson_paths(self.name))
+            self._rois = Roi.load_from_file(
+                self._file_manager.get_roi_geojson_paths(self.name)
+            )
         else:
             self._rois = rois
 
-    def create_multilevel_group(self, zarr_group: ZarrGroups, roi_no: int, data: dict[int, np.ndarray]):
+    def create_multilevel_group(
+        self, zarr_group: ZarrGroups, roi_no: int, data: dict[int, np.ndarray]
+    ):
         data_group = self.data.require_group(zarr_group.value)
         roi_group = data_group.require_group(str(roi_no))
         for i, arr in data.items():
@@ -57,13 +63,15 @@ class DataStore:
                 overwrite=True,
             )
 
-    def create_mask_array(self, zarr_group: ZarrGroups, roi_no: int, shape: Tuple) -> zarr.core.Array:
+    def create_mask_array(
+        self, zarr_group: ZarrGroups, roi_no: int, shape: Tuple
+    ) -> zarr.core.Array:
         data_group = self.data.require_group(zarr_group.value)
         roi_group = data_group.require_group(str(roi_no))
         return roi_group.zeros(
             str(0),
             shape=shape,
-            chunks=(2 ** 12, 2 ** 12),  # 4096
+            chunks=(2**12, 2**12),  # 4096
             dtype=bool,
             overwrite=True,
         )
@@ -77,7 +85,13 @@ class DataStore:
 
         return self.image.read_region(location=ref_loc, level=level, size=size)
 
-    def read_region_from_roi(self, roi_no: int, location: Tuple[int, int], level: PyramidalLevel, size: Tuple[int, int]) -> Image:
+    def read_region_from_roi(
+        self,
+        roi_no: int,
+        location: Tuple[int, int],
+        level: PyramidalLevel,
+        size: Tuple[int, int],
+    ) -> Image:
         """
         same as read region, but offsets location to roi
         size is absolute. So the size for the level must be calculated beforehand.
@@ -89,4 +103,3 @@ class DataStore:
         shifted_location = xs.start + loc_x, ys.start + loc_y
 
         return self.image.read_region(shifted_location, level, size)
-

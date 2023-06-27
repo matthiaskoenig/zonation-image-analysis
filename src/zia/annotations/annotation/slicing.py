@@ -1,9 +1,11 @@
-from typing import Tuple, List
+from typing import List, Tuple
 
 import numpy as np
 
 
-def get_tile_slices(shape: Tuple[int, int], tile_size=2 ** 13) -> List[Tuple[slice, slice]]:
+def get_tile_slices(
+    shape: Tuple[int, int], tile_size=2**13
+) -> List[Tuple[slice, slice]]:
     r, c = shape
     num_col = int(np.ceil(c / tile_size))
     num_row = int(np.ceil(r / tile_size))

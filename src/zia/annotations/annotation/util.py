@@ -1,5 +1,6 @@
 from enum import IntEnum
 
+
 class PyramidalLevel(IntEnum):
     ZERO = 0
     ONE = 1
