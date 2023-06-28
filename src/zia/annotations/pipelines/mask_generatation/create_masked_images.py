@@ -20,7 +20,7 @@ if __name__ == "__main__":
 
     data_repository = DataRepository(file_manager)
 
-    for species, name in file_manager.image_paths():
+    for species, name in file_manager.image_infos():
         data_store = data_repository.data_stores.get(name)
 
         for i, roi in enumerate(data_store.rois):

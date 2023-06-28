@@ -1,12 +1,6 @@
-import os
-
-import cv2
 import numpy as np
 
-from zia import OPENSLIDE_PATH
-from zia.annotations.open_slide_image.data_repository import DataRepository
-from zia.annotations.path_utils import FileManager
-from zia.annotations.pipeline.stain_separation.macenko import (
+from zia.annotations.pipelines.stain_separation.macenko import (
     calculate_optical_density,
     normalize_staining,
 )
@@ -14,14 +8,9 @@ from zia.annotations.workflow_visualizations.util.image_plotting import (
     plot_pic,
     plot_rgb,
 )
-
-
-if hasattr(os, "add_dll_directory"):
-    # Python >= 3.8 on Windows
-    with os.add_dll_directory(OPENSLIDE_PATH):
-        pass
-else:
-    pass
+from zia.config import read_config
+from zia.data_store import DataStore
+from zia.path_utils import FileManager
 
 
 def transform_contour_to_shapely_coords(contour):
@@ -33,24 +22,25 @@ def filter_shapes(contours):
 
 
 if __name__ == "__main__":
-    from zia import DATA_PATH, REPORT_PATH, RESULTS_PATH, ZARR_PATH
+    from zia import BASE_PATH
 
     image_name = (
         "MNT-025_Bl6J_J-20-0160_CYP2E1- 1 400_Run 11_LLL, RML, RSL, ICL_MAA_0006"
     )
-    # manages the paths
+
     file_manager = FileManager(
-        data_path=DATA_PATH,
-        zarr_path=ZARR_PATH,
-        results_path=RESULTS_PATH,
-        report_path=REPORT_PATH,
+        configuration=read_config(BASE_PATH / "configuration.ini"),
+        filter=None
     )
 
-    data_repository = DataRepository(file_manager)
+    image_infos = file_manager.get_images()
 
-    image = data_repository.data_stores.get(image_name).image_info
+    image_infos = list(filter(lambda x: x.path.stem == image_name, image_infos))
+    image_info = image_infos[0]
 
-    w, h = image.dimensions
+    data_store = DataStore(image_info)
+
+    image = data_store.image
 
     level = 3
     factor = image.level_downsamples[level]

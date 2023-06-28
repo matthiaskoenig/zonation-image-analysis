@@ -37,6 +37,8 @@ class MaskCreationComponent(IPipelineComponent):
             annotations, AnnotationType.get_artifacts()
         )
 
+        for anno in artifact_annotations:
+            print(type(anno.geometry))
 
         if len(artifact_annotations) == 0:
             logger.info(f"[{image_id}]\tNo artifact annotations found.")
