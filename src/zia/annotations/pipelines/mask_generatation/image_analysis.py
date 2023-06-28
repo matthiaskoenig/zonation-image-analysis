@@ -32,9 +32,9 @@ class MaskGenerator:
             # shape of the roi
             shape = (rs.stop - rs.start, cs.stop - cs.start)
 
-            # create zeros array in zarr group with shape of roi
-            mask_array = data_store.create_mask_array(
-                ZarrGroups.LIVER_MASK, roi_no, shape
+            # create pyramidal group to persist mask
+            pyramid_dict = data_store.create_pyramid_group(
+                ZarrGroups.LIVER_MASK, roi_no, shape, bool
             )
 
             # get a list of slice that slices the area of the roi in tiles
@@ -78,12 +78,28 @@ class MaskGenerator:
                             color=False,
                         )
                     else:
-                        logger.warning(create_message(image_id,
-                                                      f"Different geometry type encountered in annotations: {type(polygon)}."))
-                mask_array[rs, cs] = base_mask.astype(bool)
+                        logger.warning(
+                            create_message(image_id,
+                                           f"Different geometry type encountered in annotations: {type(polygon)}."))
+
+                # TODO: refactor out to generalize and make reusable for other components
+                # create a dict to store the downsampled tile masks
+                down_sample_masks = {0: base_mask}
+                for i in range(len(pyramid_dict) - 1):
+                    down_sample_masks[i+1] = cv2.pyrDown(down_sample_masks[i])
+
+                # persist tile pyramidacilly
+                for i, level_array in pyramid_dict.items():
+                    factor = 2 ** i
+
+                    # resize the slice for level
+                    new_rs = slice(int(rs.start / factor), int(rs.stop / factor))
+                    new_cs = slice(int(cs.start / factor), int(cs.stop / factor))
+
+                    level_array[new_rs, new_cs] = down_sample_masks[i].astype(bool)
+
             logger.info(create_message(image_id,
-                                       f"Finished mask creation for ROI {roi_no}.")
-                        )
+                                       f"Finished mask creation for ROI {roi_no}."))
 
     @classmethod
     def _draw_polygons(
@@ -146,7 +162,6 @@ class MaskGenerator:
         if polygons.intersects(tile_polygon):
 
             intersection = polygons.intersection(tile_polygon)
-            # print(type(intersection))
 
             if isinstance(intersection, (Polygon, MultiPolygon)):
                 i_polygons.append(intersection)
@@ -163,10 +178,12 @@ class MaskGenerator:
                         i_line_strings.append(geometry)
 
                     else:
-                        logger.warning(f"Geometry Collection geometry type not yet handled: {type(intersection)}")
+                        logger.warning(
+                            f"Geometry Collection geometry type not yet handled: {type(intersection)}")
 
             else:
-                logger.warning(f"Intersection geometry type not yet handled: {type(intersection)}")
+                logger.warning(
+                    f"Intersection geometry type not yet handled: {type(intersection)}")
 
         return i_polygons, i_line_strings
 

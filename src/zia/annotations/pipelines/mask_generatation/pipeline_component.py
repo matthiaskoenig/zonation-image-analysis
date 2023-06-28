@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from zia.annotations.annotation.annotations import AnnotationParser, AnnotationType
+from zia.annotations.annotation.util import PyramidalLevel
 from zia.annotations.workflow_visualizations.util.image_plotting import plot_pic
 from zia.data_store import DataStore, ZarrGroups
 
@@ -37,9 +38,6 @@ class MaskCreationComponent(IPipelineComponent):
             annotations, AnnotationType.get_artifacts()
         )
 
-        for anno in artifact_annotations:
-            print(type(anno.geometry))
-
         if len(artifact_annotations) == 0:
             logger.info(f"[{image_id}]\tNo artifact annotations found.")
 
@@ -47,8 +45,8 @@ class MaskCreationComponent(IPipelineComponent):
 
         if self._draw:
             for i in range(len(data_store.rois)):
-                mask = data_store.data.get(f"{ZarrGroups.LIVER_MASK.value}/{i}/{0}")
-                plot_pic(mask[::32, ::32])
+                mask = data_store.data.get(f"{ZarrGroups.LIVER_MASK.value}/{i}/{PyramidalLevel.SEVEN.value}")
+                plot_pic(mask)
 
     @classmethod
     def _check_if_exists(cls, data_store: DataStore) -> bool:

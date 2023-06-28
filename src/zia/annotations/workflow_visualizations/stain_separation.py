@@ -1,5 +1,6 @@
 import numpy as np
 
+from zia.annotations.annotation.util import PyramidalLevel
 from zia.annotations.pipelines.stain_separation.macenko import (
     calculate_optical_density,
     normalize_staining,
@@ -10,6 +11,7 @@ from zia.annotations.workflow_visualizations.util.image_plotting import (
 )
 from zia.config import read_config
 from zia.data_store import DataStore
+from zia.io.wsi_openslide import read_full_image_from_slide
 from zia.path_utils import FileManager
 
 
@@ -45,9 +47,7 @@ if __name__ == "__main__":
     level = 3
     factor = image.level_downsamples[level]
 
-    region = image.read_region(
-        location=(100 * 128, 400 * 128), level=level, size=(512, 512)
-    )
+    region = read_full_image_from_slide(image, PyramidalLevel.THREE)
 
     image_array = np.array(region)[:, :, :-1]
     print(image_array.shape)
