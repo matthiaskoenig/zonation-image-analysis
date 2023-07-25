@@ -5,18 +5,18 @@ from pathlib import Path
 
 from PIL.Image import Image
 
+from zia.config import read_config
 from zia.console import console
 from zia.io.utils import check_image_path
-
+from zia import BASE_PATH
 
 openslide = None
 
 
 if hasattr(os, "add_dll_directory"):
-    from zia import OPENSLIDE_PATH
-
+    config = read_config(BASE_PATH / "configuration.ini")
     # Python >= 3.8 on Windows
-    with os.add_dll_directory(OPENSLIDE_PATH):
+    with os.add_dll_directory(str(config.openslide_path)):
         import openslide
 else:
     import openslide

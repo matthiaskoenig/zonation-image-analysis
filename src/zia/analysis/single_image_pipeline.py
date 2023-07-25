@@ -1,7 +1,4 @@
 """Run steps on single image."""
-
-from zia.path_utils import FileManager, filter_factory
-from zia.data_store import DataStore
 from zia.annotations.pipelines.liver_roi_detection.pipeline_component import (
     RoiFinderComponent,
 )
@@ -9,8 +6,8 @@ from zia.annotations.pipelines.mask_generatation.pipeline_component import (
     MaskCreationComponent,
 )
 from zia.annotations.pipelines.pipeline import Pipeline
-from zia.console import console
-
+from zia.data_store import DataStore
+from zia.path_utils import FileManager, filter_factory
 
 if __name__ == "__main__":
     from zia import BASE_PATH
@@ -26,10 +23,10 @@ if __name__ == "__main__":
             # finds ROI of liver tissue
             RoiFinderComponent(overwrite=False),
             # creates masks
-            # MaskCreationComponent(overwrite=True),
-
+            MaskCreationComponent(overwrite=False),
         ]
     )
+
 
     for image_info in file_manager.get_images():
         data_store = DataStore(image_info=image_info)

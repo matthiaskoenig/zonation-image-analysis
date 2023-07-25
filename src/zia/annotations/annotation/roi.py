@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 from pathlib import Path
 from typing import List, Tuple
@@ -32,7 +34,7 @@ class Roi:
         return gj.Feature(geometry=polygon, properties=properties)
 
     @classmethod
-    def write_to_geojson(cls, rois: List["Roi"], path: Path):
+    def write_to_geojson(cls, rois: List[Roi], path: Path):
         features = [roi._to_geojson_feature() for roi in rois]
         feature_collection = gj.FeatureCollection(features)
 
@@ -40,7 +42,7 @@ class Roi:
             json.dump(feature_collection, f)
 
     @classmethod
-    def load_from_file(cls, path: str) -> List["Roi"]:
+    def load_from_file(cls, path: Path) -> List[Roi]:
         with open(path, "r") as f:
             feature_collection = gj.load(f)
 
@@ -49,7 +51,7 @@ class Roi:
         ]
 
     @classmethod
-    def _parse_feature(cls, feature: dict) -> "Roi":
+    def _parse_feature(cls, feature: dict) -> Roi:
         if not isinstance(feature.get("geometry"), gj.Polygon):
             raise ImportError("The parsed geojson geometry for a ROI must be a Polygon")
 

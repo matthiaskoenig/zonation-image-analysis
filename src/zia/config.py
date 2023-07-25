@@ -16,12 +16,12 @@ class Configuration(BaseModel):
     reports_path: Path
     data_path: Path
     annotations_path: Path
-    zarr_path: Path
+    image_data_path: Path
     openslide_path: Optional[Path]
 
     def __post_init_post_parse__(self):
         """Ensure paths exists."""
-        for p in [self.results_path, self.zarr_path]:
+        for p in [self.results_path, self.image_data_path, self.reports_path]:
             p.mkdir(exist_ok=True, parents=True)
 
 
@@ -36,7 +36,7 @@ def read_config(file_path: Path) -> Configuration:
         reports_path=Path(config["Paths"]["reports_path"]),
         data_path=Path(config["Paths"]["data_path"]),
         annotations_path=Path(config["Paths"]["annotation_path"]),
-        zarr_path=Path(config["Paths"]["zarr_path"]),
+        image_data_path=Path(config["Paths"]["image_data_path"]),
         openslide_path=Path(openslide_path) if openslide_path else None,
     )
     console.print(configuration)

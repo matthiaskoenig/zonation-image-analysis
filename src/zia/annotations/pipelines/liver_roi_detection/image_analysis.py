@@ -15,9 +15,9 @@ from zia.annotations.annotation.util import PyramidalLevel
 from zia.data_store import DataStore
 from zia.console import console
 from zia.io.wsi_openslide import read_full_image_from_slide
+from zia.log import get_logger
 
-
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class RoiSegmentation:
@@ -30,6 +30,8 @@ class RoiSegmentation:
         annotations: Optional[List[Annotation]],
         annotation_type: AnnotationType,
     ) -> List[Roi]:
+        image_id = data_store.image_info.metadata.image_id
+
         region = read_full_image_from_slide(data_store.image, PyramidalLevel.SEVEN)
 
         cv2image = cv2.cvtColor(np.array(region), cv2.COLOR_RGB2GRAY)
@@ -69,7 +71,8 @@ class RoiSegmentation:
         )
 
         if len(liver_annotations) == 0:
-            logger.warning("No annotations of type 'Liver' where found.")
+            logger.warning(f"[{image_id}]\tNo annotations of type 'Liver' where found",
+                           extra={"image_id": image_id})
             return []
 
         # find the contour the organ shape that contains the annotation geometry
@@ -77,7 +80,8 @@ class RoiSegmentation:
         contour_shapes = RoiSegmentation._extract_organ_shapes(kept, liver_annotations)
 
         if len(contour_shapes) == 0:
-            logger.warning("No organ contour matches with the annotation geometries.")
+            logger.warning(f"[{image_id}]\tNo organ contour matches with the annotation geometries",
+                           extra={"image_id": image_id})
 
         # reduce the polygons to have fewer points
 
@@ -93,13 +97,13 @@ class RoiSegmentation:
 
             len_after = len(reduced_polygon.exterior.coords)
             factor = len_before / len_after
-            console.print(f"Reduced polygon vertices by factor {factor:.1f}")
+            logger.info(f"[{image_id}]\tReduced polygon vertices by factor {factor:.1f}")
             if not reduced_polygon.is_valid:
-                console.print(
-                    f"Invalid Polygon encountered after reduction for '{data_store.name}'"
+                logger.warning(
+                    f"[{image_id}]\tInvalid Polygon encountered after reduction."
                 )
                 reduced_polygon = make_valid(reduced_polygon)
-                console.print(f"Made Polygon valid for '{data_store.name}'")
+                logger.info(f"[{image_id}]\tMade Polygon valid.")
 
             reduced_polys.append(reduced_polygon)
 
