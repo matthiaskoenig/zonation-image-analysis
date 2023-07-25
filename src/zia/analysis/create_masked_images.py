@@ -3,7 +3,7 @@ from PIL import Image
 
 from zia import BASE_PATH
 from zia.data_store import DataStore, ZarrGroups
-from zia.path_utils import FileManager, ResultsDirectories
+from zia.path_utils import FileManager, ResultsDirectories, filter_factory
 
 from zia.annotations.annotation.util import PyramidalLevel
 from zia.annotations.workflow_visualizations.util.image_plotting import plot_rgb
@@ -13,7 +13,7 @@ if __name__ == "__main__":
 
     file_manager = FileManager(
         configuration=read_config(BASE_PATH / "configuration.ini"),
-        filter=None
+        filter=filter_factory(species="rat", subject="NOR-025", protein="cyp1a2")
     )
 
     # set the level for which the image should be created. Everything smaller than 4

@@ -39,7 +39,7 @@ if __name__ == "__main__":
         pipeline.run(data_store, results_path=file_manager.results_path)
 
     end_time = time.time()
-    t = end_time-start_time/60
+    t = (end_time-start_time)/60
     logger.info(
         f"Pipeline finished in {t:.2f} min.")
     # self._save_reports()

@@ -27,7 +27,6 @@ if __name__ == "__main__":
         ]
     )
 
-
     for image_info in file_manager.get_images():
         data_store = DataStore(image_info=image_info)
         pipeline.run(data_store, results_path=file_manager.results_path)
