@@ -10,7 +10,7 @@ from shapely import Polygon
 
 def plot_pic(array):
     fig, ax = plt.subplots(1, 1)
-    ax.imshow(array, cmap=matplotlib.colormaps.get_cmap("binary"))
+    ax.imshow(array, cmap=matplotlib.colormaps.get_cmap("binary_r"))
     plt.show()
 
 
