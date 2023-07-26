@@ -1,9 +1,11 @@
+import cv2
 import numpy as np
+from matplotlib import pyplot as plt
 
 from zia.annotations.annotation.util import PyramidalLevel
 from zia.annotations.pipelines.stain_separation.macenko import (
     calculate_optical_density,
-    normalize_staining,
+    normalize_staining, normalizeStaining,
 )
 from zia.annotations.workflow_visualizations.util.image_plotting import (
     plot_pic,
@@ -42,27 +44,28 @@ if __name__ == "__main__":
 
     data_store = DataStore(image_info)
 
-    image = data_store.image
+    region = data_store.read_full_roi(0, PyramidalLevel.THREE)
 
-    level = 3
-    factor = image.level_downsamples[level]
+    image_array = np.array(region)
 
-    region = read_full_image_from_slide(image, PyramidalLevel.THREE)
+    image_array = cv2.cvtColor(image_array, cv2.COLOR_RGBA2RGB)
 
-    image_array = np.array(region)[:, :, :-1]
-    print(image_array.shape)
+    gs = cv2.cvtColor(image_array, cv2.COLOR_RGB2GRAY)
+
+    threshold, _ = cv2.threshold(gs, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+
+    #print(image_array.shape)
     # plot_rgb(image_array, False)
 
-    od = calculate_optical_density(image_array)
-    od = od.reshape((image_array.shape[0], image_array.shape[1], 3))
-    print(od.shape)
-    print(np.any(od < 0.15, axis=2))
-    image_array[np.any(od < 0.15, axis=2)] = (255, 255, 255)
+    #plot_rgb(image_array, False)
+    Io, HE, DAB = normalizeStaining(image_array, gs_threshold=threshold, Io=240, alpha=1)
 
-    plot_rgb(image_array, False)
-    RC1, RC1N, RC2, RC2N = normalize_staining(image_array, Io=240, alpha=1, beta=0.15)
+    histogram = cv2.calcHist([DAB], [0], None, [256], [0, 256])
 
-    print(RC2.shape)
-    plot_pic(RC2)
-    plot_pic(RC1)
+    plt.plot(histogram, color='black')
+
+
+    plot_rgb(Io, False)
+    plot_pic(HE, "Hematoxylin")
+    plot_pic(DAB, "DAB")
     # plot_rgb(INorm, transform_to_bgr=False)

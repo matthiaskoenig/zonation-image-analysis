@@ -45,7 +45,7 @@ class MaskCreationComponent(IPipelineComponent):
 
         if self._draw:
             for i in range(len(data_store.rois)):
-                mask = data_store.data.get(f"{ZarrGroups.LIVER_MASK.value}/{i}/{PyramidalLevel.SEVEN.value}")
+                mask = data_store.data.get(f"{ZarrGroups.LIVER_MASK.value}/{i}/{PyramidalLevel.SIX.value}")
                 plot_pic(mask)
 
     @classmethod
