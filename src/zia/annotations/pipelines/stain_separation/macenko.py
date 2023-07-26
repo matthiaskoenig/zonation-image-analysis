@@ -79,8 +79,8 @@ def normalizeStaining(img, gs_threshold: int, Io=240, alpha=1):
     # determine concentrations of the individual stains
     C = np.linalg.lstsq(HE, Y, rcond=None)[0]
 
-    #print(C.shape)
-    #print(np.min(C[0, :]), np.min(C[1, :]))
+    # print(C.shape)
+    # print(np.min(C[0, :]), np.min(C[1, :]))
 
     # normalize stain concentrations
     maxC = np.array([np.percentile(C[0, :], 99), np.percentile(C[1, :], 99)])
@@ -116,130 +116,122 @@ def normalizeStaining(img, gs_threshold: int, Io=240, alpha=1):
     return Inorm, H, E
 
 
-def normalize_staining(image, Io=240, alpha=1, beta=0.15):
-    # define height and width of image
-    optical_density = calculate_optical_density(image, Io)
-    stain_matrix = calculate_stain_matrix(optical_density, alpha, beta)
-
-    return deconvolve_image(optical_density, image.shape, stain_matrix)
-
-
-def deconvolve_image(
-    optical_density: np.ndarray,
-    image_shape: tuple[int, int, int],
-    stain_matrix: np.ndarray,
-) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+def calculate_stain_matrix(pxi: np.ndarray, Io=240, alpha=1) -> np.ndarray:
     """
-    uses the stain base vectors to deconvolve the image
-    returns tuple of (hematoxylin, hematoxylin_normalized, dab, dab_normalized)
-    """
-    h, w, c = image_shape
-
-    y = np.reshape(optical_density, (-1, 3)).T
-
-    # determine concentrations of the individual stains
-    # This should be connected to the intensity by lambert beer or sth.
-    concentrations = np.linalg.lstsq(stain_matrix, y, rcond=None)[0]
-
-    # normalize stain concentrations
-    max_concentration = np.array(
-        [
-            np.percentile(concentrations[0, :], 99),
-            np.percentile(concentrations[1, :], 99),
-        ]
-    )
-    # tmp = np.divide(max_concentration, maxCRef) # normalization for ref concentrations, leave it out
-    normalized_concentrations = np.divide(
-        concentrations, max_concentration[:, np.newaxis]
-    )
-
-    hematoxylin = np.reshape(concentrations[0, :], (h, w, 1))  # intensities channel 1
-    hematoxylin_norm = np.reshape(
-        normalized_concentrations[0, :], (h, w, 1)
-    )  # normalized intensities channel 1
-
-    dab = np.reshape(concentrations[1, :], (h, w, 1))  # intensities channel 2
-    dab_norm = np.reshape(
-        normalized_concentrations[1, :], (h, w, 1)
-    )  # normalized intensities channel 2
-    return hematoxylin, hematoxylin_norm, dab, dab_norm
-
-
-def calculate_stain_matrix(od: np.ndarray, alpha=1, beta=0.15) -> np.ndarray:
-    """Normalize staining appearence of H&E stained images
-
-    Example use:
-        see test.py
-
-    Input:
-        I: RGB input image
-        Io: (optional) transmitted light intensity
-
-    Output:
-        Inorm: normalized image
-        H: hematoxylin image
-        E: eosin image
-
-    Reference:
-        A method for normalizing histology slides for quantitative analysis. M.
-        Macenko et al., ISBI 2009
+    calculates the stain base vectors
+    @param pxi: pixels of interest as np array of RGB tuples with shape(h*w, 3)
+    @param Io: transmitted light intensity
+    @param alpha: percentile to find robust maxima
     """
 
-    """
-    seems to be a reference matrix [v1, v2] where v1 and v2 are the reference
-    color vectors. The matrix is used to produced the final image with the
-    desired colors
-    """
-    # HERef = np.array([[0, 0.2159],
-    #                  [0, 0.8012],
-    #                  [1, 0.5581]])
-
-    """ this seems to define the actual concentrations of the stain in the image. It is used
-    to equalize the intensities of both channels to account for inequalities in staining.
-    I have no idea about how that is for Hematoxylin and DAB. So set it to (1,1) or leave it out.
-    It should not be relevant anyway, because we care about relative intensities in the DAB
-    channel to find out about CYP expression."""
-
-    # remove transparent pixels
-    od_hat = od[~np.any(od < beta, axis=1)]
+    od = -np.log((pxi.astype(float) + 1) / Io)
 
     # compute eigenvectors
-    eig_vals, eig_vecs = np.linalg.eigh(np.cov(od_hat.T))
+    eigvals, eigvecs = np.linalg.eigh(np.cov(od.T))
 
-    # eig_vecs *= -1
+    # eigvecs *= -1
 
     # project on the plane spanned by the eigenvectors corresponding to the two
     # largest eigenvalues
-    t_hat = od_hat.dot(eig_vecs[:, 1:3])
+    t_hat = od.dot(eigvecs[:, 1:3])
 
     phi = np.arctan2(t_hat[:, 1], t_hat[:, 0])
 
     min_phi = np.percentile(phi, alpha)
     max_phi = np.percentile(phi, 100 - alpha)
 
-    v_min = eig_vecs[:, 1:3].dot(np.array([(np.cos(min_phi), np.sin(min_phi))]).T)
-    v_max = eig_vecs[:, 1:3].dot(np.array([(np.cos(max_phi), np.sin(max_phi))]).T)
+    v_min = eigvecs[:, 1:3].dot(np.array([(np.cos(min_phi), np.sin(min_phi))]).T)
+    v_max = eigvecs[:, 1:3].dot(np.array([(np.cos(max_phi), np.sin(max_phi))]).T)
 
     # a heuristic to make the vector corresponding to hematoxylin first and the
-    # one corresponding to eosin second -> in this case dab
+    # one corresponding to eosin second
     if v_min[0] > v_max[0]:
-        stain_vectors = np.array((v_min[:, 0], v_max[:, 0])).T
+        stain_matrix = np.array((v_min[:, 0], v_max[:, 0])).T
     else:
-        stain_vectors = np.array((v_max[:, 0], v_min[:, 0])).T
+        stain_matrix = np.array((v_max[:, 0], v_min[:, 0])).T
 
-    return stain_vectors
+    return stain_matrix
 
 
-def calculate_optical_density(
-    image: np.ndarray, transmission_intensity: float = 240
-) -> np.ndarray:
+def deconvolve_image(pxi, stain_matrix: np.ndarray, Io=240):
     """
-    calculates the optical density over an image array
-    img is of shape (m, n, 3)
-    the return array is of shape (m * n, 3)
+    deconvolution of the stains for the pixels of interest.
+    @param pxi: pixels of interest
+    @param stain_matrix: m x 2 matrix where m is rgb channel for 2 stain colors
+    @param Io: transmission intensity
+    @return: Io, he, dab np arrays of shapes (m*n, 3), (m*n, 1), (m*n, 1)
     """
-    # reshape image
-    image = image.reshape((-1, 3))
+    # reference matrix for false color stain
+    HERef = np.array([[0, 1],
+                      [1, 1],
+                      [1, 0]])
 
-    # calculate optical density
-    return -np.log((image.astype(float) + 1) / transmission_intensity)
+    # rows correspond to channels (RGB), columns to OD values
+    y = -np.log((pxi.astype(float) + 1) / Io).T
+
+    # determine concentrations of the individual stains
+    C = np.linalg.lstsq(stain_matrix, y, rcond=None)[0]
+
+    # print(C.shape)
+    # print(np.min(C[0, :]), np.min(C[1, :]))
+
+    # normalize stain concentrations
+    maxC = np.array([np.percentile(C[0, :], 99), np.percentile(C[1, :], 99)])
+
+    # we do not need those reference max concentrations. We don't know anyway
+    # tmp = np.divide(maxC, maxCRef)
+    # C2 = np.divide(C, tmp[:, np.newaxis])
+
+    # That should actually contain the information about the cyps (concentration)
+    # as given by Lambert Beer log(I0/I) = e*c*d where c is concentration
+    # However, some pixels have negative concentrations
+    C2 = np.divide(C, maxC[:, np.newaxis])
+
+    # recreate the image using reference mixing matrix
+    Inorm = reconstruct_pixels(C2)
+
+    # unmix hematoxylin and eosin
+    # CHANGED: Instead of using reference matrix for mixing, the image is just
+    # the concentration is just exponentiated into a single channel
+    #
+    H = create_single_channel_pixels(C2[0, :])
+
+    E = create_single_channel_pixels(C2[1, :])
+
+    return Inorm, H, E
+
+
+def create_single_channel_pixels(concentrations: np.ndarray, Io=240):
+    """
+    reconstructs the pixel values for one stain using the concentrations from
+    the deconvolution
+    @param concentrations: shape (m, ) matrix containing the concentration of the stain
+    @param Io: transmission intensity
+    @return:
+    """
+    i = np.multiply(Io, np.exp(-concentrations)).astype(np.uint8).T.reshape(-1, 1)
+    i[i > 255] = 254
+    return i
+
+
+def reconstruct_pixels(concentrations: np.ndarray, refrence_matrix=None, Io=240):
+    """
+    reconstructs the image pixels using the reference_matrix and the concentrations
+    from the deconvolution
+    @param concentrations: shape (m, 2) matrix containg the concentrations of the stains
+    @param refrence_matrix: shape (3,2) matrix containing RGB color vectors for the stains
+    @param Io: transmission intensity
+    @return:
+    """
+    HERef = np.array([[0, 1],
+                      [1, 1],
+                      [1, 0]])
+
+    if refrence_matrix is not None:
+        HERef = refrence_matrix
+
+    # recreate the image using reference mixing matrix
+    Inorm = np.multiply(Io, np.exp(-HERef.dot(concentrations)))
+    Inorm[Inorm > 255] = 254
+    Inorm = Inorm.astype(np.uint8).T.reshape(-1, 3)
+    return Inorm
