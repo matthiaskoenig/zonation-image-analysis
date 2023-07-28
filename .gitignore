@@ -24,3 +24,6 @@ path_config.ini
 config*.ini
 configuration.ini
 
+# numpy arrays for testing and quick serialization
+*.npy
+
