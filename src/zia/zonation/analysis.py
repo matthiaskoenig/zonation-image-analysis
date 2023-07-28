@@ -145,7 +145,7 @@ def run_zonation_analysis(CZI_PATH: str) -> None:
 
 
 if __name__ == "__main__":
-    from zia import CZI_IMAGES_INITIAL, CZI_IMAGES_AXIOS, RESULTS_PATH, CZI_EXAMPLE
+    from zia import CZI_EXAMPLE, CZI_IMAGES_AXIOS, CZI_IMAGES_INITIAL, RESULTS_PATH
 
     # First preprocess the images;
     # for p in CZI_IMAGES:

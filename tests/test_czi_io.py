@@ -2,9 +2,13 @@
 from pathlib import Path
 from typing import List
 
-from zia.czi_io import FluorescenceImage, Fluorophor, read_czi_images, \
-    read_czi_images_tifffile
 from zia import CZI_EXAMPLE, CZI_IMAGES_AXIOS, CZI_IMAGES_INITIAL
+from zia.czi_io import (
+    FluorescenceImage,
+    Fluorophor,
+    read_czi_images,
+    read_czi_images_tifffile,
+)
 
 
 def test_read_czi_example() -> None:
@@ -29,6 +33,3 @@ def test_czi_to_ome_tiff() -> None:
     Testing reformat file from czi to OME-TIFF
     """
     read_czi_images_tifffile(CZI_EXAMPLE)
-
-
-
