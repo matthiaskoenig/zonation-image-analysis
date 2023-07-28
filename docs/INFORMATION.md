@@ -41,7 +41,7 @@ build pyramid image
 https://github.com/libvips/pyvips/issues/157  
 https://github.com/libvips/pyvips/issues/170  
 
-## Pyhthon libraries for image import/export
+## Python libraries for image import/export
 ### tifffile
 https://github.com/cgohlke/tifffile
 
@@ -106,3 +106,12 @@ https://github.com/openseadragon/openseadragon
 https://github.com/openslide/openslide-python/blob/main/examples/deepzoom/deepzoom_server.py  
 https://github.com/openseadragon/openseadragon/issues/1399  
 https://github.com/WasMachenSachen/openseadragon-opacity-slider  
+
+
+## Image augmentation
+Often necessary to augment images
+https://sebastianraschka.com/blog/2023/data-augmentation-pytorch.html
+
+One of the best ways to reduce overfitting is to collect more (good-quality) data. However, collecting more data is not always feasible or can be very expensive. A related technique is data augmentation.
+
+Data augmentation involves generating new data records or features from existing data, expanding the dataset without collecting more data. It helps improve model generalization by creating variations of original input data and making it harder to memorize irrelevant information from training examples or features. Data augmentation is common for image and text data, but also exists for tabular data.
