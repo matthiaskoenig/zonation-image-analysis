@@ -7,6 +7,9 @@ simplices. Triangulations of a three-dimensional volume would involve
 subdividing it into tetrahedra packed together.
 
 """
+import meshio
+import pymesh
+import trimesh
 
 import cv2
 import numpy as np
@@ -33,7 +36,10 @@ def filter_shapes(contours):
 
 def plot_array(data: np.ndarray):
     """Plot single array."""
-    f, ax = plt.subplots(1, 1, dpi=300)
+    nx, ny, _ = data.shape
+    ratio = int(np.floor(nx/ny))
+    # create image which fits to the ratio
+    f, ax = plt.subplots(1, 1, dpi=300, figsize=(10, 10*ratio))
     ax.imshow(data, cmap='gray')
     ax.axis("off")
     f.tight_layout()
@@ -108,10 +114,7 @@ def channels_info(channels):
 if __name__ == "__main__":
     from zia import BASE_PATH
 
-    dab_path = 'dab_test_L2.npy'
-    level = PyramidalLevel.TWO
-
-    if False:
+    if True:
         image_name = (
             "MNT-025_Bl6J_J-20-0160_CYP2E1- 1 400_Run 11_LLL, RML, RSL, ICL_MAA_0006"
         )
@@ -127,39 +130,70 @@ if __name__ == "__main__":
         image_infos = list(filter(lambda x: x.path.stem == image_name, image_infos))
         image_info: ImageInfo = image_infos[0]
 
-        channels: dict[str, np.ndarray] = separate_channels(
-            image_info=image_info,
-            level=level,
-        )
-        channels_info(channels)
+        for dab_path, level in [
+            ('dab_test_L7.npy', PyramidalLevel.SEVEN),
+            ('dab_test_L6.npy', PyramidalLevel.SIX),
+            ('dab_test_L5.npy', PyramidalLevel.FIVE),
+            ('dab_test_L4.npy', PyramidalLevel.FOUR),
+            ('dab_test_L3.npy', PyramidalLevel.THREE),
+            ('dab_test_L2.npy', PyramidalLevel.TWO),
+            ('dab_test_L1.npy', PyramidalLevel.ONE),
+            ('dab_test_L0.npy', PyramidalLevel.ZERO),
+        ]:
+            channels: dict[str, np.ndarray] = separate_channels(
+                image_info=image_info,
+                level=level,
+            )
+            channels_info(channels)
+            # serialization
+            np.save(dab_path, channels["dab"])
 
-        # serialization
-        np.save(dab_path, channels["dab"])
-
-
+    dab_path = 'dab_test_L7.npy'
     console.rule(title="serialization", style="white")
     dab_data = np.load(dab_path)
     array_info(dab_data)
     plot_array(dab_data)
 
     # TODO: median filter
+    # apply filtering for smoother output
 
     # TODO: generate mesh from image
-    # meshio:
 
-    # pyvista: Delauny triangulation
-    """
     import numpy as np
-    import pyvista as pv
-
     # points is a 3D numpy array (n_points, 3) coordinates of a sphere
-    cloud = pv.PolyData(points)
-    cloud.plot()
+    # convert the data to points
+    n_x = dab_data.shape[0]
+    n_y = dab_data.shape[1]
+    n_points = n_x * n_y
+    points = np.zeros(shape=(n_points, 3))
+    kp = 0
+    for kx in range(n_x):
+        for ky in range(n_y):
+            points[kp, 0] = kx
+            points[kp, 1] = ky
+            points[kp, 2] = dab_data[kx, ky, 0]
 
-    volume = cloud.delaunay_3d(alpha=2.)
-    shell = volume.extract_geometry()
-    shell.plot()
-    """
+    # scipy triangulation
+    console.rule(title="triangulation", style="white")
+    from scipy.spatial import Delaunay
+    tri = Delaunay(points)
+
+    import matplotlib.pyplot as plt
+    plt.triplot(points[:, 0], points[:, 1], tri.simplices)
+    plt.plot(points[:, 0], points[:, 1], 'o')
+    plt.show()
+
+    if False:
+        # pyvista triangulation
+        import pyvista as pv
+        console.print("cloud")
+        cloud = pv.PolyData(points)
+        cloud.plot()
+
+        console.print("volume")
+        volume = cloud.delaunay_3d(alpha=2.)
+        # shell = volume.extract_geometry()
 
 
+    # shell.plot()
 
