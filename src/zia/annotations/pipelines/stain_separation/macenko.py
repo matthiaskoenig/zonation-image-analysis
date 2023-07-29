@@ -153,7 +153,7 @@ def calculate_stain_matrix(pxi: np.ndarray, Io=240, alpha=1) -> np.ndarray:
     return stain_matrix
 
 
-def deconvolve_image(pxi, stain_matrix: np.ndarray, Io=240):
+def deconvolve_image(pxi, stain_matrix: np.ndarray, Io=240, maxC = None):
     """
     deconvolution of the stains for the pixels of interest.
     @param pxi: pixels of interest
@@ -161,10 +161,6 @@ def deconvolve_image(pxi, stain_matrix: np.ndarray, Io=240):
     @param Io: transmission intensity
     @return: Io, he, dab np arrays of shapes (m*n, 3), (m*n, 1), (m*n, 1)
     """
-    # reference matrix for false color stain
-    HERef = np.array([[0, 1],
-                      [1, 1],
-                      [1, 0]])
 
     # rows correspond to channels (RGB), columns to OD values
     y = -np.log((pxi.astype(float) + 1) / Io).T
@@ -176,7 +172,8 @@ def deconvolve_image(pxi, stain_matrix: np.ndarray, Io=240):
     # print(np.min(C[0, :]), np.min(C[1, :]))
 
     # normalize stain concentrations
-    maxC = np.array([np.percentile(C[0, :], 99), np.percentile(C[1, :], 99)])
+    if maxC is None:
+        maxC = np.array([np.percentile(C[0, :], 99), np.percentile(C[1, :], 99)])
 
     # we do not need those reference max concentrations. We don't know anyway
     # tmp = np.divide(maxC, maxCRef)
@@ -198,7 +195,7 @@ def deconvolve_image(pxi, stain_matrix: np.ndarray, Io=240):
 
     E = create_single_channel_pixels(C2[1, :])
 
-    return Inorm, H, E
+    return [Inorm, H, E], maxC
 
 
 def create_single_channel_pixels(concentrations: np.ndarray, Io=240):

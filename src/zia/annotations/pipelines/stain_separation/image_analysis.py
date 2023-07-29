@@ -17,6 +17,12 @@ from zia.data_store import DataStore, ZarrGroups
 
 
 class StainSeparator:
+    """
+    Stain separation for image in tiles.
+    Stain matrix can be calculated for each roi on low level image
+    However, the estimation of robust extrema has to be done globally
+
+    """
     @classmethod
     def separate_stains(cls, data_store: DataStore) -> None:
         for i, roi in enumerate(data_store.rois):
