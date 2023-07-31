@@ -10,7 +10,7 @@ dab_data = np.load(dab_path)
 dab_data2d = np.zeros(shape=(dab_data.shape[0], dab_data.shape[1], 2))
 dab_data2d[:, :, 1] = dab_data[:, :, 0]
 
-plane = Image(dab_data)
+plane = Image(dab_data2d)
 
 console.print(plane)
 
