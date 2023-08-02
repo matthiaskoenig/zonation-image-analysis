@@ -14,19 +14,19 @@ from tifffile import TiffFileError, ZarrStore, tiffcomment, tifffile
 from zia.io.utils import check_image_path
 
 
-def read_ndpi(image_path: Path) -> List[da.Array]:
+def read_ndpi(image_path: Path, chunkshape=(2 ** 11, 2 ** 11, 3)) -> List[zarr.Array]:
     """Read image with tifffile library."""
     check_image_path(image_path)
 
     # read in zarr store
-    store = tifffile.imread(image_path, aszarr=True)
-    group = zarr.open(store, mode="r")  # zarr.core.Group or Array
+    store = tifffile.imread(image_path, aszarr=True, chunkshape=chunkshape)
 
+    group = zarr.open(store, mode="r")  # zarr.core.Group or Array
     # FIXME: read metadata
     datasets = group.attrs["multiscales"][0]["datasets"]
 
     # Load dask array from the zarr storage format
-    data = [da.from_zarr(store, component=d["path"]) for d in datasets]
+    data = [group.get(d["path"]) for d in datasets]
     return data
 
 

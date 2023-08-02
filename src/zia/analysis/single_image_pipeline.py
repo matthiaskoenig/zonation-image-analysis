@@ -6,6 +6,8 @@ from zia.annotations.pipelines.mask_generatation.pipeline_component import (
     MaskCreationComponent,
 )
 from zia.annotations.pipelines.pipeline import Pipeline
+from zia.annotations.pipelines.stain_separation.pipeline_component import \
+    StainSeparationComponent
 from zia.data_store import DataStore
 from zia.path_utils import FileManager, filter_factory
 
@@ -24,6 +26,7 @@ if __name__ == "__main__":
             RoiFinderComponent(overwrite=False),
             # creates masks
             MaskCreationComponent(overwrite=False),
+            StainSeparationComponent(overwrite=True)
         ]
     )
 

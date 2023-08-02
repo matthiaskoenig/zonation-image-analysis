@@ -86,7 +86,7 @@ class FileManager:
     def info(self):
         console.rule(style="white")
         image_paths = list(self.image_paths())
-        console.print(f"FileManage: {len(image_paths)} images")
+        console.print(f"FileManager: {len(image_paths)} images")
         console.print(f"filter: {self.filter}")
         console.rule(style="white")
 

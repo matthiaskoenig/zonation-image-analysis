@@ -16,6 +16,8 @@ from zia.path_utils import ImageInfo
 class ZarrGroups(str, Enum):
     LIVER_MASK = "liver_mask"
     DAB_STAIN = "dab_stain"
+    H_STAIN = "h_stain"
+    E_STAIN = "e_stain"
 
 
 class DataStore:
@@ -115,8 +117,8 @@ class DataStore:
 
             pyramid_dict[i] = roi_group.empty(
                 str(i),
-                shape=(new_h, new_w),
-                chunks=(chunk_h, chunk_w),
+                shape=(new_h, new_w) + ((shape[2],) if len(shape) == 3 else ()),
+                chunks=(chunk_h, chunk_w) + ((shape[2],) if len(shape) == 3 else ()),
                 dtype=dtype,
                 overwrite=True)
 

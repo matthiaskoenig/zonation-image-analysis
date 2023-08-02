@@ -7,6 +7,8 @@ from zia.annotations.pipelines.mask_generatation.pipeline_component import (
     MaskCreationComponent,
 )
 from zia.annotations.pipelines.pipeline import Pipeline
+from zia.annotations.pipelines.stain_separation.pipeline_component import \
+    StainSeparationComponent
 from zia.data_store import DataStore
 from zia.log import get_logger
 from zia.path_utils import FileManager
@@ -27,9 +29,11 @@ if __name__ == "__main__":
     pipeline = Pipeline(
         components=[
             # finds ROI of liver tissue
-            RoiFinderComponent(overwrite=True, draw=False),
+            RoiFinderComponent(overwrite=False, draw=False),
             # creates masks
-            MaskCreationComponent(overwrite=True, draw=False),
+            MaskCreationComponent(overwrite=False, draw=False),
+            # stain separation
+            StainSeparationComponent(overwrite=True)
         ]
     )
 

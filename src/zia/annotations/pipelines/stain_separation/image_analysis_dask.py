@@ -1,9 +1,7 @@
-import queue
-import threading
 from tempfile import TemporaryFile
 import time
 from tempfile import TemporaryFile
-from typing import Tuple, List
+from typing import Tuple
 
 import cv2
 import dask
@@ -32,7 +30,39 @@ class StainSeparator:
     """
 
     @classmethod
-    def separate_stains(cls, data_store: DataStore, p=0.01, level=PyramidalLevel.ZERO) -> None:
+    def separate_stains(cls, data_store: DataStore) -> None:
+        for i, roi in enumerate(data_store.rois):
+            cls.calculate_otsu_threshold_os(data_store)
+
+    @classmethod
+    def calculate_samples_for_otsu(cls, tile_slices: Tuple[slice, slice],
+                                   roi_slices: Tuple[slice, slice],
+                                   image_array: zarr.Array,
+                                   p):
+        roi_rs, roi_cs = roi_slices
+        rs, cs = tile_slices
+
+        final_rs = slice(roi_rs.start + rs.start, roi_rs.start + rs.stop)
+        final_cs = slice(roi_cs.start + cs.start, roi_cs.start + cs.stop)
+
+        tile_shape = (rs.stop - rs.start, cs.stop - cs.start)
+
+        t_ls = time.time()
+        image_tile = image_array[final_rs, final_cs]
+        t_le = time.time()
+        # print(f"Loaded tile in {(t_le - t_ls)} s.")
+        choice = np.random.choice(a=[True, False],
+                                  size=tile_shape,
+                                  p=[p, 1 - p])
+
+        sample = image_tile[choice]
+        sample_gs = sample.dot(np.array([0.587, 0.114, 0.299]))
+        return sample_gs
+
+    @classmethod
+    def calculate_otsu_threshold_os(
+        cls, data_store: DataStore, p=0.01, level=PyramidalLevel.ZERO
+    ) -> None:
         arrays = read_ndpi(data_store.image_info.path)
         full_image_array: zarr.Array = arrays[level]
 
@@ -165,30 +195,3 @@ class StainSeparator:
             t_e = time.time()
 
             logger.info(f"Deconvoluted ROI image in {(t_e - t_s) / 60} min")
-
-    @classmethod
-    def calculate_samples_for_otsu(cls, tile_slices: Tuple[slice, slice],
-                                   roi_slices: Tuple[slice, slice],
-                                   image_array: zarr.Array,
-                                   p):
-        roi_rs, roi_cs = roi_slices
-        rs, cs = tile_slices
-
-        final_rs = slice(roi_rs.start + rs.start, roi_rs.start + rs.stop)
-        final_cs = slice(roi_cs.start + cs.start, roi_cs.start + cs.stop)
-
-        tile_shape = (rs.stop - rs.start, cs.stop - cs.start)
-
-        t_ls = time.time()
-        image_tile = image_array[final_rs, final_cs]
-        t_le = time.time()
-        # print(f"Loaded tile in {(t_le - t_ls)} s.")
-        choice = np.random.choice(a=[True, False],
-                                  size=tile_shape,
-                                  p=[p, 1 - p])
-
-        sample = image_tile[choice]
-        sample_gs = sample.dot(np.array([0.587, 0.114, 0.299]))
-        return sample_gs
-
-

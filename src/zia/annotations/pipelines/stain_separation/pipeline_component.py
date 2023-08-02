@@ -17,6 +17,10 @@ class StainSeparationComponent(IPipelineComponent):
     def run(self, data_store: DataStore, results_path: Path) -> None:
         image_id = data_store.image_info.metadata.image_id
 
+        if data_store.image_info.metadata.negative:
+            logger.info("Skipped Stain separation for negative run image.")
+            return
+
         logger.info(create_message(image_id, "Started stain separation."))
 
         # prevent from overwriting data from previous runs during development
@@ -28,7 +32,6 @@ class StainSeparationComponent(IPipelineComponent):
         StainSeparator.separate_stains(data_store)
 
         logger.info(create_message(image_id, "Finished Stain Separation"))
-
 
     @classmethod
     def _check_if_exists(cls, data_store: DataStore) -> bool:
