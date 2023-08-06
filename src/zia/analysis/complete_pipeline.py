@@ -33,7 +33,7 @@ if __name__ == "__main__":
             # creates masks
             MaskCreationComponent(overwrite=False, draw=False),
             # stain separation
-            StainSeparationComponent(overwrite=True)
+            StainSeparationComponent(overwrite=False)
         ]
     )
 

@@ -18,6 +18,7 @@ class ResultsDirectories(str, Enum):
     LIVER_ROIS_IMAGES = "liver_rois_images"
     LIVER_MASK = "liver_mask"
     MASKED_PNG_IMAGES = "masked_png_images"
+    STAIN_SEPERATED_IMAGES = "stain_seperated_images"
 
 
 @dataclass

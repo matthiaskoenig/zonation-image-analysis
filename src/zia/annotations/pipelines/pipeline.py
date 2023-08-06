@@ -39,7 +39,10 @@ class Pipeline:
 
         for pipeline_component in components_to_run:
             t_s = time.time()
-            pipeline_component.run(data_store=data_store, results_path=results_path)
+            try :
+                pipeline_component.run(data_store=data_store, results_path=results_path)
+            except IndexError:
+                logger.error(f"Index error occured for {data_store.image_info.metadata.image_id}")
             t_e = time.time()
             t = (t_e - t_s) / 60
             logger.info(f"{pipeline_component.__class__.__name__} finished in {t:.2f} min.")

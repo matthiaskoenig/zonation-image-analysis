@@ -35,7 +35,7 @@ class StainSeparationComponent(IPipelineComponent):
 
     @classmethod
     def _check_if_exists(cls, data_store: DataStore) -> bool:
-        if ZarrGroups.DAB_STAIN.value in data_store.data.keys():
+        if (ZarrGroups.DAB_STAIN.value in data_store.data.keys()) or (ZarrGroups.H_STAIN in data_store.data.keys()):
             return True
         else:
             return False
