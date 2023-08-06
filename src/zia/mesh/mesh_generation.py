@@ -100,6 +100,7 @@ def separate_channels(
         "dab": dab_image,
     }
 
+
 def array_info(data: np.ndarray):
     """Print array information."""
     console.print(f"{data.dtype}, {data.shape}")
@@ -125,7 +126,7 @@ if __name__ == "__main__":
     # Overview figures for single stains
     title = "MNT-025"
     images = {
-        "HE": "MNT-025_Bl6J_J-20-0160_HE_Run 05_LLL, RML, RSL, ICL_MAA_0003",
+        # "HE": "MNT-025_Bl6J_J-20-0160_HE_Run 05_LLL, RML, RSL, ICL_MAA_0003",
         "GS": "MNT-025_Bl6J_J-20-0160_GS 1 1000_Run 06_LLL, RML, RSL, ICL_MAA_0001",
         "CYP2E1": "MNT-025_Bl6J_J-20-0160_CYP2E1- 1 400_Run 11_LLL, RML, RSL, ICL_MAA_0006",
         "CYP1A2": "MNT-025_Bl6J_J-20-0160_CYP1A2-1 500_Run 08_LLL, RML, RSL, ICL_MAA_0002",
