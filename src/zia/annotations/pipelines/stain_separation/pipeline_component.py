@@ -5,7 +5,7 @@ from zia.data_store import DataStore, ZarrGroups
 from zia.log import get_logger, create_message
 from zia.path_utils import FileManager
 from zia.annotations.pipelines.pipeline import IPipelineComponent
-from zia.annotations.pipelines.stain_separation.image_analysis import StainSeparator
+from zia.annotations.pipelines.stain_separation.image_analysis import separate_stains
 
 logger = get_logger(__name__)
 
@@ -29,7 +29,7 @@ class StainSeparationComponent(IPipelineComponent):
                 f"[{image_id}]\t Spearated image already exists. To overwrite, set overwrite to True for {self.__class__.__name__}.")
             return
 
-        StainSeparator.separate_stains(data_store)
+        separate_stains(data_store)
 
         logger.info(create_message(image_id, "Finished Stain Separation"))
 
