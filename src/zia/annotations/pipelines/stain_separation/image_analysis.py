@@ -41,7 +41,7 @@ class StainSeparator:
 
             mask = data_store.get_array(ZarrGroups.LIVER_MASK, roi_no, level)
 
-            roi_cs, roi_rs = data_store.rois[roi_no].get_bound(level)
+            roi_cs, roi_rs = roi.get_bound(level)
 
             roi_h, roi_w = roi_rs.stop - roi_rs.start, roi_cs.stop - roi_cs.start
 
@@ -55,7 +55,7 @@ class StainSeparator:
                 ZarrGroups.H_STAIN, roi_no, (roi_h, roi_w), np.uint8
             )
 
-            slices = get_tile_slices(shape=(roi_h, roi_w), tile_size=2 ** 12)
+            slices = get_tile_slices(shape=(roi_h, roi_w), tile_size=2 ** 13)
 
             samples = []
 

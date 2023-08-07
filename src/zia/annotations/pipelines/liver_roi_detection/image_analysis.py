@@ -25,10 +25,10 @@ class RoiSegmentation:
 
     @classmethod
     def find_rois(
-        cls,
-        data_store: DataStore,
-        annotations: Optional[List[Annotation]],
-        annotation_type: AnnotationType,
+            cls,
+            data_store: DataStore,
+            annotations: Optional[List[Annotation]],
+            annotation_type: AnnotationType,
     ) -> List[Roi]:
         image_id = data_store.image_info.metadata.image_id
 
@@ -107,16 +107,22 @@ class RoiSegmentation:
 
             reduced_polys.append(reduced_polygon)
 
+        for poly in reduced_polys:
+            print(poly.bounds)
+
         liver_rois = [
-            Roi(poly, PyramidalLevel.SEVEN, AnnotationType.LIVER)
+            Roi(poly, cv2image.shape[:2], PyramidalLevel.SEVEN, AnnotationType.LIVER)
             for poly in reduced_polys
         ]
+
+        for roi in liver_rois:
+            print(roi.get_bound(PyramidalLevel.SEVEN))
 
         return liver_rois
 
     @classmethod
     def _extract_organ_shapes(
-        cls, shapes: List[Polygon], organ_annotations: List[Annotation]
+            cls, shapes: List[Polygon], organ_annotations: List[Annotation]
     ) -> List[Polygon]:
         extracted = [
             shape
@@ -136,7 +142,7 @@ class RoiSegmentation:
 
     @classmethod
     def reduce_shapes(
-        cls, kept_shapes: List[Polygon], remaining_shapes: List[Polygon]
+            cls, kept_shapes: List[Polygon], remaining_shapes: List[Polygon]
     ) -> None:
         not_in_bigger_shape = []
         big_shape = remaining_shapes.pop(0)

@@ -50,6 +50,8 @@ def find_max_c(pxi, stain_matrix: np.ndarray, Io=240) -> np.ndarray:
     # print(C.shape)
     # print(np.min(C[0, :]), np.min(C[1, :]))
 
+    # print(np.max(concentrations))
+
     # normalize stain concentrations
     return np.array([np.percentile(C[0, :], 99), np.percentile(C[1, :], 99)])
 

@@ -14,10 +14,10 @@ if __name__ == "__main__":
 
     file_manager = FileManager(
         configuration=read_config(BASE_PATH / "configuration.ini"),
-        filter=None
+        filter=None #filter_factory(species="rat", subject="NOR-025", protein="cyp1a2")
     )
-
-    results_path = file_manager.results_path / ResultsDirectories.STAIN_SEPERATED_IMAGES.value / ZarrGroups.DAB_STAIN
+    stain = ZarrGroups.DAB_STAIN
+    results_path = file_manager.results_path / ResultsDirectories.STAIN_SEPERATED_IMAGES.value / stain
     results_path.mkdir(parents=True, exist_ok=True)
 
     level = PyramidalLevel.FIVE
@@ -32,7 +32,7 @@ if __name__ == "__main__":
 
                 if image_info.metadata.negative:
                     continue
-                dab = np.array(data_store.get_array(ZarrGroups.DAB_STAIN, roi_no=i,
+                dab = np.array(data_store.get_array(stain, roi_no=i,
                                                     level=level))
 
                 #print(data_store.image_info.metadata.image_id)
