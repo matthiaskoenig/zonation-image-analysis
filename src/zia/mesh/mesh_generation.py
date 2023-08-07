@@ -57,7 +57,7 @@ def separate_channels(
     image_info: ImageInfo, level: PyramidalLevel=PyramidalLevel.THREE
 ) -> dict[str, np.ndarray]:
     """Get the DAB channel information for the mesh."""
-    roi_no = 1
+    roi_no = 0
 
     data_store = DataStore(image_info)
     mask = data_store.get_array(ZarrGroups.LIVER_MASK, roi_no=roi_no, level=level)
@@ -124,14 +124,22 @@ if __name__ == "__main__":
     console.print(image_infos)
 
     # Overview figures for single stains
-    title = "MNT-025"
+    # title = "MNT-025"
+    title = "UKJ-19-010_Human"
     images = {
-        # "HE": "MNT-025_Bl6J_J-20-0160_HE_Run 05_LLL, RML, RSL, ICL_MAA_0003",
-        "GS": "MNT-025_Bl6J_J-20-0160_GS 1 1000_Run 06_LLL, RML, RSL, ICL_MAA_0001",
-        "CYP2E1": "MNT-025_Bl6J_J-20-0160_CYP2E1- 1 400_Run 11_LLL, RML, RSL, ICL_MAA_0006",
-        "CYP1A2": "MNT-025_Bl6J_J-20-0160_CYP1A2-1 500_Run 08_LLL, RML, RSL, ICL_MAA_0002",
-        "CYP3A4": "MNT-025_Bl6J_J-20-0160_CYP3A4 1 2000_Run 10_LLL, RML, RSL, ICL_MAA_0005",
-        "CYP2D6": "MNT-025_Mouse_Bl6J_J-20-0160_CYP2D6- 1 3000_Run 14_ML, RML, RSL, ICL_MAA_004",
+        # # "HE": "MNT-025_Bl6J_J-20-0160_HE_Run 05_LLL, RML, RSL, ICL_MAA_0003",
+        # "GS": "MNT-025_Bl6J_J-20-0160_GS 1 1000_Run 06_LLL, RML, RSL, ICL_MAA_0001",
+        # "CYP2E1": "MNT-025_Bl6J_J-20-0160_CYP2E1- 1 400_Run 11_LLL, RML, RSL, ICL_MAA_0006",
+        # "CYP1A2": "MNT-025_Bl6J_J-20-0160_CYP1A2-1 500_Run 08_LLL, RML, RSL, ICL_MAA_0002",
+        # "CYP3A4": "MNT-025_Bl6J_J-20-0160_CYP3A4 1 2000_Run 10_LLL, RML, RSL, ICL_MAA_0005",
+        # "CYP2D6": "MNT-025_Mouse_Bl6J_J-20-0160_CYP2D6- 1 3000_Run 14_ML, RML, RSL, ICL_MAA_004",
+
+        # "HE": "UKJ-19-010_Human _J-19-0154_HE_Run 07__MAA_003",
+        "GS": "UKJ-19-010_Human _J-19-0154_GS 1 1000_Run 09_Liver_MAA_001",
+        "CYP2E1": "UKJ-19-010_Human _J-19-0154_CYP2E1-1 800_Run 15__MAA_006",
+        "CYP1A2": "UKJ-19-010_Human _J-19-0154_CYP1A2-1 2000_Run 12__MAA_002",
+        "CYP3A4": "UKJ-19-010_Human _J-19-0154_CYP3A4 1 1500_Run 14__MAA_005",
+        "CYP2D6": "UKJ-19-010_Human _J-19-0154_CYP2D6- 1 200_Run 19__MAA_007",
     }
 
     all_channels = {}
@@ -236,6 +244,4 @@ if __name__ == "__main__":
         volume = cloud.delaunay_3d(alpha=2.)
         # shell = volume.extract_geometry()
 
-
     # shell.plot()
-
