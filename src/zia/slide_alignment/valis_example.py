@@ -10,7 +10,7 @@ docker run --memory=60g  -v "$HOME:$HOME" cdgatenbee/valis-wsi python3 /home/mko
 
 from valis import registration
 
-species = "human"
+species = "mouse"
 slide_src_dir = f"/home/mkoenig/git/zonation-image-analysis/src/zia/slide_alignment/slides/{species}"
 results_dst_dir = f"/home/mkoenig/git/zonation-image-analysis/src/zia/slide_alignment/results/{species}"
 registered_slide_dst_dir = f"/home/mkoenig/git/zonation-image-analysis/src/zia/slide_alignment/registered_slide/{species}"
