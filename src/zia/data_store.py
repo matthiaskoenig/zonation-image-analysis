@@ -120,7 +120,8 @@ class DataStore:
                 shape=(new_h, new_w) + ((shape[2],) if len(shape) == 3 else ()),
                 chunks=(chunk_h, chunk_w) + ((shape[2],) if len(shape) == 3 else ()),
                 dtype=dtype,
-                overwrite=True)
+                overwrite=True,
+                synchronizer=zarr.ThreadSynchronizer())
 
         return pyramid_dict
 
