@@ -13,7 +13,6 @@ def separate_raw_image(image_array: np.ndarray, sampling_rate=0.01):
     gs = cv2.cvtColor(image_array, cv2.COLOR_RGB2GRAY)
 
     otsu_pxi_oi = gs.reshape(-1, 1)  # gs[mask[:]]
-    print(otsu_pxi_oi.shape)
 
     p = sampling_rate
     # draw sample from the image and calculate threshold
