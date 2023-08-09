@@ -15,9 +15,8 @@ from zia.path_utils import ImageInfo
 
 class ZarrGroups(str, Enum):
     LIVER_MASK = "liver_mask"
-    DAB_STAIN = "dab_stain"
-    H_STAIN = "h_stain"
-    E_STAIN = "e_stain"
+    STAIN_0 = "stain_0"
+    STAIN_1 = "stain_1"
 
 
 class DataStore:
@@ -63,7 +62,7 @@ class DataStore:
         )
 
     def create_multilevel_group(
-        self, zarr_group: ZarrGroups, roi_no: int, data: dict[int, np.ndarray]
+            self, zarr_group: ZarrGroups, roi_no: int, data: dict[int, np.ndarray]
     ):
         data_group = self.data.require_group(zarr_group.value)
         roi_group = data_group.require_group(str(roi_no))
@@ -77,7 +76,7 @@ class DataStore:
             )
 
     def create_mask_array(
-        self, zarr_group: ZarrGroups, roi_no: int, shape: Tuple
+            self, zarr_group: ZarrGroups, roi_no: int, shape: Tuple
     ) -> zarr.core.Array:
         data_group = self.data.require_group(zarr_group.value)
         roi_group = data_group.require_group(str(roi_no))
@@ -90,12 +89,14 @@ class DataStore:
         )
 
     def create_pyramid_group(self, zarr_group: ZarrGroups, roi_no: int, shape: Tuple,
-                             dtype: Type) -> \
-        Dict[int, zarr.Array]:
+                             chunksize: int,
+                             dtype: Type) -> Dict[int, zarr.Array]:
         """Creates a zarr group for a roi to save an image pyramid
         @param zarr_group: the enum to sepcify the zarr subdirectory
         @param roi_no: the number of the ROI
         @param shape: the shape of the array to create
+        @param chunksize: the size of the level zero chunk
+        @param dtype: the data type stored in the arrays
         """
         data_group = self.data.require_group(zarr_group.value)
         roi_group = data_group.require_group(str(roi_no))
@@ -105,23 +106,19 @@ class DataStore:
         h, w = shape[:2]
 
         for i in range(8):
-            chunk_w, chunk_h = 2 ** 12, 2 ** 12  # starting at 4096 going down to align with tiles
+            chunk_w, chunk_h = chunksize, chunksize  # taking the slice size aligns chunks, so that multiprocessing only alway acesses one chunk
             factor = 2 ** i
 
             new_h, new_w = int(h / factor), int(w / factor)
-
-            if new_w < chunk_w:
-                chunk_w = new_w
-            if new_h < chunk_h:
-                chunk_h = new_h
+            new_chunk_h, new_chunk_w = int(chunk_h / factor), int(chunk_w / factor)
 
             pyramid_dict[i] = roi_group.empty(
                 str(i),
                 shape=(new_h, new_w) + ((shape[2],) if len(shape) == 3 else ()),
-                chunks=(chunk_h, chunk_w) + ((shape[2],) if len(shape) == 3 else ()),
+                chunks=(new_chunk_w, new_chunk_h) + ((shape[2],) if len(shape) == 3 else ()),
                 dtype=dtype,
                 overwrite=True,
-                synchronizer=zarr.ThreadSynchronizer())
+                synchronizer=zarr.ProcessSynchronizer(".chunklock"))
 
         return pyramid_dict
 
@@ -139,11 +136,11 @@ class DataStore:
         return self.image.read_region(location=ref_loc, level=level, size=size)
 
     def read_region_from_roi(
-        self,
-        roi_no: int,
-        location: Tuple[int, int],
-        level: PyramidalLevel,
-        size: Tuple[int, int],
+            self,
+            roi_no: int,
+            location: Tuple[int, int],
+            level: PyramidalLevel,
+            size: Tuple[int, int],
     ) -> Image:
         """
         reads relative to the given ROI from the WSI image.

@@ -62,8 +62,7 @@ def svd(pxi: np.ndarray, stain_matrix: np.ndarray, Io=240) -> np.ndarray:
     # determine concentrations of the individual stains
     return np.linalg.lstsq(stain_matrix, y, rcond=None)[0]
 
-def deconvolve_image(pxi:np.ndarray, stain_matrix: np.ndarray, maxC: np.ndarray, Io=240) -> Tuple[
-    np.ndarray, np.ndarray]:
+def deconvolve_image(pxi:np.ndarray, stain_matrix: np.ndarray, maxC: np.ndarray, Io=240) -> np.ndarray:
     """
     deconvolution of the stains for the pixels of interest.
     @param pxi: pixels of interest
@@ -91,11 +90,8 @@ def deconvolve_image(pxi:np.ndarray, stain_matrix: np.ndarray, maxC: np.ndarray,
     # CHANGED: Instead of using reference matrix for mixing, the image is just
     # the concentration is just exponentiated into a single channel
     #
-    H = create_single_channel_pixels(C2[0, :])
 
-    E = create_single_channel_pixels(C2[1, :])
-
-    return H, E
+    return C2
 
 
 def create_single_channel_pixels(concentrations: np.ndarray, Io=240):

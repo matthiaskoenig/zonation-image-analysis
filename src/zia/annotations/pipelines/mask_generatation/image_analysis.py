@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 class MaskGenerator:
 
     @classmethod
-    def create_mask(cls, data_store: DataStore, annotations: List[Annotation]) -> None:
+    def create_mask(cls, data_store: DataStore, annotations: List[Annotation], tile_size=2**13) -> None:
         image_id = data_store.image_info.metadata.image_id
         # iterate over the range of interests
         for roi_no, roi in enumerate(data_store.rois):
@@ -34,11 +34,11 @@ class MaskGenerator:
 
             # create pyramidal group to persist mask
             pyramid_dict = data_store.create_pyramid_group(
-                ZarrGroups.LIVER_MASK, roi_no, shape, bool
+                ZarrGroups.LIVER_MASK, roi_no, shape, tile_size, bool,
             )
 
             # get a list of slice that slices the area of the roi in tiles
-            slices = get_tile_slices(shape)
+            slices = get_tile_slices(shape, tile_size=tile_size)
 
             # get the roi polygon and offset it to the origin of the created array
             roi_poly = roi.get_polygon_for_level(
