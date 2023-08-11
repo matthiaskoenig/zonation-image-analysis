@@ -10,7 +10,7 @@ docker run --memory=40g  -v "$HOME:$HOME" -v "/media/mkoenig/Extreme Pro/data/cy
 from pathlib import Path
 from valis import registration
 
-level = 2
+level = 1
 data_dir: Path = Path("/media/mkoenig/Extreme Pro/data/cyp_species_comparison/control_individual")
 data_dir_registered: Path = Path(f"/media/mkoenig/Extreme Pro/data/cyp_species_comparison/control_individual_registered_L{level}")
 
