@@ -21,7 +21,10 @@ def filter_shapes(contours):
 
 
 def plot_all(original, reconstructed, he, dab):
-    fig, axes = plt.subplots(2, 2, dpi=300)
+    nx, ny, _ = original.shape
+    ratio = int(np.floor(nx/ny))
+    # create image which fits to the ratio
+    fig, axes = plt.subplots(2, 2, dpi=300, figsize=(10, 10*ratio))
     axes[0, 0].imshow(original)
     axes[0, 0].set_title("original")
     axes[0, 1].imshow(reconstructed)

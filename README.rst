@@ -35,6 +35,11 @@ Features include among others
 
 Installation
 ============
+The analysis depends on the openslide library. Make sure this installed on your system,
+e.g. on linux via
+```
+sudo apt-get install openslide-tools
+```
 
 Install python package
 ----------------------
@@ -81,4 +86,4 @@ and by the German Research Foundation (DFG) within the Research Unit Programme F
 A Systems Medicine Approach)" by grant number 436883643 and by grant number 
 465194077 (Priority Programme SPP 2311, Subproject SimLivA).
 
-© 2022-2023 Jonas Küttner, Jan Grzegorzewski, and Matthias König 
+© 2022-2023 Jonas Küttner and Matthias König 
