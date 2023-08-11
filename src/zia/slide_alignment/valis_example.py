@@ -33,11 +33,11 @@ for slide_dir in slide_dirs:
         level=level,
         compression="jpeg"
     )
-    registrar.warp_and_merge_slides(
-        str(results_dir / "merged.ome.tiff"), crop="overlap",
-        level=level,
-        compression="jpeg"
-    )
+    # registrar.warp_and_merge_slides(
+    #     str(results_dir / "merged.ome.tiff"), crop="overlap",
+    #     level=level,
+    #     compression="jpeg"
+    # )
 
 # Kill the JVM
 registration.kill_jvm()
