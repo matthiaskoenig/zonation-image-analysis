@@ -5,7 +5,7 @@ import re
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Callable, Optional, List
+from typing import Callable, Optional, List, Dict
 
 from zia.config import Configuration
 from zia.console import console
@@ -64,6 +64,15 @@ class FileManager:
         paths = self.data_path.glob(f"**/*.{extension}")
         image_filter = self.filter if self.filter else (lambda x: True)
         return [p for p in paths if image_filter(p)]
+
+    def image_info_grouped_by_subject(self) -> Dict[str, List[ImageInfo]]:
+        image_info_dict = {}
+        for image_info in self.get_images():
+            subject = image_info.metadata.subject
+            if subject not in image_info_dict:
+                image_info_dict[subject] = []
+            image_info_dict[subject].append(image_info)
+        return image_info_dict
 
     def get_zarr_path(self, image: Path) -> Path:
         """Get Zarr Path for image."""
@@ -124,7 +133,7 @@ def image_metadata(image: Path) -> ImageMetadata:
         subject=subject,
         species=species,
         protein=image.parent.name.lower(),
-        negative="negative" in image_id.lower(),
+        negative=any([s in image_id.lower() for s in ["negative", "neg."]]),
     )
 
 
