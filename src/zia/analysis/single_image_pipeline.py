@@ -17,17 +17,17 @@ if __name__ == "__main__":
 
     file_manager = FileManager(
         configuration=read_config(BASE_PATH / "configuration.ini"),
-        filter=filter_factory(species="rat", subject="NOR-025", protein="cyp1a2")
+        filter=filter_factory(species="mouse", subject="MNT-025", protein="cyp1a2")
     )
 
     pipeline = Pipeline(
         components=[
             # finds ROI of liver tissue
-            RoiFinderComponent(overwrite=False),
+            RoiFinderComponent(overwrite=True, draw=True),
             # creates masks
-            MaskCreationComponent(overwrite=False),
+            #MaskCreationComponent(overwrite=False),
             # separate stains
-            StainSeparationComponent(overwrite=True)
+            #StainSeparationComponent(overwrite=True)
         ]
     )
 

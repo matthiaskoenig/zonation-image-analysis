@@ -25,10 +25,10 @@ class RoiSegmentation:
 
     @classmethod
     def find_rois(
-            cls,
-            data_store: DataStore,
-            annotations: Optional[List[Annotation]],
-            annotation_type: AnnotationType,
+        cls,
+        data_store: DataStore,
+        annotations: Optional[List[Annotation]],
+        annotation_type: AnnotationType,
     ) -> List[Roi]:
         image_id = data_store.image_info.metadata.image_id
 
@@ -47,9 +47,13 @@ class RoiSegmentation:
 
         _, thresh = cv2.threshold(blur, 200, 255, cv2.THRESH_BINARY)
 
+        element = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (10, 10), (-1, -1))
+        eroded = cv2.erode(thresh, element)
+        dilated = cv2.dilate(eroded, element)
+
         # Find contours in the binary mask
         contours, _ = cv2.findContours(
-            thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE, offset=(-padding, -padding)
+            dilated, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE, offset=(-padding, -padding)
         )
 
         # get contour array to shapely coordinates
@@ -80,8 +84,9 @@ class RoiSegmentation:
         contour_shapes = RoiSegmentation._extract_organ_shapes(kept, liver_annotations)
 
         if len(contour_shapes) == 0:
-            logger.warning(f"[{image_id}]\tNo organ contour matches with the annotation geometries",
-                           extra={"image_id": image_id})
+            logger.warning(
+                f"[{image_id}]\tNo organ contour matches with the annotation geometries",
+                extra={"image_id": image_id})
 
         # reduce the polygons to have fewer points
 
@@ -97,7 +102,8 @@ class RoiSegmentation:
 
             len_after = len(reduced_polygon.exterior.coords)
             factor = len_before / len_after
-            logger.info(f"[{image_id}]\tReduced polygon vertices by factor {factor:.1f}")
+            logger.info(
+                f"[{image_id}]\tReduced polygon vertices by factor {factor:.1f}")
             if not reduced_polygon.is_valid:
                 logger.warning(
                     f"[{image_id}]\tInvalid Polygon encountered after reduction."
@@ -122,7 +128,7 @@ class RoiSegmentation:
 
     @classmethod
     def _extract_organ_shapes(
-            cls, shapes: List[Polygon], organ_annotations: List[Annotation]
+        cls, shapes: List[Polygon], organ_annotations: List[Annotation]
     ) -> List[Polygon]:
         extracted = [
             shape
@@ -142,7 +148,7 @@ class RoiSegmentation:
 
     @classmethod
     def reduce_shapes(
-            cls, kept_shapes: List[Polygon], remaining_shapes: List[Polygon]
+        cls, kept_shapes: List[Polygon], remaining_shapes: List[Polygon]
     ) -> None:
         not_in_bigger_shape = []
         big_shape = remaining_shapes.pop(0)
