@@ -1,18 +1,17 @@
 import multiprocessing
-import multiprocessing
 import time
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Tuple, List
+from typing import Tuple
 
 import cv2
 import numpy as np
 import zarr
 from threadpoolctl import threadpool_limits
 
-from zia.annotations.annotation.slicing import get_tile_slices
+from zia.annotations.annotation.slicing import get_tile_slices, get_final_slices
 from zia.annotations.annotation.util import PyramidalLevel
 from zia.annotations.pipelines.stain_separation.macenko import \
     calculate_stain_matrix, \
@@ -216,17 +215,3 @@ def calculate_samples_for_otsu(image_tile: np.ndarray, p):
     return sample_gs
 
 
-def get_final_slices(roi_slice: Tuple[slice, slice],
-                     tile_slices: List[Tuple[slice, slice]]) -> List[Tuple[slice, slice]]:
-    return [get_final_slice(roi_slice, tile_slice) for tile_slice in tile_slices]
-
-
-def get_final_slice(roi_slice: Tuple[slice, slice], tile_slice: Tuple[slice, slice]) -> \
-        Tuple[slice, slice]:
-    roi_rs, roi_cs = roi_slice
-    rs, cs = tile_slice
-
-    final_rs = slice(roi_rs.start + rs.start, roi_rs.start + rs.stop)
-    final_cs = slice(roi_cs.start + cs.start, roi_cs.start + cs.stop)
-
-    return final_rs, final_cs
