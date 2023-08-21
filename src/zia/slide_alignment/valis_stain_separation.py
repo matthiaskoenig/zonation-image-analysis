@@ -46,54 +46,76 @@ def create_registration_image(subject_dir: Path, stains: List[str], results_dir:
     console.log(output_path)
 
 
-def create_stain_separation_image(subject_dir: Path, stains: List[str], results_dir: Path):
+def create_stain_separation_images(subject_dir: Path, stains: List[str], results_dir: Path):
     subject_id: str = subject_dir.name
 
     ome_tiff_dir = subject_dir
     image_prefixes: Dict[str, str] = image_prefixes_from_dir(ome_tiff_dir, stains=stains)
     files = [ome_tiff_dir / f"{prefix}.ome.tiff" for prefix in image_prefixes.values()]
-    output_path = results_dir / f"{subject_id}_registered_stain_separated.png"
 
     console.log(subject_id)
     console.log(image_prefixes)
 
-    console.log(output_path)
+    def plot_matrix(data: np.ndarray, path: Path, title: str):
+        """Plot matrix to file."""
 
-    fig, axes = plt.subplots(2, len(files), figsize=(3 * len(files), 3 * 0.90 * 2), dpi=1000)
-    axes[0, 0].set_ylabel("Hematoxylin")
-    axes[0, 1].set_ylabel("DAB/Eosin")
-    fig.suptitle(subject_id)
+        fig, ax = plt.subplots(1, 1, figsize=(10, 10), dpi=300)
+        fig.suptitle(title)
+
+        ax.imshow(data, vmin=0, vmax=255, cmap="binary_r")
+        ax.set_axis_off()
+        plt.subplots_adjust(wspace=0, hspace=0)
+        fig.tight_layout()
+        plt.savefig(path)
+        plt.show()
+
+    # perform stain separation and save files for processing
     for i, file in enumerate(files):
-
-        protein = list(image_prefixes.keys())[i]
-        console.print(f"{subject_id}_{protein}")
+        stain: str = stains[i]
+        console.print(f"{subject_id}_{stain}")
 
         image_array = np.array(read_ndpi(file)[0])
-        stain_0, stain_1 = separate_raw_image(image_array)
-        axes[0, i].imshow(stain_0, vmin=0, vmax=255, cmap="binary_r")
-        axes[1, i].imshow(stain_1, vmin=0, vmax=255, cmap="binary_r")
+        channel_0: np.ndarray
+        channel_1: np.ndarray
+        channel_0, channel_1 = separate_raw_image(image_array)
 
-        axes[0, i].set_title(protein)
-        # imwrite(results_path_stain_0 / file, stain_0, photometric="MINISBLACK")
-        # imwrite(results_path_stain_1 / file, stain_1, photometric="MINISBLACK")
+        # save image for reading
+        channel_name_0 = f"{stain}_H"
+        if stain == "HE":
+            channel_name_1 = f"{stain}_E"
+        else:
+            channel_name_1 = f"{stain}_DOB"
 
-    for ax in axes.flatten():
-        ax.set_axis_off()
+        for channel, name in [
+            (channel_0, channel_name_0),
+            (channel_1, channel_name_1),
+        ]:
+            # store ndarray
+            path_array = results_dir / f"{subject_id}_{name}.npy"
+            console.print(path_array)
+            np.save(path_array, channel)
 
-    plt.subplots_adjust(wspace=0, hspace=0)
-    fig.tight_layout()
-    plt.savefig(output_path)
+            # store ome tiff
+            path_ome = results_dir / f"{subject_id}_{name}.ome.tiff"
+            imwrite(path_ome, channel, photometric="MINISBLACK")
 
-    plt.show()
+            # store image
+            path_png = results_dir / f"{subject_id}_{name}.png"
+            plot_matrix(
+                data=channel,
+                path=path_png,
+                title=f"{subject_id}_{channel_name_0}"
+            )
 
 
 if __name__ == "__main__":
-    level = 2
+    level = 3
     stains = ["HE", "GS", "CYP2E1", "CYP1A2", "CYP3A4", "CYP2D6"]
     data_dir_registered: Path = Path(
         f"/media/mkoenig/Extreme Pro/data/cyp_species_comparison/control_individual_registered_L{level}")
 
     results_dir = data_dir_registered / "__results__"
+    results_dir.mkdir(exist_ok=True, parents=True)
 
     subject_dirs = sorted([f for f in data_dir_registered.iterdir() if f.is_dir() if not f.name.startswith("__")])
     for subject_dir in subject_dirs:
@@ -101,8 +123,8 @@ if __name__ == "__main__":
         print(subject_dir)
         print("-" * 80)
 
-        # create_registration_image(subject_dir=subject_dir, stains=stains, results_dir=results_dir)
-        create_stain_separation_image(subject_dir=subject_dir, stains=stains, results_dir=results_dir)
+        create_registration_image(subject_dir=subject_dir, stains=stains, results_dir=results_dir)
+        create_stain_separation_images(subject_dir=subject_dir, stains=stains, results_dir=results_dir)
 
 
 """
