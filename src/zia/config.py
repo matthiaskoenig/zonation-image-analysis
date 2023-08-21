@@ -18,6 +18,7 @@ class Configuration(BaseModel):
     annotations_path: Path
     image_data_path: Path
     openslide_path: Optional[Path]
+    libvips_path: Optional[Path]
 
     def __post_init_post_parse__(self):
         """Ensure paths exists."""
@@ -30,7 +31,8 @@ def read_config(file_path: Path) -> Configuration:
     config = configparser.ConfigParser()
     config.read(file_path)
 
-    openslide_path = config["OpenSlide"]["open_slide"]
+    openslide_path = config["Dependency"]["open_slide"]
+    libvips_path = config["Dependency"]["libvips"]
     configuration = Configuration(
         results_path=Path(config["Paths"]["results_path"]),
         reports_path=Path(config["Paths"]["reports_path"]),
@@ -38,6 +40,7 @@ def read_config(file_path: Path) -> Configuration:
         annotations_path=Path(config["Paths"]["annotation_path"]),
         image_data_path=Path(config["Paths"]["image_data_path"]),
         openslide_path=Path(openslide_path) if openslide_path else None,
+        libvips_path=Path(libvips_path) if libvips_path else None
     )
     console.print(configuration)
     return configuration

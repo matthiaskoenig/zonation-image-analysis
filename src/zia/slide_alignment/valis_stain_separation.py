@@ -1,12 +1,7 @@
-import re
-from pathlib import Path
 from typing import List, Dict
 
-import PIL.Image
 import numpy as np
 from matplotlib import pyplot as plt
-from PIL import Image
-from tifffile import imwrite
 
 from zia.annotations.pipelines.stain_separation.stain_separation_whole_image import separate_raw_image
 from zia.console import console

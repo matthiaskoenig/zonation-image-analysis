@@ -17,7 +17,7 @@ if __name__ == "__main__":
 
     file_manager = FileManager(
         configuration=read_config(BASE_PATH / "configuration.ini"),
-        filter=filter_factory(species="mouse", subject="MNT-025", protein="cyp1a2")
+        filter=filter_factory(species="mouse", subject="MNT-022", protein="cyp2d6")
     )
 
     pipeline = Pipeline(
