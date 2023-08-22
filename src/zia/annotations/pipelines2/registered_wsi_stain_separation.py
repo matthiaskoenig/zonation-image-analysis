@@ -1,6 +1,8 @@
+import functools
 import multiprocessing
 import time
-from concurrent.futures import ThreadPoolExecutor
+import traceback
+from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 from functools import partial
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -16,7 +18,7 @@ from zia.annotations.annotation.util import PyramidalLevel
 from zia.annotations.pipelines.stain_separation.macenko import \
     calculate_stain_matrix, \
     deconvolve_image, find_max_c, create_single_channel_pixels
-from zia.data_store import DataStore, ZarrGroups
+from zia.data_store import ZarrGroups
 from zia.io.wsi_tifffile import read_ndpi
 from zia.io.zarr_utils import write_slice_to_zarr_location
 from zia.log import get_logger
@@ -31,49 +33,50 @@ def get_toplevel_array(image_path: Path) -> zarr.Array:
     return full_image_array
 
 
-def roll_back(data_store: DataStore) -> None:
+def roll_back(zarr_store: zarr.DirectoryStore) -> None:
     """
     function to clean up the directory to prevent invalid data
     @param data_store:
     @return:
     """
-    if ZarrGroups.STAIN_0.value in data_store.data.keys():
-        del data_store.data[ZarrGroups.STAIN_0.value]
 
-    if ZarrGroups.STAIN_1.value in data_store.data.keys():
-        del data_store.data[ZarrGroups.STAIN_1.value]
+    logger.info(f"Rollback zarrstore: {zarr_store.path}")
+    if ZarrGroups.STAIN_0.value in zarr_store.keys():
+        del zarr_store[ZarrGroups.STAIN_0.value]
+
+    if ZarrGroups.STAIN_1.value in zarr_store.keys():
+        del zarr_store[ZarrGroups.STAIN_1.value]
 
 
-def separate_stains(path: Path, out_path: Path, p=0.01, level=PyramidalLevel.ZERO,
+
+
+def separate_stains(path: Path,
+                    subject: str,
+                    roi_no: str,
+                    out_path: Path,
+                    p=0.01,
                     tile_size: int = 2 ** 12) -> None:
+    out = out_path / f"{subject}.zarr"
+    zarr_store = zarr.DirectoryStore(str(out))
+
+    logger.info(f"Start stain separation for Subject {subject}, ROI {roi_no}")
+
+    registered_image = read_ndpi(path)[0]
+    roi_h, roi_w = registered_image.shape[:2]
+    # initialize slices
+    slices = get_tile_slices(shape=(roi_h, roi_w), tile_size=tile_size,
+                             col_first=False)
+    # initialize zarr stores to store separated images
+    image_pyramids = tuple(
+        create_pyramid_group(zarr_store, zg, roi_no, (roi_h, roi_w), tile_size,
+                             np.uint8) for zg in
+        [ZarrGroups.STAIN_0, ZarrGroups.STAIN_1])
+
+    t_s = time.time()
     try:
-        roi_no = path.parent.name
-        subject = path.parent.parent.name
-        out = out_path / subject
-        zarr_store = zarr.DirectoryStore(str(out))
-
-        logger.info(f"Start stain separation for ROI {roi_no}")
-
-        registered_image = read_ndpi(path)[0]
-        roi_h, roi_w = registered_image.shape[:2]
-        # initialize slices
-        slices = get_tile_slices(shape=(roi_h, roi_w), tile_size=tile_size,
-                                 col_first=False)
-        # initialize zarr stores to store separated images
-        image_pyramids = tuple(
-            create_pyramid_group(zarr_store, zg, roi_no, (roi_h, roi_w), tile_size,
-                                 np.uint8) for zg in
-            [ZarrGroups.STAIN_0, ZarrGroups.STAIN_1])
-
-        # this is overhead here since the zarr store itself cannot be pickled.
-        # zarr_store_address = data_store.image_info.zarr_path
-        # mask_address = f"{ZarrGroups.LIVER_MASK.name}/{roi_no}/{level.value}"
-
-        t_s = time.time()
         with TemporaryDirectory() as temp_dir, ThreadPoolExecutor(
             multiprocessing.cpu_count() - 1) as pool:
-            with threadpool_limits(limits=1,
-                                   user_api="blas"):
+            with threadpool_limits(limits=1, user_api="blas"):
                 samples = pool.map(partial(get_decode_and_save_tile,
                                            image_path=path,
                                            temp_dir=temp_dir,
@@ -112,15 +115,18 @@ def separate_stains(path: Path, out_path: Path, p=0.01, level=PyramidalLevel.ZER
 
             # deconvolute image and save
             t_s = time.time()
-            with threadpool_limits(limits=1, user_api="blas"):
-                futures = pool.map(partial(deconvolve_and_save,
-                                           image_pyramid=image_pyramids,
-                                           temp_dir=temp_dir,
-                                           stain_matrix=stain_matrix,
-                                           max_c=max_c,
-                                           zarr_store_address=zarr_store.path
-                                           ),
-                                   enumerate(slices))
+
+            ## create a generator of the deconvolved tiles
+            deconvolved_tiles = (
+                deconvolve(i, temp_dir=temp_dir, stain_matrix=stain_matrix, max_c=max_c)
+            for
+                i in range(len(slices)))
+
+            futures = pool.map(partial(save,
+                                       image_pyramids=image_pyramids,
+                                       zarr_store_address=zarr_store.path
+                                       ),
+                               zip(deconvolved_tiles, slices))
 
             # access results to get possible exceptions
             for _ in futures:
@@ -128,19 +134,15 @@ def separate_stains(path: Path, out_path: Path, p=0.01, level=PyramidalLevel.ZER
 
         t_e = time.time()
         logger.info(f"Deconvoluted ROI image in {(t_e - t_s) / 60} min")
-
-    except BaseException as e:
-        roll_back(data_store)
+    except Exception as e:
+        roll_back(zarr_store)
         raise e
 
 
-def deconvolve_and_save(enumerated_tile_slices: Tuple[int, Tuple[slice, slice]],
-                        image_pyramids: Tuple[Dict[int, str], Dict[int, str]],
-                        temp_dir: TemporaryDirectory,
-                        stain_matrix: np.ndarray,
-                        zarr_store_address: str,
-                        max_c: np.ndarray) -> bool:
-    i, tile_slices = enumerated_tile_slices
+def deconvolve(i: int,
+               temp_dir: TemporaryDirectory,
+               stain_matrix: np.ndarray,
+               max_c: np.ndarray) -> list[np.ndarray]:
     # read image
     image_tile = load_tile_file(f"{i}", temp_dir)
     # read the index of interesting pixels
@@ -150,16 +152,26 @@ def deconvolve_and_save(enumerated_tile_slices: Tuple[int, Tuple[slice, slice]],
 
     conc = deconvolve_image(px_oi, stain_matrix, max_c)
 
+    deconvolved = []
+
     for k, c in enumerate(np.vsplit(conc, 2)):
         stain = create_single_channel_pixels(c.reshape(-1))
         template = np.ones(shape=image_tile.shape[:2]).astype(np.uint8) * 255
         template[idx] = stain
-        write_slice_to_zarr_location(slice_image=template,
+        deconvolved.append(template)
+
+    return deconvolved
+
+
+def save(deconvolved_slices: Tuple[list[np.ndarray], Tuple[slice, slice]],
+         image_pyramids: Tuple[Dict[int, str], Dict[int, str]],
+         zarr_store_address: str):
+    deconvolved, tile_slices = deconvolved_slices
+    for k, image in enumerate(deconvolved):
+        write_slice_to_zarr_location(slice_image=image,
                                      image_pyramid=image_pyramids[k],
                                      tile_slices=tile_slices,
                                      zarr_store_address=zarr_store_address)
-
-    return True
 
 
 def draw_px_oi_sample(tile_slices: Tuple[Tuple[slice, slice], str],
@@ -226,7 +238,8 @@ def calculate_samples_for_otsu(image_tile: np.ndarray, p):
 
 def create_pyramid_group(store: zarr.DirectoryStore,
                          zarr_group: ZarrGroups,
-                         roi_no: str, shape: Tuple,
+                         roi_no: str,
+                         shape: Tuple,
                          chunksize: int,
                          dtype: Type) -> Dict[int, str]:
     """Creates a zarr group for a roi to save an image pyramid
@@ -237,9 +250,9 @@ def create_pyramid_group(store: zarr.DirectoryStore,
     @param dtype: the data type stored in the arrays
 
     """
-    root = zarr.group(store, overwrite=True)
+    root = zarr.group(store)
     data_group = root.require_group(zarr_group.value)
-    roi_group = data_group.require_group(roi_no)
+    roi_group = data_group.require_group(roi_no, overwrite=True)
     pyramid_dict: Dict[int, str] = {}
 
     h, w = shape[:2]
@@ -257,7 +270,7 @@ def create_pyramid_group(store: zarr.DirectoryStore,
                 (shape[2],) if len(shape) == 3 else ()),
             dtype=dtype,
             overwrite=True,
-            synchronizer=zarr.ProcessSynchronizer(".chunklock"))
+            synchronizer=zarr.ThreadSynchronizer())
 
         pyramid_dict[i] = arr.path
 

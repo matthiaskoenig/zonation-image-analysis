@@ -12,12 +12,11 @@ from zia import BASE_PATH
 
 openslide = None
 
-
 if hasattr(os, "add_dll_directory"):
     config = read_config(BASE_PATH / "configuration.ini")
     # Python >= 3.8 on Windows
-    #with os.add_dll_directory(str(config.openslide_path)):
-     #   import openslide
+    with os.add_dll_directory(str(config.openslide_path)):
+        import openslide
 else:
     import openslide
 
