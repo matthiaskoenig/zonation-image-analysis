@@ -1,8 +1,7 @@
-import functools
+import multiprocessing
 import multiprocessing
 import time
-import traceback
-from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
+from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -13,7 +12,7 @@ import numpy as np
 import zarr
 from threadpoolctl import threadpool_limits
 
-from zia.annotations.annotation.slicing import get_tile_slices, get_final_slices
+from zia.annotations.annotation.slicing import get_tile_slices
 from zia.annotations.annotation.util import PyramidalLevel
 from zia.annotations.pipelines.stain_separation.macenko import \
     calculate_stain_matrix, \
@@ -41,25 +40,25 @@ def roll_back(zarr_store: zarr.DirectoryStore) -> None:
     """
 
     logger.info(f"Rollback zarrstore: {zarr_store.path}")
-    if ZarrGroups.STAIN_0.value in zarr_store.keys():
-        del zarr_store[ZarrGroups.STAIN_0.value]
 
-    if ZarrGroups.STAIN_1.value in zarr_store.keys():
-        del zarr_store[ZarrGroups.STAIN_1.value]
-
-
+    del zarr_store[ZarrGroups.STAIN_0.value]
+    del zarr_store[ZarrGroups.STAIN_1.value]
 
 
 def separate_stains(path: Path,
                     subject: str,
                     roi_no: str,
+                    protein: str,
                     out_path: Path,
                     p=0.01,
                     tile_size: int = 2 ** 12) -> None:
     out = out_path / f"{subject}.zarr"
     zarr_store = zarr.DirectoryStore(str(out))
+    if Path(f"{zarr_store.path}/{ZarrGroups.STAIN_0.value}/{roi_no}/{protein}").exists():
+        print("separated images already exist.")
+        return
 
-    logger.info(f"Start stain separation for Subject {subject}, ROI {roi_no}")
+    logger.info(f"Start stain separation for Subject {subject}, ROI {roi_no}, protein: {protein}")
 
     registered_image = read_ndpi(path)[0]
     roi_h, roi_w = registered_image.shape[:2]
@@ -68,14 +67,14 @@ def separate_stains(path: Path,
                              col_first=False)
     # initialize zarr stores to store separated images
     image_pyramids = tuple(
-        create_pyramid_group(zarr_store, zg, roi_no, (roi_h, roi_w), tile_size,
+        create_pyramid_group(zarr_store, zg, roi_no, protein, (roi_h, roi_w), tile_size,
                              np.uint8) for zg in
         [ZarrGroups.STAIN_0, ZarrGroups.STAIN_1])
 
     t_s = time.time()
     try:
         with TemporaryDirectory() as temp_dir, ThreadPoolExecutor(
-            multiprocessing.cpu_count() - 1) as pool:
+                multiprocessing.cpu_count() - 1) as pool:
             with threadpool_limits(limits=1, user_api="blas"):
                 samples = pool.map(partial(get_decode_and_save_tile,
                                            image_path=path,
@@ -119,8 +118,7 @@ def separate_stains(path: Path,
             ## create a generator of the deconvolved tiles
             deconvolved_tiles = (
                 deconvolve(i, temp_dir=temp_dir, stain_matrix=stain_matrix, max_c=max_c)
-            for
-                i in range(len(slices)))
+                for i in range(len(slices)))
 
             futures = pool.map(partial(save,
                                        image_pyramids=image_pyramids,
@@ -134,7 +132,7 @@ def separate_stains(path: Path,
 
         t_e = time.time()
         logger.info(f"Deconvoluted ROI image in {(t_e - t_s) / 60} min")
-    except Exception as e:
+    except BaseException as e:
         roll_back(zarr_store)
         raise e
 
@@ -239,6 +237,7 @@ def calculate_samples_for_otsu(image_tile: np.ndarray, p):
 def create_pyramid_group(store: zarr.DirectoryStore,
                          zarr_group: ZarrGroups,
                          roi_no: str,
+                         protein: str,
                          shape: Tuple,
                          chunksize: int,
                          dtype: Type) -> Dict[int, str]:
@@ -253,6 +252,7 @@ def create_pyramid_group(store: zarr.DirectoryStore,
     root = zarr.group(store)
     data_group = root.require_group(zarr_group.value)
     roi_group = data_group.require_group(roi_no, overwrite=True)
+    protein_group = roi_group.require_group(protein)
     pyramid_dict: Dict[int, str] = {}
 
     h, w = shape[:2]
@@ -261,9 +261,9 @@ def create_pyramid_group(store: zarr.DirectoryStore,
         chunk_w, chunk_h = chunksize, chunksize  # taking the slice size aligns chunks, so that multiprocessing only alway acesses one chunk
         factor = 2 ** i
 
-        new_h, new_w = int(h / factor), int(w / factor)
-        new_chunk_h, new_chunk_w = int(chunk_h / factor), int(chunk_w / factor)
-        arr: zarr.Array = roi_group.empty(
+        new_h, new_w = int(np.ceil(h / factor)), int(np.ceil(w / factor))
+        new_chunk_h, new_chunk_w = int(np.ceil(chunk_h / factor)), int(np.ceil(chunk_w / factor))
+        arr: zarr.Array = protein_group.empty(
             str(i),
             shape=(new_h, new_w) + ((shape[2],) if len(shape) == 3 else ()),
             chunks=(new_chunk_w, new_chunk_h) + (

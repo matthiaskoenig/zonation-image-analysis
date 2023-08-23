@@ -33,14 +33,14 @@ def write_slice_to_zarr_location(slice_image: np.ndarray,
     slice_pyramid = create_pyramid(slice_image)
     # persist tile pyramidacally
     for i, tile_image in enumerate(slice_pyramid):
-        #print(zarr_store_address, image_pyramid[i])
+        # print(zarr_store_address, image_pyramid[i])
         zarr_array = zarr.convenience.open_array(store=zarr_store_address, path=image_pyramid[i], synchronizer=zarr.ThreadSynchronizer())
 
         factor = 2 ** i
 
         # resize the slice for level
-        new_rs = slice(int(rs.start / factor), int(rs.stop / factor))
-        new_cs = slice(int(cs.start / factor), int(cs.stop / factor))
+        new_rs = slice(int(np.ceil(rs.start / factor)), int(np.ceil(rs.stop / factor)))
+        new_cs = slice(int(np.ceil(cs.start / factor)), int(np.ceil(cs.stop / factor)))
 
         zarr_array[new_rs, new_cs] = tile_image.astype(zarr_array.dtype)
 

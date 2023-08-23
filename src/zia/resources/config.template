@@ -6,5 +6,6 @@ data_path = /media/mkoenig/Extreme Pro/data/cyp_species_comparison/control
 annotation_path = /media/mkoenig/Extreme Pro/data/cyp_species_comparison_annotations/control
 image_data_path = /media/mkoenig/Extreme Pro/image_data
 
-[OpenSlide]
+[Dependency]
 open_slide =
+libvips
