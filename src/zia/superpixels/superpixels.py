@@ -56,9 +56,9 @@ results_dir = data_dir_registered / "__results__"
 results_dir.mkdir(exist_ok=True, parents=True)
 
 # subject_id = "human_UKJ-19-010"
-subject_id = "mouse_MNT-021"
+# subject_id = "mouse_MNT-021"
 # subject_id = "pig_SSES2021-9"
-
+subject_id = "rat_NOR-024"
 
 # get channels
 channels = []
