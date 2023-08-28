@@ -8,12 +8,12 @@ from PIL import Image, ImageDraw
 from shapely import Polygon
 
 
-def plot_pic(array, title: str = None):
+def plot_pic(array, title: str = None, cmap: str = "binaray_r"):
     fig: plt.Figure
     fig, ax = plt.subplots(1, 1, dpi=300)
     if title is not None:
         fig.suptitle(title)
-    show = ax.imshow(array, cmap=matplotlib.colormaps.get_cmap("binary_r"))
+    show = ax.imshow(array, cmap=matplotlib.colormaps.get_cmap(cmap))
     bar = plt.colorbar(show)
     plt.show()
 

@@ -54,6 +54,9 @@ for subject_dir in subject_dirs:
             compression="jpeg",
             tile_wh=2 ** 11
         )
+
+
+        registrar.get_ref_img_mask()
         # registrar.warp_and_merge_slides(
         #     str(results_dir / "merged.ome.tiff"), crop="overlap",
         #     level=level,

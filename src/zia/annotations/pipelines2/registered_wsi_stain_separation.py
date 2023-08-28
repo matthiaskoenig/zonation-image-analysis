@@ -5,13 +5,16 @@ from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Tuple, Dict, Type
-
+from typing import Tuple, Dict, Type, Generator
+from imagecodecs.numcodecs import Jpegxl, Jpeg2k
 import cv2
+import imagecodecs
 import numpy as np
 import zarr
 from threadpoolctl import threadpool_limits
+from tifffile import TiffWriter
 
+from zia.analysis.map_rois import TileGenerator
 from zia.annotations.annotation.slicing import get_tile_slices
 from zia.annotations.annotation.util import PyramidalLevel
 from zia.annotations.pipelines.stain_separation.macenko import \
@@ -21,9 +24,9 @@ from zia.data_store import ZarrGroups
 from zia.io.wsi_tifffile import read_ndpi
 from zia.io.zarr_utils import write_slice_to_zarr_location
 from zia.log import get_logger
-
+import numcodecs
 logger = get_logger(__name__)
-
+numcodecs.register_codec(Jpeg2k)
 
 def get_toplevel_array(image_path: Path) -> zarr.Array:
     arrays = read_ndpi(image_path)
@@ -54,11 +57,13 @@ def separate_stains(path: Path,
                     tile_size: int = 2 ** 12) -> None:
     out = out_path / f"{subject}.zarr"
     zarr_store = zarr.DirectoryStore(str(out))
-    if Path(f"{zarr_store.path}/{ZarrGroups.STAIN_0.value}/{roi_no}/{protein}").exists():
+    if Path(
+        f"{zarr_store.path}/{ZarrGroups.STAIN_0.value}/{roi_no}/{protein}").exists():
         print("separated images already exist.")
         return
 
-    logger.info(f"Start stain separation for Subject {subject}, ROI {roi_no}, protein: {protein}")
+    logger.info(
+        f"Start stain separation for Subject {subject}, ROI {roi_no}, protein: {protein}")
 
     registered_image = read_ndpi(path)[0]
     roi_h, roi_w = registered_image.shape[:2]
@@ -74,7 +79,7 @@ def separate_stains(path: Path,
     t_s = time.time()
     try:
         with TemporaryDirectory() as temp_dir, ThreadPoolExecutor(
-                multiprocessing.cpu_count() - 1) as pool:
+            multiprocessing.cpu_count() - 1) as pool:
             with threadpool_limits(limits=1, user_api="blas"):
                 samples = pool.map(partial(get_decode_and_save_tile,
                                            image_path=path,
@@ -262,7 +267,8 @@ def create_pyramid_group(store: zarr.DirectoryStore,
         factor = 2 ** i
 
         new_h, new_w = int(np.ceil(h / factor)), int(np.ceil(w / factor))
-        new_chunk_h, new_chunk_w = int(np.ceil(chunk_h / factor)), int(np.ceil(chunk_w / factor))
+        new_chunk_h, new_chunk_w = int(np.ceil(chunk_h / factor)), int(
+            np.ceil(chunk_w / factor))
         arr: zarr.Array = protein_group.empty(
             str(i),
             shape=(new_h, new_w) + ((shape[2],) if len(shape) == 3 else ()),
@@ -270,7 +276,9 @@ def create_pyramid_group(store: zarr.DirectoryStore,
                 (shape[2],) if len(shape) == 3 else ()),
             dtype=dtype,
             overwrite=True,
-            synchronizer=zarr.ThreadSynchronizer())
+            synchronizer=zarr.ThreadSynchronizer(),
+            compressor=Jpeg2k()
+        )
 
         pyramid_dict[i] = arr.path
 
