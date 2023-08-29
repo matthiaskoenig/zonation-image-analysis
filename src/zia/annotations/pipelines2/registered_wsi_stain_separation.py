@@ -1,20 +1,16 @@
 import multiprocessing
-import multiprocessing
 import time
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Tuple, Dict, Type, Generator
-from imagecodecs.numcodecs import Jpegxl, Jpeg2k
+from typing import Tuple, Dict, Type
+from imagecodecs.numcodecs import Jpeg2k
 import cv2
-import imagecodecs
 import numpy as np
 import zarr
 from threadpoolctl import threadpool_limits
-from tifffile import TiffWriter
 
-from zia.analysis.map_rois import TileGenerator
 from zia.annotations.annotation.slicing import get_tile_slices
 from zia.annotations.annotation.util import PyramidalLevel
 from zia.annotations.pipelines.stain_separation.macenko import \
@@ -65,6 +61,10 @@ def separate_stains(path: Path,
     logger.info(
         f"Start stain separation for Subject {subject}, ROI {roi_no}, protein: {protein}")
 
+    registered_pyramid = read_ndpi(path)
+    for image in registered_pyramid:
+        print(np.log2(registered_pyramid[0].shape[0] / image.shape[0]))
+
     registered_image = read_ndpi(path)[0]
     roi_h, roi_w = registered_image.shape[:2]
     # initialize slices
@@ -114,8 +114,7 @@ def separate_stains(path: Path,
 
             t_e = time.time()
 
-            print(
-                f"Calculated stain matrix {stain_matrix} and max concentrations {max_c} in {(t_e - t_s) / 60} min.")
+            print(f"Calculated stain matrix {stain_matrix} and max concentrations {max_c} in {(t_e - t_s) / 60} min.")
 
             # deconvolute image and save
             t_s = time.time()

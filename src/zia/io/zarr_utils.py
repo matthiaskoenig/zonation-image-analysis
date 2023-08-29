@@ -34,7 +34,11 @@ def write_slice_to_zarr_location(slice_image: np.ndarray,
     # persist tile pyramidacally
     for i, tile_image in enumerate(slice_pyramid):
         # print(zarr_store_address, image_pyramid[i])
-        zarr_array = zarr.convenience.open_array(store=zarr_store_address, path=image_pyramid[i], synchronizer=zarr.ThreadSynchronizer())
+        zarr_array = zarr.convenience.open_array(store=zarr_store_address,
+                                                 path=image_pyramid[i],
+                                                 synchronizer=zarr.ThreadSynchronizer(),
+                                                 write_empty_chunks=False,
+                                                 fill_value=255)
 
         factor = 2 ** i
 

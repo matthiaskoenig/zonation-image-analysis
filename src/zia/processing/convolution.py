@@ -10,7 +10,6 @@ from zia.data_store import ZarrGroups
 from imagecodecs.numcodecs import Jpegxl, Jpeg2k
 import numcodecs
 from sklearn.cluster import KMeans
-from skimage.filters import threshold_multiotsu
 
 numcodecs.register_codec(Jpeg2k)
 import cv2
@@ -69,7 +68,7 @@ if __name__ == "__main__":
 
     superpixel_medians = {label: np.median(merged[labels == label], axis=0) for label in range(num_labels)}
 
-    kmeans = KMeans(n_clusters=4)
+    kmeans = KMeans(n_clusters=3)
     kmeans.fit(list(superpixel_medians.values()))
 
     cluster_centers = kmeans.cluster_centers_
