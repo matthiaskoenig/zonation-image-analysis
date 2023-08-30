@@ -8,7 +8,7 @@ from PIL import Image, ImageDraw
 from shapely import Polygon
 
 
-def plot_pic(array, title: str = None, cmap: str = "binaray_r"):
+def plot_pic(array, title: str = None, cmap: str = "binary_r"):
     fig: plt.Figure
     fig, ax = plt.subplots(1, 1, dpi=300)
     if title is not None:
