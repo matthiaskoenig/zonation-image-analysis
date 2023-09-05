@@ -19,16 +19,17 @@ roi = "0"
 level = PyramidalLevel.FOUR
 
 
-def convolute_meadian(img: np.ndarray, ksize=3) -> np.ndarray:
+def convolute_median(img: np.ndarray, ksize=3) -> np.ndarray:
     median_blurr = cv2.medianBlur(img, ksize)
     return median_blurr[::2, ::2]
 
 
 def adaptive_hist_norm(img: np.ndarray, clip_limit=2.0, ksize=(16, 16)) -> np.ndarray:
     clahe = cv2.createCLAHE(clipLimit=clip_limit, tileGridSize=ksize)
-    img[img < 10] = 0  # removing the background that got changed by the adapative norm
+    norm = clahe.apply(img)
+    norm[norm < 10] = 0  # removing the background that got changed by the adapative norm
 
-    return clahe.apply(img)
+    return norm
 
 
 def cut_off_percentile(img: np.ndarray, p: float):
@@ -40,10 +41,10 @@ def cut_off_percentile(img: np.ndarray, p: float):
 
 def filter_img(img) -> np.ndarray:
     print(img.shape)
-    img = convolute_meadian(img, ksize=7)
+    img = convolute_median(img, ksize=7)
     img = cut_off_percentile(img, 0.05)
     img = adaptive_hist_norm(img, ksize=(8, 8))
-    img = convolute_meadian(img, ksize=3)
+    img = convolute_median(img, ksize=3)
     img = (img / np.max(img)) * 255
     return img.astype(np.uint8)
 

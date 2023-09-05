@@ -14,7 +14,7 @@ def plot_pic(array, title: str = None, cmap: str = "binary_r"):
     if title is not None:
         fig.suptitle(title)
     show = ax.imshow(array, cmap=matplotlib.colormaps.get_cmap(cmap))
-    bar = plt.colorbar(show)
+    #bar = plt.colorbar(show)
     plt.show()
 
 
