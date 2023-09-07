@@ -17,11 +17,12 @@ from sklearn.cluster import KMeans
 from skimage.feature import peak_local_max
 
 from zia.processing.filtering import invert_image, filter_img
+from zia.processing.get_segments import LineSegmentsFinder
 
 numcodecs.register_codec(Jpeg2k)
 import cv2
 
-subject = "SSES2021 9"
+subject = "UKJ-19-010_Human"
 roi = "0"
 level = PyramidalLevel.FOUR
 
@@ -251,7 +252,68 @@ if __name__ == "__main__":
 
     thinned = cv2.ximgproc.thinning(template.reshape(template.shape[0], template.shape[1], 1).astype(np.uint8))
 
-    cv2.drawContours(thinned, class_0_contours, -1, 100, thickness=2)
-    cv2.drawContours(thinned, class_1_contours, -1, 255, thickness=cv2.FILLED)
+    cv2.drawContours(thinned, class_0_contours, -1, 0, thickness=cv2.FILLED)
+    cv2.drawContours(thinned, class_0_contours, -1, 255, thickness=1)
+
+    cv2.drawContours(thinned, class_1_contours, -1, 0, thickness=cv2.FILLED)
+    cv2.drawContours(thinned, class_1_contours, -1, 255, thickness=1)
     plot_pic(thinned)
+
+    pixels = np.argwhere(thinned == 255)
+    print(pixels)
+    pixels = [tuple(coords) for coords in pixels]
+
+    """segmenter = LineSegmentsFinder(pixels, thinned.shape[:2])
+    segmenter.run()
+
+
+    fig, ax = plt.subplots(dpi=600)
+    colors = np.random.rand(len(segmenter.segments_finished), 3)  # Random RGB values between 0 and 1
+
+    for i, line in enumerate(segmenter.segments_finished):
+        x, y = zip(*line)
+        ax.plot(y, x, marker="none", color=colors[i], linewidth=0.2)
+    ax.set_aspect("equal")
+    ax.invert_yaxis()
+    plt.show()"""
+
+    #exit(0)
+    ###
+    lobulus_contours, hierarchy = cv2.findContours(thinned.reshape(thinned.shape[0], thinned.shape[1], 1).astype(np.uint8), cv2.RETR_CCOMP,
+                                                   cv2.CHAIN_APPROX_SIMPLE)
+
+    final_temp = np.zeros_like(thinned, dtype=np.uint8)
+    for cnt, hr in zip(lobulus_contours, hierarchy[0]):
+        cv2.drawContours(final_temp, [cnt], -1, np.random.randint(0, 256), cv2.FILLED)
+    plot_pic(final_temp)
+
+    contour_polys = []
+    for cnt in lobulus_contours:
+        coords = [(point[0][0], point[0][1]) for point in cnt]
+        if len(coords) < 4:
+            continue
+            # rect = cv2.minAreaRect(cnt)
+            # box = cv2.boxPoints(rect)
+            # contour_polys.append(Polygon([(int(pt[0]), int(pt[1])) for pt in box]))
+
+        else:
+            poly = Polygon(coords)
+            #print(poly.area())
+            contour_polys.append(poly)
+
+    fig, ax = plt.subplots(1, 1, dpi=600)
+    colors = np.random.rand(len(contour_polys), 3)  # Random RGB values between 0 and 1
+    for i, poly in enumerate(contour_polys):
+        x, y = poly.exterior.xy
+        ax.fill(x, y, facecolor=colors[i])
+
+    ax.set_xlim(right=labels.shape[1])
+    ax.set_ylim(top=labels.shape[0])
+
+    ax.set_aspect("equal")
+    ax.invert_yaxis()
+
+    plt.show()
+
+    print()
     exit(0)

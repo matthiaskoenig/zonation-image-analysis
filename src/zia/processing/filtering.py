@@ -14,7 +14,7 @@ from sklearn.cluster import KMeans
 numcodecs.register_codec(Jpeg2k)
 import cv2
 
-subject = "NOR-021"
+subject = "SSES2021 9"
 roi = "0"
 level = PyramidalLevel.FOUR
 
