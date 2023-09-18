@@ -22,7 +22,7 @@ from zia.processing.get_segments import LineSegmentsFinder
 numcodecs.register_codec(Jpeg2k)
 import cv2
 
-subject = "UKJ-19-010_Human"
+subject = "NOR-021"
 roi = "0"
 level = PyramidalLevel.FOUR
 
@@ -256,28 +256,34 @@ if __name__ == "__main__":
     cv2.drawContours(thinned, class_0_contours, -1, 255, thickness=1)
 
     cv2.drawContours(thinned, class_1_contours, -1, 0, thickness=cv2.FILLED)
-    cv2.drawContours(thinned, class_1_contours, -1, 255, thickness=1)
+    cv2.drawContours(thinned, class_1_contours, -1, 255, thickness=1, )
+
+    thinned = cv2.ximgproc.thinning(thinned.reshape(template.shape[0], template.shape[1], 1).astype(np.uint8))
+
+
+
     plot_pic(thinned)
+    cv2.imwrite("thinned.png", thinned)
 
     pixels = np.argwhere(thinned == 255)
-    print(pixels)
+
+    # exit(0)
+    # print(pixels)
     pixels = [tuple(coords) for coords in pixels]
 
-    """segmenter = LineSegmentsFinder(pixels, thinned.shape[:2])
+    segmenter = LineSegmentsFinder(pixels, thinned.shape[:2])
     segmenter.run()
-
 
     fig, ax = plt.subplots(dpi=600)
     colors = np.random.rand(len(segmenter.segments_finished), 3)  # Random RGB values between 0 and 1
-
     for i, line in enumerate(segmenter.segments_finished):
         x, y = zip(*line)
         ax.plot(y, x, marker="none", color=colors[i], linewidth=0.2)
     ax.set_aspect("equal")
     ax.invert_yaxis()
-    plt.show()"""
+    plt.show()
 
-    #exit(0)
+    exit(0)
     ###
     lobulus_contours, hierarchy = cv2.findContours(thinned.reshape(thinned.shape[0], thinned.shape[1], 1).astype(np.uint8), cv2.RETR_CCOMP,
                                                    cv2.CHAIN_APPROX_SIMPLE)
@@ -298,7 +304,7 @@ if __name__ == "__main__":
 
         else:
             poly = Polygon(coords)
-            #print(poly.area())
+            # print(poly.area())
             contour_polys.append(poly)
 
     fig, ax = plt.subplots(1, 1, dpi=600)
