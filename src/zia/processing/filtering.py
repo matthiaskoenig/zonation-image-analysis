@@ -40,7 +40,7 @@ def cut_off_percentile(img: np.ndarray, p: float):
 
 
 def filter_img(img) -> np.ndarray:
-    print(img.shape)
+    #print(img.shape)
     img = convolute_median(img, ksize=7)
     img = cut_off_percentile(img, 0.05)
     img = adaptive_hist_norm(img, ksize=(8, 8))

@@ -12,6 +12,7 @@ from zia.annotations.annotation.util import PyramidalLevel
 from zia.annotations.workflow_visualizations.util.image_plotting import plot_pic
 from zia.config import read_config
 from zia.data_store import ZarrGroups
+from zia.log import get_logger
 from zia.processing.filtering import invert_image, filter_img
 
 numcodecs.register_codec(Jpeg2k)
@@ -20,6 +21,8 @@ import cv2
 subject = "NOR-021"
 roi = "0"
 level = PyramidalLevel.FOUR
+
+logger = get_logger(__file__)
 
 
 def check_if_poly_is_in_any_of_the_lists(poly_to_check: Polygon, lists: List[List[Polygon]]) -> int:
@@ -79,7 +82,6 @@ def get_and_classify_background_polys(binary: np.ndarray, labels: np.ndarray, so
         # max_h, max_w = np.max(cont, axis=0).flatten()
 
         # create mask from contour
-        print(cont)
         ct_template = np.zeros_like(binary, dtype=np.uint8)
         cv2.drawContours(ct_template, [cont], -1, 255, thickness=cv2.FILLED)
 
@@ -102,17 +104,15 @@ def get_and_classify_background_polys(binary: np.ndarray, labels: np.ndarray, so
         count_vectors.append(count_vector)
         classified_contours.append(cont)
 
-    kmeans = KMeans(n_clusters=2)
+    kmeans = KMeans(n_clusters=2, n_init="auto")
     kmeans.fit(count_vectors)
 
     # metric for sorting these clusters
     sorted_idx = np.argsort(np.sum(kmeans.cluster_centers_[:, :2], axis=1))
     classes = [sorted_idx[label] for label in kmeans.labels_]
 
-    print(kmeans.cluster_centers_)
-    print(classes)
-
     to_plot = np.zeros_like(binary, dtype=np.uint8)
+
     for i, cnt in enumerate(classified_contours):
         class_ = classes[i]
         c = 255 if class_ == 0 else 175
@@ -127,6 +127,7 @@ if __name__ == "__main__":
     n_clusters = 5
     config = read_config(BASE_PATH / "configuration.ini")
 
+    logger.info(f"Load images for subject {subject}")
     zarr_store = zarr.open(store=config.image_data_path / "stain_separated" / f"{subject}.zarr")
     group = zarr_store.get(f"{ZarrGroups.STAIN_1.value}/{roi}")
 
@@ -136,33 +137,30 @@ if __name__ == "__main__":
             continue
         arrays[i] = np.array(a.get(f"{level}"))
 
+
     conv = {i: invert_image(a) for i, a in arrays.items()}
 
     merged = np.stack(list(conv.values()), axis=-1)
-
+    logger.info(f"Inverterd and merged images into image stack of shape {merged.shape}")
     # remove non overlapping pixels
+
     mask = np.any(merged[:, :, :] == 0, axis=-1)
     merged[mask, :] = 0
-
     # apply filters
 
+    logger.info("Apply image filters.")
     merged = np.stack([filter_img(merged[:, :, i]) for i in range(merged.shape[2])], axis=-1)
 
+    logger.info("Run superpixel algorithm.")
     superpixelslic = cv2.ximgproc.createSuperpixelSLIC(merged, algorithm=cv2.ximgproc.MSLIC, region_size=6)
 
     superpixelslic.getNumberOfSuperpixels()
-    # print(superpixelslic.getLabels())
-
     superpixelslic.iterate(num_iterations=20)
+
 
     mask = superpixelslic.getLabelContourMask()
 
-    # print(superpixelslic.getNumberOfSuperpixels())
-
-    # plot_pic(superpixelslic.getLabelContourMask())
-
     # Get the labels and number of superpixels
-    # print(set(superpixelslic.getLabels().flatten()))
     labels = superpixelslic.getLabels()
     num_labels = superpixelslic.getNumberOfSuperpixels()
 
@@ -179,19 +177,19 @@ if __name__ == "__main__":
     background_pixels = {}
     foreground_pixels = {}
 
+    logger.info("Cluster superpixels into foreground and background pixels")
     for label, pixels in super_pixels.items():
         if pixels[pixels == 0].size / pixels.size > 0:
             background_pixels[label] = pixels
         else:
             foreground_pixels[label] = pixels
 
-    print(len(background_pixels))
-
     # calculate the mean over each channel within the superpixel
     foreground_pixels_means = {label: np.mean(pixels, axis=0) for label, pixels in foreground_pixels.items()}
 
     # cluster the superpixels based on the mean channel values within the superpixel
-    kmeans = KMeans(n_clusters=n_clusters)
+    logger.info(f"Cluster (n={n_clusters}) the foreground superpixels based on superpixel mean values")
+    kmeans = KMeans(n_clusters=n_clusters, n_init="auto")
     kmeans.fit(list(foreground_pixels_means.values()))
 
     # calculate the cluster distance from origin to have a measure for sorting the labels.
@@ -206,6 +204,7 @@ if __name__ == "__main__":
     foreground_clustered = lookup(labels)
 
     # create template for the background / vessels for classification
+    logger.info("Create hierarchical grayscale image of clusters")
     background_template = np.ones_like(merged[:, :, 0]) * 255
     for i in range(n_clusters):
         background_template[foreground_clustered == sorted_label_idx[i]] = 0
@@ -225,8 +224,7 @@ if __name__ == "__main__":
 
     class_0_contours = [cnt for cnt, class_ in zip(filtered_contours, classes) if class_ == 0]
     class_1_contours = [cnt for cnt, class_ in zip(filtered_contours, classes) if class_ == 1]
-    print(len(class_1_contours))
-    print(len(class_0_contours))
+
     cv2.drawContours(template, class_0_contours, -1, 255, thickness=cv2.FILLED)
     cv2.drawContours(template, class_1_contours, -1, 0, thickness=cv2.FILLED)
 
@@ -245,6 +243,7 @@ if __name__ == "__main__":
 
     plot_pic(template)
 
+    logger.info("Run thinning algorithm.")
     thinned = cv2.ximgproc.thinning(template.reshape(template.shape[0], template.shape[1], 1).astype(np.uint8))
 
     cv2.drawContours(thinned, class_0_contours, -1, 0, thickness=cv2.FILLED)
