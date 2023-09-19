@@ -8,4 +8,4 @@ image_data_path = /media/mkoenig/Extreme Pro/image_data
 
 [Dependency]
 open_slide =
-libvips
+libvips =

@@ -19,6 +19,7 @@ if __name__ == "__main__":
 
     linestrings = [LineString(s) for s in segmenter.segments_finished]
 
+    # polygons from linestring: "shapely" Polygons
     result: GeometryCollection = polygonize(linestrings)
     print(type(result))
     print(set([type(g) for g in result.geoms]))
@@ -39,8 +40,6 @@ if __name__ == "__main__":
 
     plt.show()
     exit(0)
-
-    segs = [s for i, s in enumerate(segmenter.segments_finished) if np.any(m[i])]
 
     fig, ax = plt.subplots(dpi=600)
     colors = np.random.rand(len(segs), 3)  # Random RGB values between 0 and 1
