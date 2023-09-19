@@ -1,3 +1,4 @@
+import pickle
 from typing import List
 
 import numcodecs
@@ -216,6 +217,9 @@ if __name__ == "__main__":
                                                                                     sorted_label_idx,
                                                                                     n_clusters)
 
+    logger.info("Save vessel contours with classes")
+    with open("vessels.pickle", "wb") as f:
+        pickle.dump((classes, filtered_contours), f)
     # shades of gray, n clusters + 2 for background
     template = np.zeros_like(merged[:, :, 0]).astype(np.uint8)
     shades = n_clusters + 2
@@ -229,10 +233,6 @@ if __name__ == "__main__":
     cv2.drawContours(template, class_1_contours, -1, 0, thickness=cv2.FILLED)
 
     template = 255 - template
-
-    # little smoothing
-    # kernel = np.ones((5, 5), np.float32) / 25
-    # template = cv2.filter2D(template, -1, kernel)
 
     tissue_mask = np.zeros_like(template, dtype=np.uint8)
     cv2.drawContours(tissue_mask, [tissue_boundary], -1, 255, thickness=cv2.FILLED)
