@@ -1,23 +1,18 @@
-from typing import Union, List, Dict
+from typing import List
 
-import matplotlib
-import matplotlib.pyplot as plt
+import numcodecs
 import numpy as np
 import zarr
+from imagecodecs.numcodecs import Jpeg2k
 from shapely import Polygon
+from sklearn.cluster import KMeans
 
 from zia import BASE_PATH
 from zia.annotations.annotation.util import PyramidalLevel
-from zia.annotations.workflow_visualizations.util.image_plotting import plot_pic, plot_rgb
+from zia.annotations.workflow_visualizations.util.image_plotting import plot_pic
 from zia.config import read_config
 from zia.data_store import ZarrGroups
-from imagecodecs.numcodecs import Jpegxl, Jpeg2k
-import numcodecs
-from sklearn.cluster import KMeans
-from skimage.feature import peak_local_max
-
 from zia.processing.filtering import invert_image, filter_img
-from zia.processing.get_segments import LineSegmentsFinder
 
 numcodecs.register_codec(Jpeg2k)
 import cv2
@@ -262,46 +257,3 @@ if __name__ == "__main__":
 
     plot_pic(thinned)
     cv2.imwrite("thinned.png", thinned)
-
-
-
-    exit(0)
-    ###
-    lobulus_contours, hierarchy = cv2.findContours(thinned.reshape(thinned.shape[0], thinned.shape[1], 1).astype(np.uint8), cv2.RETR_CCOMP,
-                                                   cv2.CHAIN_APPROX_SIMPLE)
-
-    final_temp = np.zeros_like(thinned, dtype=np.uint8)
-    for cnt, hr in zip(lobulus_contours, hierarchy[0]):
-        cv2.drawContours(final_temp, [cnt], -1, np.random.randint(0, 256), cv2.FILLED)
-    plot_pic(final_temp)
-
-    contour_polys = []
-    for cnt in lobulus_contours:
-        coords = [(point[0][0], point[0][1]) for point in cnt]
-        if len(coords) < 4:
-            continue
-            # rect = cv2.minAreaRect(cnt)
-            # box = cv2.boxPoints(rect)
-            # contour_polys.append(Polygon([(int(pt[0]), int(pt[1])) for pt in box]))
-
-        else:
-            poly = Polygon(coords)
-            # print(poly.area())
-            contour_polys.append(poly)
-
-    fig, ax = plt.subplots(1, 1, dpi=600)
-    colors = np.random.rand(len(contour_polys), 3)  # Random RGB values between 0 and 1
-    for i, poly in enumerate(contour_polys):
-        x, y = poly.exterior.xy
-        ax.fill(x, y, facecolor=colors[i])
-
-    ax.set_xlim(right=labels.shape[1])
-    ax.set_ylim(top=labels.shape[0])
-
-    ax.set_aspect("equal")
-    ax.invert_yaxis()
-
-    plt.show()
-
-    print()
-    exit(0)
