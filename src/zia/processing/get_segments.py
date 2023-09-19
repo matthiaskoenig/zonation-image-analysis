@@ -134,7 +134,7 @@ class LineSegmentsFinder:
     def check_connected_segments(self, connected_segments: List[List[Tuple[int, int]]], orig_pixel, segment: List[Tuple[int, int]]) -> List[
         List[Tuple[int, int]]]:
         """
-        this method is need to check if encountered segments have neighbors. These would otherwise get lost
+        this method is needed to check if encountered segments have connected pixels or segments. These would otherwise get lost
         because the segment is removed from the segments to do list.
         @param connected_segments: list of connected segments
         @param orig_pixel: the pixel of which the neighbor is adjacent to the connected segments
