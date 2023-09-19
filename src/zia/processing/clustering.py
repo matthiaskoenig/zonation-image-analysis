@@ -260,28 +260,10 @@ if __name__ == "__main__":
 
     thinned = cv2.ximgproc.thinning(thinned.reshape(template.shape[0], template.shape[1], 1).astype(np.uint8))
 
-
-
     plot_pic(thinned)
     cv2.imwrite("thinned.png", thinned)
 
-    pixels = np.argwhere(thinned == 255)
 
-    # exit(0)
-    # print(pixels)
-    pixels = [tuple(coords) for coords in pixels]
-
-    segmenter = LineSegmentsFinder(pixels, thinned.shape[:2])
-    segmenter.run()
-
-    fig, ax = plt.subplots(dpi=600)
-    colors = np.random.rand(len(segmenter.segments_finished), 3)  # Random RGB values between 0 and 1
-    for i, line in enumerate(segmenter.segments_finished):
-        x, y = zip(*line)
-        ax.plot(y, x, marker="none", color=colors[i], linewidth=0.2)
-    ax.set_aspect("equal")
-    ax.invert_yaxis()
-    plt.show()
 
     exit(0)
     ###

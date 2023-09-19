@@ -1,6 +1,9 @@
+import pickle
 from typing import Tuple, List, Optional
 
+import cv2
 import numpy as np
+from matplotlib import pyplot as plt
 
 
 class LineSegmentsFinder:
@@ -93,27 +96,50 @@ class LineSegmentsFinder:
 
         # if one entry exists, extend the segment otherwise check for diagonal pixels
         if len(orthogonally_connected) > 0 or len(ortho_connected_segments) > 0:
-            self.check_connected_segments(ortho_connected_segments, this_pixel)
+            finished_segments = self.check_connected_segments(ortho_connected_segments, this_pixel, segment)
+            if len(finished_segments) != 0:
+                for s in finished_segments:
+                    self.segments_to_do.remove(s)
+                    self.segments_finished.append(s)
+                    ortho_connected_segments.remove(s)
+                if len(orthogonally_connected) == 0 and len(ortho_connected_segments) == 0:
+                    segment.append(finished_segments[0][-1])
+                    self.segments_finished.append(segment)
+                    return
+                else:
+                    orthogonally_connected.append(finished_segments[0][-1])
             self.extend_segment(this_pixel, segment, orthogonally_connected, ortho_connected_segments)
             return
 
         print("diagonal pixels")
 
         diagonally_connected = self.get_connected_pixels(n_diagonal)
-        connected_segments_diag = self.get_simple_connected_segments(n_diagonal, diagonally_connected)
-        connected_segments_diag = self.filter_connected_segments(connected_segments_diag, segment)
-        self.check_connected_segments(connected_segments_diag, this_pixel)
-
-        self.extend_segment(this_pixel, segment, diagonally_connected, connected_segments_diag)
+        diag_connected_segments = self.get_simple_connected_segments(n_diagonal, diagonally_connected)
+        diag_connected_segments = self.filter_connected_segments(diag_connected_segments, segment)
+        finished_segments = self.check_connected_segments(diag_connected_segments, this_pixel, segment)
+        if len(finished_segments) != 0:
+            for s in finished_segments:
+                self.segments_to_do.remove(s)
+                self.segments_finished.append(s)
+                diag_connected_segments.remove(s)
+            if len(diagonally_connected) == 0 and len(diag_connected_segments) == 0:
+                segment.append(finished_segments[0][-1])
+                self.segments_finished.append(segment)
+                return
+            else:
+                diagonally_connected.append(finished_segments[0][-1])
+        self.extend_segment(this_pixel, segment, diagonally_connected, diag_connected_segments)
         return
 
-    def check_connected_segments(self, connected_segments: List[List[Tuple[int, int]]], orig_pixel) -> None:
+    def check_connected_segments(self, connected_segments: List[List[Tuple[int, int]]], orig_pixel, segment: List[Tuple[int, int]]) -> List[
+        List[Tuple[int, int]]]:
         """
         this method is need to check if encountered segments have neighbors. These would otherwise get lost
         because the segment is removed from the segments to do list.
         @param connected_segments: list of connected segments
         @param orig_pixel: the pixel of which the neighbor is adjacent to the connected segments
         """
+        finished = []
         for connected_segment in connected_segments:
             this_pixel = connected_segment[-1]
             n_ortho = self.get_neighbors(this_pixel)
@@ -132,31 +158,40 @@ class LineSegmentsFinder:
 
             orthogonally_connected = self.get_connected_pixels(n_ortho)
             if len(orthogonally_connected) != 0:
+                finished.append(connected_segment)
                 for con_pixel in orthogonally_connected:
                     self.segments_to_do.append([connected_segment[-1], con_pixel])
                 continue
 
             ortho_connected_segments = self.get_simple_connected_segments(n_ortho, orthogonally_connected)
             if len(ortho_connected_segments) != 0:
+                finished.append(connected_segment)
                 for con_seg in ortho_connected_segments:
                     self.segments_to_do.append([connected_segment[-1], con_seg[-1]])
                 continue
 
             diag_connected = self.get_connected_pixels(n_diagonal)
             if len(diag_connected) != 0:
+                finished.append(connected_segment)
                 for con_pixel in diag_connected:
                     self.segments_to_do.append([connected_segment[-1], con_pixel])
                 continue
 
             connected_segments = self.get_simple_connected_segments(n_diagonal, diag_connected)
             if len(connected_segments) != 0:
+                finished.append(connected_segment)
                 for con_seg in connected_segments:
                     self.segments_to_do.append([connected_segment[-1], con_seg[-1]])
                 continue
+
+        #if len(finished) != 0:
+        # segment.append(finished[0][-1])
+        #    self.segments_finished.append(segment)
+
+        return finished
+
     def get_diagonally_branching_pixel(self, ortho: Tuple[int, int], diag: List[Tuple[int, int]]) -> List[Tuple[int, int]]:
         return list(filter(lambda d: self.is_branch(ortho, d), diag))
-
-
 
     def get_potential_branching_pixel(self, origin: Tuple[int, int], ortho: Tuple[int, int], diag: List[Tuple[int, int]]) -> Optional[
         Tuple[int, int]]:
@@ -385,3 +420,27 @@ class LineSegmentsFinder:
             return []
         potential_branches = [n for n in neighbors_diag if self.is_branch(connected_pixels[0], n)]
         return potential_branches
+
+
+if __name__ == "__main__":
+    thinned = cv2.imread("thinned.png", cv2.IMREAD_GRAYSCALE)
+    pixels = np.argwhere(thinned == 255)
+
+    # exit(0)
+    # print(pixels)
+    pixels = [tuple(coords) for coords in pixels]
+
+    segmenter = LineSegmentsFinder(pixels, thinned.shape[:2])
+    segmenter.run()
+
+    with open("segmenter.pickle", "wb") as f:
+        pickle.dump(segmenter, f)
+
+    fig, ax = plt.subplots(dpi=600)
+    colors = np.random.rand(len(segmenter.segments_finished), 3)  # Random RGB values between 0 and 1
+    for i, line in enumerate(segmenter.segments_finished):
+        x, y = zip(*line)
+        ax.plot(y, x, marker="none", color=colors[i], linewidth=0.2)
+    ax.set_aspect("equal")
+    ax.invert_yaxis()
+    plt.show()
