@@ -105,7 +105,7 @@ def get_and_classify_background_polys(binary: np.ndarray, labels: np.ndarray, so
         count_vectors.append(count_vector)
         classified_contours.append(cont)
 
-    kmeans = KMeans(n_clusters=2, n_init="auto")
+    kmeans = KMeans(n_clusters=2, n_init=10)
     kmeans.fit(count_vectors)
 
     # metric for sorting these clusters
@@ -142,7 +142,7 @@ if __name__ == "__main__":
     conv = {i: invert_image(a) for i, a in arrays.items()}
 
     merged = np.stack(list(conv.values()), axis=-1)
-    logger.info(f"Inverterd and merged images into image stack of shape {merged.shape}")
+    logger.info(f"Inverted and merged images into image stack of shape {merged.shape}")
     # remove non overlapping pixels
 
     mask = np.any(merged[:, :, :] == 0, axis=-1)
@@ -190,7 +190,7 @@ if __name__ == "__main__":
 
     # cluster the superpixels based on the mean channel values within the superpixel
     logger.info(f"Cluster (n={n_clusters}) the foreground superpixels based on superpixel mean values")
-    kmeans = KMeans(n_clusters=n_clusters, n_init="auto")
+    kmeans = KMeans(n_clusters=n_clusters, n_init=10)
     kmeans.fit(list(foreground_pixels_means.values()))
 
     # calculate the cluster distance from origin to have a measure for sorting the labels.
