@@ -1,5 +1,5 @@
 import pickle
-from typing import List
+from typing import List, Tuple
 
 import numcodecs
 import numpy as np
@@ -14,15 +14,16 @@ from zia.annotations.workflow_visualizations.util.image_plotting import plot_pic
 from zia.config import read_config
 from zia.data_store import ZarrGroups
 from zia.log import get_logger
-from zia.processing.filtering import invert_image, filter_img
+from zia.processing.filtering import invert_image, filter_img, prepare_image
+from zia.processing.load_image_stack import load_image_stack_from_zarr
 
 numcodecs.register_codec(Jpeg2k)
 import cv2
 
-subject = "NOR-021"
+subject = "SSES2021 10"
 roi = "0"
 level = PyramidalLevel.FOUR
-
+pixel_width = 0.22724690376093626  # µm
 logger = get_logger(__file__)
 
 
@@ -34,22 +35,7 @@ def check_if_poly_is_in_any_of_the_lists(poly_to_check: Polygon, lists: List[Lis
     return len(lists)
 
 
-def get_polys(binary: np.ndarray) -> list[Polygon]:
-    # get backgorund contours
-    kernel = np.ones((3, 3), np.uint8)
-    eroded = cv2.dilate(binary, kernel)
-
-    contours, hierarchy = cv2.findContours(eroded.reshape(template.shape[0], eroded.shape[1], 1).astype(np.uint8), cv2.RETR_TREE,
-                                           cv2.CHAIN_APPROX_SIMPLE)
-
-    ct_template = np.zeros_like(eroded, dtype=np.uint8)
-    cv2.drawContours(ct_template, contours, -1, 255, 2)
-    # plot_pic(eroded)
-    # plot_pic(ct_template)
-    return [Polygon(contour.reshape(-1, 2)) for contour in contours if len(contour) > 3]
-
-
-def get_and_classify_background_polys(binary: np.ndarray, labels: np.ndarray, sorted_label_idx: np.ndarray, n_clusters: int):
+def get_and_classify_background_polys(binary: np.ndarray, labels: np.ndarray, sorted_label_idx: np.ndarray, n_clusters: int, plot=False):
     contours, hierarchy = cv2.findContours(binary.reshape(binary.shape[0], binary.shape[1], 1).astype(np.uint8), cv2.RETR_TREE,
                                            cv2.CHAIN_APPROX_SIMPLE)
 
@@ -112,52 +98,24 @@ def get_and_classify_background_polys(binary: np.ndarray, labels: np.ndarray, so
     sorted_idx = np.argsort(np.sum(kmeans.cluster_centers_[:, :2], axis=1))
     classes = [sorted_idx[label] for label in kmeans.labels_]
 
-    to_plot = np.zeros_like(binary, dtype=np.uint8)
+    if plot:
+        to_plot = np.zeros_like(binary, dtype=np.uint8)
 
-    for i, cnt in enumerate(classified_contours):
-        class_ = classes[i]
-        c = 255 if class_ == 0 else 175
-        cv2.drawContours(to_plot, [cnt], -1, c, 2)
+        for i, cnt in enumerate(classified_contours):
+            class_ = classes[i]
+            c = 255 if class_ == 0 else 175
+            cv2.drawContours(to_plot, [cnt], -1, c, 2)
 
-    plot_pic(to_plot)
+        plot_pic(to_plot)
 
     return classes, classified_contours, tissue_boundary
 
 
-if __name__ == "__main__":
-    n_clusters = 5
-    config = read_config(BASE_PATH / "configuration.ini")
-
-    logger.info(f"Load images for subject {subject}")
-    zarr_store = zarr.open(store=config.image_data_path / "stain_separated" / f"{subject}.zarr")
-    group = zarr_store.get(f"{ZarrGroups.STAIN_1.value}/{roi}")
-
-    arrays = {}
-    for i, a in group.items():
-        if i in ["HE"]:
-            continue
-        arrays[i] = np.array(a.get(f"{level}"))
-
-
-    conv = {i: invert_image(a) for i, a in arrays.items()}
-
-    merged = np.stack(list(conv.values()), axis=-1)
-    logger.info(f"Inverted and merged images into image stack of shape {merged.shape}")
-    # remove non overlapping pixels
-
-    mask = np.any(merged[:, :, :] == 0, axis=-1)
-    merged[mask, :] = 0
-    # apply filters
-
-    logger.info("Apply image filters.")
-    merged = np.stack([filter_img(merged[:, :, i]) for i in range(merged.shape[2])], axis=-1)
-
-    logger.info("Run superpixel algorithm.")
-    superpixelslic = cv2.ximgproc.createSuperpixelSLIC(merged, algorithm=cv2.ximgproc.MSLIC, region_size=6)
+def run_skeletize_image(image_stack: np.ndarray, n_clusters=5, write=False, plot=False) -> Tuple[np.ndarray, Tuple[List[int], list]]:
+    superpixelslic = cv2.ximgproc.createSuperpixelSLIC(image_stack, algorithm=cv2.ximgproc.MSLIC, region_size=6)
 
     superpixelslic.getNumberOfSuperpixels()
     superpixelslic.iterate(num_iterations=20)
-
 
     mask = superpixelslic.getLabelContourMask()
 
@@ -166,9 +124,9 @@ if __name__ == "__main__":
     num_labels = superpixelslic.getNumberOfSuperpixels()
 
     # Create a mask for each superpixel
-    sp_mask = np.zeros(shape=merged.shape[:2])
+    sp_mask = np.zeros(shape=image_stack.shape[:2])
 
-    merged = merged.astype(float)
+    merged = image_stack.astype(float)
 
     super_pixels = {label: merged[labels == label] for label in range(num_labels)}
 
@@ -210,16 +168,19 @@ if __name__ == "__main__":
     for i in range(n_clusters):
         background_template[foreground_clustered == sorted_label_idx[i]] = 0
 
-    plot_pic(background_template)
+    if plot:
+        plot_pic(background_template)
 
     classes, filtered_contours, tissue_boundary = get_and_classify_background_polys(background_template,
                                                                                     foreground_clustered,
                                                                                     sorted_label_idx,
-                                                                                    n_clusters)
+                                                                                    n_clusters,
+                                                                                    plot=plot)
 
     logger.info("Save vessel contours with classes")
-    with open("vessels.pickle", "wb") as f:
-        pickle.dump((classes, filtered_contours), f)
+    if write:
+        with open("vessels.pickle", "wb") as f:
+            pickle.dump((classes, filtered_contours), f)
     # shades of gray, n clusters + 2 for background
     template = np.zeros_like(merged[:, :, 0]).astype(np.uint8)
     shades = n_clusters + 2
@@ -241,7 +202,8 @@ if __name__ == "__main__":
     template[~tissue_mask] = 0
     cv2.drawContours(template, [tissue_boundary], -1, 255, thickness=2)
 
-    plot_pic(template)
+    if plot:
+        plot_pic(template)
 
     logger.info("Run thinning algorithm.")
     thinned = cv2.ximgproc.thinning(template.reshape(template.shape[0], template.shape[1], 1).astype(np.uint8))
@@ -254,5 +216,29 @@ if __name__ == "__main__":
 
     thinned = cv2.ximgproc.thinning(thinned.reshape(template.shape[0], template.shape[1], 1).astype(np.uint8))
 
-    plot_pic(thinned)
-    cv2.imwrite("thinned.png", thinned)
+    if plot:
+        plot_pic(thinned)
+    if write:
+        cv2.imwrite("thinned.png", thinned)
+
+    return thinned, (classes, filtered_contours)
+
+
+if __name__ == "__main__":
+    n_clusters = 3
+    config = read_config(BASE_PATH / "configuration.ini")
+    config.image_data_path / "stain_separated" / f"{subject}.zarr"
+    logger.info(f"Load images for subject {subject}")
+    zarr_path = config.image_data_path / "stain_separated" / f"{subject}.zarr"
+    zarr_group = zarr.open(store=str(zarr_path), path=f"{ZarrGroups.STAIN_1.value}/{roi}")
+
+    merged = load_image_stack_from_zarr(zarr_group, level)
+    # remove non overlapping pixels
+
+    # apply filters
+
+    logger.info("Apply image filters.")
+    merged = prepare_image(merged)
+
+    logger.info("Run superpixel algorithm.")
+    run_skeletize_image(merged, write=True, plot=True)

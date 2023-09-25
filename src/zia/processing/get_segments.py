@@ -58,7 +58,6 @@ class LineSegmentsFinder:
         """
         should take a segment until there is no or multiple connected pixels
         """
-        print("walk segment")
         this_pixel = segment[-1]
         n_ortho = self.get_neighbors(this_pixel)
         n_diagonal = self.get_neighbors(this_pixel, ortho=False)
@@ -110,8 +109,6 @@ class LineSegmentsFinder:
                     orthogonally_connected.append(finished_segments[0][-1])
             self.extend_segment(this_pixel, segment, orthogonally_connected, ortho_connected_segments)
             return
-
-        print("diagonal pixels")
 
         diagonally_connected = self.get_connected_pixels(n_diagonal)
         diag_connected_segments = self.get_simple_connected_segments(n_diagonal, diagonally_connected)
@@ -333,10 +330,8 @@ class LineSegmentsFinder:
         """
         Processes the segments in the segments to do list until as this list is not empty.
         """
-        print("process segments")
         while len(self.segments_to_do) != 0:
             next_segment = self.segments_to_do.pop()
-            print("new segment")
             self.walk_segment(next_segment)
 
     def initialize(self, this_pixel: Tuple[int, int]) -> None:
@@ -377,15 +372,18 @@ class LineSegmentsFinder:
 
         return
 
-    def run(self) -> None:
+    def run(self) -> List[List[Tuple[int, int]]]:
         """
         Runs the line segmentation.
         """
-        print("run segmentation")
         while len(self.pixels) > 0:
             pixel = self.pixels.pop()
             self.initialize(pixel)
             self.process_segments()
+
+        return self.segments_finished
+
+
 
     def filter_connected_segments(self, connected_segments: List[List[Tuple[int, int]]], segment: List[Tuple[int, int]]) -> List[
         List[Tuple[int, int]]]:
@@ -422,23 +420,28 @@ class LineSegmentsFinder:
         return potential_branches
 
 
-if __name__ == "__main__":
-    thinned = cv2.imread("thinned.png", cv2.IMREAD_GRAYSCALE)
-    pixels = np.argwhere(thinned == 255)
+def segment_thinned_image(image: np.ndarray, write=False) -> List[List[Tuple[int,int]]]:
+    pixels = np.argwhere(image == 255)
 
-    # exit(0)
-    # print(pixels)
     pixels = [tuple(coords) for coords in pixels]
 
-    segmenter = LineSegmentsFinder(pixels, thinned.shape[:2])
-    segmenter.run()
+    segmenter = LineSegmentsFinder(pixels, image.shape[:2])
+    segements_finished = segmenter.run()
 
-    with open("segmenter.pickle", "wb") as f:
-        pickle.dump(segmenter, f)
+    if write:
+        with open("segmenter.pickle", "wb") as f:
+            pickle.dump(segmenter, f)
+    return segements_finished
+
+
+if __name__ == "__main__":
+    thinned = cv2.imread("thinned.png", cv2.IMREAD_GRAYSCALE)
+
+    segments_finished = segment_thinned_image(thinned, write=True)
 
     fig, ax = plt.subplots(dpi=600)
-    colors = np.random.rand(len(segmenter.segments_finished), 3)  # Random RGB values between 0 and 1
-    for i, line in enumerate(segmenter.segments_finished):
+    colors = np.random.rand(len(segments_finished), 3)  # Random RGB values between 0 and 1
+    for i, line in enumerate(segments_finished):
         x, y = zip(*line)
         ax.plot(y, x, marker="none", color=colors[i], linewidth=0.2)
     ax.set_aspect("equal")

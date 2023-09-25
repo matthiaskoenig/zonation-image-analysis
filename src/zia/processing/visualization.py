@@ -31,7 +31,6 @@ def visualize_slide_stats(df: pd.DataFrame):
     plt.show()
 
 
-
 if __name__ == "__main__":
     result_dir = Path(__file__).parent
     slide_stats = SlideStats.load_from_file_system(result_dir, "NOR_021")

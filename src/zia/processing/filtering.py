@@ -1,3 +1,5 @@
+from typing import Callable
+
 import matplotlib.pyplot as plt
 import numpy as np
 import zarr
@@ -39,9 +41,14 @@ def cut_off_percentile(img: np.ndarray, p: float):
     return img
 
 
+def get_median_kernel_size(pixel_width: float, level: PyramidalLevel):
+    # 5 to 10 µm
+    actual_size = pixel_width * 2 ** level
+
+
 def filter_img(img) -> np.ndarray:
-    #print(img.shape)
-    img = convolute_median(img, ksize=7)
+    # print(img.shape)
+    img = convolute_median(img, ksize=3)
     img = cut_off_percentile(img, 0.05)
     img = adaptive_hist_norm(img, ksize=(8, 8))
     img = convolute_median(img, ksize=3)
@@ -51,6 +58,22 @@ def filter_img(img) -> np.ndarray:
 
 def invert_image(img: np.ndarray) -> np.ndarray:
     return 255 - img
+
+
+def set_missing_to_zero(image_stack: np.ndarray):
+    mask = np.any(image_stack[:, :, :] == 0, axis=-1)
+    image_stack[mask, :] = 0
+
+
+def apply_filter(fun: Callable[[np.ndarray], np.ndarray], image_stack: np.ndarray) -> np.ndarray:
+    return np.stack([fun(image_stack[:, :, i]) for i in range(image_stack.shape[2])], axis=-1)
+
+
+def prepare_image(image_stack: np.ndarray) -> np.ndarray:
+    image_stack = apply_filter(invert_image, image_stack)
+    set_missing_to_zero(image_stack)
+    image_stack = apply_filter(filter_img, image_stack)
+    return image_stack
 
 
 if __name__ == "__main__":

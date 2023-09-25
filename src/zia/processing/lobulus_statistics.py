@@ -28,17 +28,16 @@ class SlideStats:
     vessels_central: List[Union[Polygon, MultiPolygon, GeometryCollection]]
     vessels_portal: List[Union[Polygon, MultiPolygon, GeometryCollection]]
 
-    def to_geojson(self, result_dir: Path, name: str) -> None:
-        dest_dir = result_dir / name
-        dest_dir.mkdir(parents=True, exist_ok=True)
+    def to_geojson(self, result_dir: Path) -> None:
+        result_dir.mkdir(parents=True, exist_ok=True)
         features = [geojson.Feature(geometry=g.__geo_interface__) for g in self.vessels_central]
         col = geojson.FeatureCollection(features=features)
-        with open(dest_dir / "central_vessels.geojson", "w") as f:
+        with open(result_dir / "central_vessels.geojson", "w") as f:
             geojson.dump(col, f)
 
         features = [geojson.Feature(geometry=g.__geo_interface__) for g in self.vessels_portal]
         col = geojson.FeatureCollection(features=features)
-        with open(dest_dir / "portal_vessels.geojson", "w") as f:
+        with open(result_dir / "portal_vessels.geojson", "w") as f:
             geojson.dump(col, f)
 
         lobule_features = []
@@ -47,7 +46,7 @@ class SlideStats:
             lobule_features.append(lf)
 
         col = geojson.FeatureCollection(features=lobule_features)
-        with open(dest_dir / "lobuli.geojson", "w") as f:
+        with open(result_dir / "lobuli.geojson", "w") as f:
             geojson.dump(col, f)
 
     @classmethod

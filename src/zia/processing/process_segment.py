@@ -1,6 +1,6 @@
 import pickle
 from pathlib import Path
-from typing import List
+from typing import List, Tuple
 
 import numpy as np
 import shapely
@@ -10,31 +10,22 @@ from shapely import LineString, polygonize, GeometryCollection, Polygon, make_va
 from zia.processing.get_segments import LineSegmentsFinder
 from zia.processing.lobulus_statistics import LobuleStatistics, SlideStats
 
-if __name__ == "__main__":
-    results_path = Path(__file__).parent
-    with open("segmenter.pickle", "rb") as f:
-        segmenter: LineSegmentsFinder = pickle.load(f)
 
-    linestrings = [LineString(s) for s in segmenter.segments_finished]
-
-    with open("vessels.pickle", "rb") as f:
-        classes, contours = pickle.load(f)
-
-    vessel_polys = [Polygon(cont.squeeze(axis=1).tolist()) for cont in contours]
+def process_line_segments(line_segments: List[List[Tuple[int, int]]],
+                          vessel_classes: List[int],
+                          vessel_contours: list) -> SlideStats:
+    linestrings = [LineString(s) for s in line_segments]
+    vessel_polys = [Polygon(cont.squeeze(axis=1).tolist()) for cont in vessel_contours]
     vessel_polys = [Polygon([(y, x) for x, y in poly.exterior.coords]) for poly in vessel_polys]
 
     vessel_polys = [p if p.is_valid else make_valid(p) for p in vessel_polys]
-    print(len(vessel_polys))
-    # polygons from linestring: "shapely" Polygons
+
     result = shapely.multipolygons(shapely.get_parts(polygonize(linestrings)))
-    print(type(result))
-    print(set([type(g) for g in result.geoms]))
-    print(len(result.geoms))
+
     vessels = []
     lobuli = []
 
     for poly in result.geoms:
-        covered = False
         for vessel_poly in vessel_polys:
             if vessel_poly.buffer(2.0).contains(poly):
                 vessels.append(poly)
@@ -42,11 +33,8 @@ if __name__ == "__main__":
         else:
             lobuli.append(poly)
 
-    print(len(vessels))
-    print(len(lobuli))
-
-    class_0: List[Polygon] = [p for p, c in zip(vessel_polys, classes) if c == 0]
-    class_1: List[Polygon] = [p for p, c in zip(vessel_polys, classes) if c == 1]
+    class_0: List[Polygon] = [p for p, c in zip(vessel_polys, vessel_classes) if c == 0]
+    class_1: List[Polygon] = [p for p, c in zip(vessel_polys, vessel_classes) if c == 1]
 
     stats = []
     for lobulus_poly in lobuli:
@@ -64,9 +52,21 @@ if __name__ == "__main__":
 
         stats.append(LobuleStatistics.from_polgygon(lobulus_poly, c0, c1, c0_idx, c1_idx))
 
-    slide_stats = SlideStats(stats, class_0, class_1)
+    return SlideStats(stats, class_0, class_1)
+
+
+if __name__ == "__main__":
+    results_path = Path(__file__).parent
+    with open("segmenter.pickle", "rb") as f:
+        segmenter: LineSegmentsFinder = pickle.load(f)
+
+    with open("vessels.pickle", "rb") as f:
+        classes, contours = pickle.load(f)
+
+    slide_stats = process_line_segments(segmenter.segments_finished,
+                                        classes,
+                                        contours)
+
     slide_stats.to_geojson(results_path, "NOR_021")
 
     slide_stats.plot()
-
-    plt.show()
