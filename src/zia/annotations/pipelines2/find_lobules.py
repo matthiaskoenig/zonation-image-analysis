@@ -31,7 +31,7 @@ def find_lobules_for_subject(subject: str, roi: int, roi_group: zarr.Group, resu
     image_stack = prepare_image(image_stack)
 
     logger.info("Run superpixel algorithm.")
-    thinned, (vessel_classes, vessel_contours) = run_skeletize_image(image_stack)
+    thinned, (vessel_classes, vessel_contours) = run_skeletize_image(image_stack, n_clusters=3)
 
     logger.info("Segmenting lines in thinned image.")
     line_segments = segment_thinned_image(thinned)

@@ -20,8 +20,8 @@ from zia.processing.load_image_stack import load_image_stack_from_zarr
 numcodecs.register_codec(Jpeg2k)
 import cv2
 
-subject = "SSES2021 10"
-roi = "0"
+subject = "MNT-024"  # "NOR-021"
+roi = "3"
 level = PyramidalLevel.FOUR
 pixel_width = 0.22724690376093626  # µm
 logger = get_logger(__file__)
@@ -111,6 +111,10 @@ def get_and_classify_background_polys(binary: np.ndarray, labels: np.ndarray, so
     return classes, classified_contours, tissue_boundary
 
 
+def get_factor(x, n) -> float:
+    return np.log(x) / np.log(n)
+
+
 def run_skeletize_image(image_stack: np.ndarray, n_clusters=5, write=False, plot=False) -> Tuple[np.ndarray, Tuple[List[int], list]]:
     superpixelslic = cv2.ximgproc.createSuperpixelSLIC(image_stack, algorithm=cv2.ximgproc.MSLIC, region_size=6)
 
@@ -138,7 +142,7 @@ def run_skeletize_image(image_stack: np.ndarray, n_clusters=5, write=False, plot
 
     logger.info("Cluster superpixels into foreground and background pixels")
     for label, pixels in super_pixels.items():
-        if pixels[pixels == 0].size / pixels.size > 0:
+        if pixels[pixels == 0].size / pixels.size > 0.1:
             background_pixels[label] = pixels
         else:
             foreground_pixels[label] = pixels
@@ -195,6 +199,12 @@ def run_skeletize_image(image_stack: np.ndarray, n_clusters=5, write=False, plot
 
     template = 255 - template
 
+    template = cv2.medianBlur(template, 5)
+
+    if write:
+        cv2.imwrite("grayscale.png", template)
+    # reduce noise in this overall representation
+
     tissue_mask = np.zeros_like(template, dtype=np.uint8)
     cv2.drawContours(tissue_mask, [tissue_boundary], -1, 255, thickness=cv2.FILLED)
     tissue_mask = tissue_mask.astype(bool)
@@ -241,4 +251,4 @@ if __name__ == "__main__":
     merged = prepare_image(merged)
 
     logger.info("Run superpixel algorithm.")
-    run_skeletize_image(merged, write=True, plot=True)
+    run_skeletize_image(merged, n_clusters=n_clusters, write=True, plot=True)

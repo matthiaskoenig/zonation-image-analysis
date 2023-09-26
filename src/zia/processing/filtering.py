@@ -48,7 +48,7 @@ def get_median_kernel_size(pixel_width: float, level: PyramidalLevel):
 
 def filter_img(img) -> np.ndarray:
     # print(img.shape)
-    img = convolute_median(img, ksize=3)
+    img = convolute_median(img, ksize=7)
     img = cut_off_percentile(img, 0.05)
     img = adaptive_hist_norm(img, ksize=(8, 8))
     img = convolute_median(img, ksize=3)

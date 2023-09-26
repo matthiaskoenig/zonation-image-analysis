@@ -15,7 +15,8 @@ def process_line_segments(line_segments: List[List[Tuple[int, int]]],
                           vessel_classes: List[int],
                           vessel_contours: list) -> SlideStats:
     linestrings = [LineString(s) for s in line_segments]
-    vessel_polys = [Polygon(cont.squeeze(axis=1).tolist()) for cont in vessel_contours]
+
+    vessel_polys = [Polygon(cont.squeeze(axis=1).tolist()) for cont in vessel_contours if len(cont) >=4]
     vessel_polys = [Polygon([(y, x) for x, y in poly.exterior.coords]) for poly in vessel_polys]
 
     vessel_polys = [p if p.is_valid else make_valid(p) for p in vessel_polys]
@@ -67,6 +68,6 @@ if __name__ == "__main__":
                                         classes,
                                         contours)
 
-    slide_stats.to_geojson(results_path, "NOR_021")
+    #slide_stats.to_geojson(results_path, "NOR_021")
 
     slide_stats.plot()
