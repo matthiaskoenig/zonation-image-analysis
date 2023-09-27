@@ -14,16 +14,13 @@ from zia.annotations.workflow_visualizations.util.image_plotting import plot_pic
 from zia.config import read_config
 from zia.data_store import ZarrGroups
 from zia.log import get_logger
-from zia.processing.filtering import invert_image, filter_img, prepare_image
+from zia.processing.filtering import Filter
 from zia.processing.load_image_stack import load_image_stack_from_zarr
 
 numcodecs.register_codec(Jpeg2k)
 import cv2
 
-subject = "MNT-024"  # "NOR-021"
-roi = "3"
-level = PyramidalLevel.FOUR
-pixel_width = 0.22724690376093626  # µm
+
 logger = get_logger(__file__)
 
 
@@ -121,14 +118,9 @@ def run_skeletize_image(image_stack: np.ndarray, n_clusters=5, write=False, plot
     superpixelslic.getNumberOfSuperpixels()
     superpixelslic.iterate(num_iterations=20)
 
-    mask = superpixelslic.getLabelContourMask()
-
     # Get the labels and number of superpixels
     labels = superpixelslic.getLabels()
     num_labels = superpixelslic.getNumberOfSuperpixels()
-
-    # Create a mask for each superpixel
-    sp_mask = np.zeros(shape=image_stack.shape[:2])
 
     merged = image_stack.astype(float)
 
@@ -203,14 +195,13 @@ def run_skeletize_image(image_stack: np.ndarray, n_clusters=5, write=False, plot
 
     if write:
         cv2.imwrite("grayscale.png", template)
-    # reduce noise in this overall representation
 
     tissue_mask = np.zeros_like(template, dtype=np.uint8)
     cv2.drawContours(tissue_mask, [tissue_boundary], -1, 255, thickness=cv2.FILLED)
     tissue_mask = tissue_mask.astype(bool)
 
     template[~tissue_mask] = 0
-    cv2.drawContours(template, [tissue_boundary], -1, 255, thickness=2)
+    cv2.drawContours(template, [tissue_boundary], -1, 255, thickness=1)
 
     if plot:
         plot_pic(template)
@@ -235,20 +226,26 @@ def run_skeletize_image(image_stack: np.ndarray, n_clusters=5, write=False, plot
 
 
 if __name__ == "__main__":
+    subject = "UKJ-19-036_Human"
+    roi = "0"
+    level = PyramidalLevel.FIVE
+    pixel_width = 0.22724690376093626  # µm
     n_clusters = 3
     config = read_config(BASE_PATH / "configuration.ini")
     config.image_data_path / "stain_separated" / f"{subject}.zarr"
-    logger.info(f"Load images for subject {subject}")
+
     zarr_path = config.image_data_path / "stain_separated" / f"{subject}.zarr"
     zarr_group = zarr.open(store=str(zarr_path), path=f"{ZarrGroups.STAIN_1.value}/{roi}")
 
-    merged = load_image_stack_from_zarr(zarr_group, level)
+    merged = load_image_stack_from_zarr(zarr_group, level=level)
+    logger.info(f"Load images for subject {subject}, size: {merged.shape}")
     # remove non overlapping pixels
 
     # apply filters
 
     logger.info("Apply image filters.")
-    merged = prepare_image(merged)
+    filter = Filter(merged, level)
+    final_level, filtered = filter.prepare_image()
 
     logger.info("Run superpixel algorithm.")
-    run_skeletize_image(merged, n_clusters=n_clusters, write=True, plot=True)
+    run_skeletize_image(filtered, n_clusters=n_clusters, write=True, plot=True)

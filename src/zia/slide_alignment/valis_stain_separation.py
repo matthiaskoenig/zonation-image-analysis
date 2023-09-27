@@ -13,7 +13,6 @@ from zia.slide_alignment.image_manipulation import merge_images
 
 
 def image_prefixes_from_dir(p_dir: Path, stains: List[str]) -> Dict[str, str]:
-
     paths = [f for f in p_dir.iterdir() if f.is_file()]
     d: Dict[str, str] = {}
     for stain in stains:
@@ -59,7 +58,6 @@ def create_stain_separation_image(subject_dir: Path, stains: List[str], results_
     axes[0, 1].set_ylabel("DAB/Eosin")
     fig.suptitle(subject_id)
     for i, file in enumerate(files):
-
         protein = list(image_prefixes.keys())[i]
         console.print(f"{subject_id}_{protein}")
 
@@ -98,7 +96,6 @@ if __name__ == "__main__":
 
         # create_registration_image(subject_dir=subject_dir, stains=stains, results_dir=results_dir)
         create_stain_separation_image(subject_dir=subject_dir, stains=stains, results_dir=results_dir)
-
 
 """
 - NOR-026, CYP2D6 staining has a large hole, repeat if possible

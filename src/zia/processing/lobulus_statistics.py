@@ -12,7 +12,7 @@ Takes list of polygons and calculates statistics on them.
 from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Union
+from typing import List, Union, Optional
 
 import geojson
 import numpy as np
@@ -27,11 +27,13 @@ class SlideStats:
     lobule_stats: List[LobuleStatistics]
     vessels_central: List[Union[Polygon, MultiPolygon, GeometryCollection]]
     vessels_portal: List[Union[Polygon, MultiPolygon, GeometryCollection]]
+    meta_data: dict
 
     def to_geojson(self, result_dir: Path) -> None:
         result_dir.mkdir(parents=True, exist_ok=True)
         features = [geojson.Feature(geometry=g.__geo_interface__) for g in self.vessels_central]
         col = geojson.FeatureCollection(features=features)
+
         with open(result_dir / "central_vessels.geojson", "w") as f:
             geojson.dump(col, f)
 
@@ -46,36 +48,36 @@ class SlideStats:
             lobule_features.append(lf)
 
         col = geojson.FeatureCollection(features=lobule_features)
+        col["metaData"] = self.meta_data
         with open(result_dir / "lobuli.geojson", "w") as f:
             geojson.dump(col, f)
 
     @classmethod
-    def load_from_file_system(cls, result_dir: Path, name: str) -> SlideStats:
-        dest_dir = result_dir / name
-        if not dest_dir.exists():
+    def load_from_file_system(cls, result_dir: Path) -> SlideStats:
+        if not result_dir.exists():
             raise FileNotFoundError("The specified location was not found.")
 
-        central_vessel_dir = dest_dir / "central_vessels.geojson"
+        central_vessel_dir = result_dir / "central_vessels.geojson"
         if not central_vessel_dir.exists():
-            raise FileNotFoundError("central_vessels.geojson does not exist.")
+            raise FileNotFoundError(f"{central_vessel_dir} does not exist.")
 
         with open(central_vessel_dir, "r") as f:
             col = geojson.load(f)
 
         central_vessels = [shape(feature["geometry"]) for feature in col["features"]]
 
-        portal_vessel_dir = dest_dir / "portal_vessels.geojson"
+        portal_vessel_dir = result_dir / "portal_vessels.geojson"
         if not portal_vessel_dir.exists():
-            raise FileNotFoundError("portal_vessels.geojson does not exist.")
+            raise FileNotFoundError(f"{portal_vessel_dir} does not exist.")
 
         with open(portal_vessel_dir, "r") as f:
             col = geojson.load(f)
 
         portal_vessels = [shape(feature["geometry"]) for feature in col["features"]]
 
-        lobule_dir = dest_dir / "lobuli.geojson"
+        lobule_dir = result_dir / "lobuli.geojson"
         if not lobule_dir.exists():
-            raise FileNotFoundError("lobuli.geojson does not exist.")
+            raise FileNotFoundError(f"{lobule_dir} does not exist.")
 
         with open(lobule_dir, "r") as f:
             col = geojson.load(f)
@@ -96,8 +98,7 @@ class SlideStats:
 
             lobule_stats.append(lobule_stat)
 
-        return cls(lobule_stats, central_vessels, portal_vessels)
-
+        return cls(lobule_stats, central_vessels, portal_vessels, col.get("meta_data"))
 
     def plot(self):
         fig, ax = plt.subplots(1, 1, dpi=600)
@@ -120,6 +121,32 @@ class SlideStats:
         ax.invert_yaxis()
 
         plt.show()
+
+    def plot_on_axis(self, ax: plt.Axes,
+                     lobulus_ec: str = "lime",
+                     lobulus_fc: Optional[str] = None,
+                     lobulus_alpha: float = 1,
+                     pvessel_ec: str = "magenta",
+                     pvessel_fc: Optional[str] = "magenta",
+                     pvessel_alpha: float = 0.5,
+                     cvessel_ec: str = "cyan",
+                     cvessel_fc: Optional[str] = "cyan",
+                     cvessel_alpha: float = 0.5
+                     ):
+
+        for i, stat in enumerate(self.lobule_stats):
+            x, y = stat.polygon.exterior.xy
+            ax.fill(y, x, facecolor=lobulus_fc if lobulus_fc is not None else "none", edgecolor=lobulus_ec, alpha=lobulus_alpha, linewidth=1)
+
+        for i, geom in enumerate(self.vessels_central):
+            x, y = geom.buffer(1.0).exterior.xy
+            ax.fill(y, x, facecolor=cvessel_fc, edgecolor=cvessel_ec, alpha=cvessel_alpha, linewidth=1)
+
+        for i, geom in enumerate(self.vessels_portal):
+            x, y = geom.buffer(1.0).exterior.xy
+            ax.fill(y, x, facecolor=pvessel_fc, edgecolor=pvessel_ec, alpha=pvessel_alpha, linewidth=1)
+
+
     def to_dataframe(self) -> pd.DataFrame:
         rows = []
         for stat in self.lobule_stats:

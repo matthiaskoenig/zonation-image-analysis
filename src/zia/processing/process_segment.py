@@ -7,13 +7,15 @@ import shapely
 from matplotlib import pyplot as plt
 from shapely import LineString, polygonize, GeometryCollection, Polygon, make_valid, polygonize_full
 
+from zia.annotations.annotation.util import PyramidalLevel
 from zia.processing.get_segments import LineSegmentsFinder
 from zia.processing.lobulus_statistics import LobuleStatistics, SlideStats
 
 
 def process_line_segments(line_segments: List[List[Tuple[int, int]]],
                           vessel_classes: List[int],
-                          vessel_contours: list) -> SlideStats:
+                          vessel_contours: list,
+                          final_level: PyramidalLevel) -> SlideStats:
     linestrings = [LineString(s) for s in line_segments]
 
     vessel_polys = [Polygon(cont.squeeze(axis=1).tolist()) for cont in vessel_contours if len(cont) >=4]
@@ -53,7 +55,8 @@ def process_line_segments(line_segments: List[List[Tuple[int, int]]],
 
         stats.append(LobuleStatistics.from_polgygon(lobulus_poly, c0, c1, c0_idx, c1_idx))
 
-    return SlideStats(stats, class_0, class_1)
+    meta_data = dict(level=final_level, pixel_size=0.22724690376093626)
+    return SlideStats(stats, class_0, class_1, meta_data)
 
 
 if __name__ == "__main__":
@@ -66,7 +69,8 @@ if __name__ == "__main__":
 
     slide_stats = process_line_segments(segmenter.segments_finished,
                                         classes,
-                                        contours)
+                                        contours,
+                                        5) # Not important for testing here
 
     #slide_stats.to_geojson(results_path, "NOR_021")
 
