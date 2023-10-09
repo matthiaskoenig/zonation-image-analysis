@@ -53,7 +53,7 @@ def process_line_segments(line_segments: List[List[Tuple[int, int]]],
                 c1.append(p)
                 c1_idx.append(i)
 
-        stats.append(LobuleStatistics.from_polgygon(lobulus_poly, c0, c1, c0_idx, c1_idx))
+        stats.append(LobuleStatistics.from_polygon(lobulus_poly, c0, c1, c0_idx, c1_idx))
 
     meta_data = dict(level=final_level, pixel_size=0.22724690376093626)
     return SlideStats(stats, class_0, class_1, meta_data)

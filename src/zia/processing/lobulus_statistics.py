@@ -88,7 +88,7 @@ class SlideStats:
             central_vessels_idx = feature["properties"]["central_vessels"]
             portal_vessels_idx = feature["properties"]["portal_vessels"]
 
-            lobule_stat = LobuleStatistics.from_polgygon(
+            lobule_stat = LobuleStatistics.from_polygon(
                 shape(feature["geometry"]),
                 [central_vessels[i] for i in central_vessels_idx],
                 [portal_vessels[i] for i in portal_vessels_idx],
@@ -98,7 +98,7 @@ class SlideStats:
 
             lobule_stats.append(lobule_stat)
 
-        return cls(lobule_stats, central_vessels, portal_vessels, col.get("meta_data"))
+        return cls(lobule_stats, central_vessels, portal_vessels, col.get("metaData"))
 
     def plot(self):
         fig, ax = plt.subplots(1, 1, dpi=600)
@@ -146,19 +146,29 @@ class SlideStats:
             x, y = geom.buffer(1.0).exterior.xy
             ax.fill(y, x, facecolor=pvessel_fc, edgecolor=pvessel_ec, alpha=pvessel_alpha, linewidth=1)
 
-
     def to_dataframe(self) -> pd.DataFrame:
         rows = []
+        pixel_size = self.meta_data["pixel_size"]
+        level = self.meta_data["level"]
+
+        dimension_factor = pixel_size * 2 ** level
+
         for stat in self.lobule_stats:
             row_dict = dict(
-                area=stat.get_area(),
+                area=stat.get_area() * dimension_factor ** 2,
+                area_unit="µm$^2$",
                 perimeter=stat.get_perimeter(),
+                perimeter_unit="µm",
                 n_central_vessel=len(stat.vessels_central),
                 n_portal_vessel=len(stat.vessels_portal),
-                central_vessel_cross_section=stat.get_central_vessel_cross_section(),
-                portal_vessel_cross_section=stat.get_portal_vessel_cross_section(),
+                central_vessel_cross_section=stat.get_central_vessel_cross_section() * dimension_factor ** 2,
+                central_vessel_cross_section_unit="µm^2",
+                portal_vessel_cross_section=stat.get_portal_vessel_cross_section() * dimension_factor ** 2,
+                portal_vessel_cross_section_unit="µm^2",
                 compactness=stat.get_compactness(),
-                area_without_vessels=stat.get_poly_area_without_vessel_area()
+                compactness_unit="-",
+                area_without_vessels=stat.get_poly_area_without_vessel_area() * dimension_factor ** 2,
+                area_without_vessels_unit="µm^2"
             )
             rows.append(row_dict)
         return pd.DataFrame(rows)
@@ -173,12 +183,12 @@ class LobuleStatistics:
     vessels_portal_idx: List[int]
 
     @classmethod
-    def from_polgygon(cls, polygon: Polygon,
-                      vessels_central: List[Polygon],
-                      vessels_portal: List[Polygon],
-                      vessels_central_idx: List[int],
-                      vessels_portal_idx: List[int]
-                      ) -> LobuleStatistics:
+    def from_polygon(cls, polygon: Polygon,
+                     vessels_central: List[Polygon],
+                     vessels_portal: List[Polygon],
+                     vessels_central_idx: List[int],
+                     vessels_portal_idx: List[int]
+                     ) -> LobuleStatistics:
         lobule_statistics = LobuleStatistics(
             polygon=polygon,
             vessels_central=vessels_central,
@@ -241,8 +251,6 @@ class LobuleStatistics:
     @classmethod
     def to_dataframe(cls, statistics: List[LobuleStatistics]) -> pd.DataFrame:
         pass
-
-
 
 
 def visualize_statistics(df_statistics: pd.DataFrame) -> None:
