@@ -5,11 +5,8 @@ import numpy as np
 import zarr
 
 from zia import BASE_PATH
-from zia.annotations.annotation.util import PyramidalLevel
 from zia.config import read_config
-from zia.io.wsi_openslide import read_full_image_from_slide, read_wsi
 from zia.processing.lobulus_statistics import SlideStats
-from zia.processing.visualization_species_comparison import merge_to_one_df
 from imagecodecs.numcodecs import Jpeg2k
 import numcodecs
 

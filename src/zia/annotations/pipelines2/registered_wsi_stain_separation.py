@@ -21,8 +21,10 @@ from zia.io.wsi_tifffile import read_ndpi
 from zia.io.zarr_utils import write_slice_to_zarr_location
 from zia.log import get_logger
 import numcodecs
+
 logger = get_logger(__name__)
 numcodecs.register_codec(Jpeg2k)
+
 
 def get_toplevel_array(image_path: Path) -> zarr.Array:
     arrays = read_ndpi(image_path)
@@ -50,11 +52,11 @@ def separate_stains(path: Path,
                     protein: str,
                     out_path: Path,
                     p=0.01,
-                    tile_size: int = 2 ** 12) -> None:
+                    tile_size: int = 2 ** 12,
+                    overwrite=False) -> None:
     out = out_path / f"{subject}.zarr"
     zarr_store = zarr.DirectoryStore(str(out))
-    if Path(
-        f"{zarr_store.path}/{ZarrGroups.STAIN_0.value}/{roi_no}/{protein}").exists():
+    if Path(f"{zarr_store.path}/{ZarrGroups.STAIN_0.value}/{roi_no}/{protein}").exists() and not overwrite:
         print("separated images already exist.")
         return
 
@@ -79,7 +81,7 @@ def separate_stains(path: Path,
     t_s = time.time()
     try:
         with TemporaryDirectory() as temp_dir, ThreadPoolExecutor(
-            multiprocessing.cpu_count() - 1) as pool:
+                multiprocessing.cpu_count() - 1) as pool:
             with threadpool_limits(limits=1, user_api="blas"):
                 samples = pool.map(partial(get_decode_and_save_tile,
                                            image_path=path,
@@ -126,7 +128,8 @@ def separate_stains(path: Path,
 
             futures = pool.map(partial(save,
                                        image_pyramids=image_pyramids,
-                                       zarr_store_address=zarr_store.path
+                                       zarr_store_address=zarr_store.path,
+                                       synchronizer=zarr.sync.ThreadSynchronizer()
                                        ),
                                zip(deconvolved_tiles, slices))
 
@@ -167,13 +170,15 @@ def deconvolve(i: int,
 
 def save(deconvolved_slices: Tuple[list[np.ndarray], Tuple[slice, slice]],
          image_pyramids: Tuple[Dict[int, str], Dict[int, str]],
-         zarr_store_address: str):
+         zarr_store_address: str,
+         synchronizer: zarr.sync.ThreadSynchronizer):
     deconvolved, tile_slices = deconvolved_slices
     for k, image in enumerate(deconvolved):
         write_slice_to_zarr_location(slice_image=image,
                                      image_pyramid=image_pyramids[k],
                                      tile_slices=tile_slices,
-                                     zarr_store_address=zarr_store_address)
+                                     zarr_store_address=zarr_store_address,
+                                     synchronizer=synchronizer)
 
 
 def draw_px_oi_sample(tile_slices: Tuple[Tuple[slice, slice], str],
@@ -266,17 +271,17 @@ def create_pyramid_group(store: zarr.DirectoryStore,
         factor = 2 ** i
 
         new_h, new_w = int(np.ceil(h / factor)), int(np.ceil(w / factor))
-        new_chunk_h, new_chunk_w = int(np.ceil(chunk_h / factor)), int(
-            np.ceil(chunk_w / factor))
+        new_chunk_h, new_chunk_w = int(np.ceil(chunk_h / factor)), int(np.ceil(chunk_w / factor))
+
+        if new_chunk_h * new_chunk_w < 1e6:
+            new_chunk_h, new_chunk_w = chunk_h, chunk_w
+
         arr: zarr.Array = protein_group.empty(
             str(i),
             shape=(new_h, new_w) + ((shape[2],) if len(shape) == 3 else ()),
-            chunks=(new_chunk_w, new_chunk_h) + (
-                (shape[2],) if len(shape) == 3 else ()),
+            chunks=(new_chunk_w, new_chunk_h) + ((shape[2],) if len(shape) == 3 else ()),
             dtype=dtype,
-            overwrite=True,
-            synchronizer=zarr.ThreadSynchronizer(),
-            compressor=Jpeg2k()
+            overwrite=True
         )
 
         pyramid_dict[i] = arr.path

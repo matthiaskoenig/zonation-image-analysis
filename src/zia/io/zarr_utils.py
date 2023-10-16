@@ -28,7 +28,8 @@ def create_pyramid(template: np.ndarray) -> List[np.ndarray]:
 def write_slice_to_zarr_location(slice_image: np.ndarray,
                                  image_pyramid: Dict[int, str],
                                  tile_slices: Tuple[slice, slice],
-                                 zarr_store_address: str):
+                                 zarr_store_address: str,
+                                 synchronizer: zarr.sync.ThreadSynchronizer):
     rs, cs = tile_slices
     slice_pyramid = create_pyramid(slice_image)
     # persist tile pyramidacally
@@ -36,10 +37,9 @@ def write_slice_to_zarr_location(slice_image: np.ndarray,
         # print(zarr_store_address, image_pyramid[i])
         zarr_array = zarr.convenience.open_array(store=zarr_store_address,
                                                  path=image_pyramid[i],
-                                                 synchronizer=zarr.ThreadSynchronizer(),
                                                  write_empty_chunks=False,
-                                                 fill_value=255)
-
+                                                 fill_value=255,
+                                                 synchronizer=synchronizer)
         factor = 2 ** i
 
         # resize the slice for level

@@ -41,7 +41,7 @@ if __name__ == "__main__":
             images = sorted([f for f in roi_dir.iterdir() if f.is_file()])
             for image in images:
                 try:
-                    separate_stains(image, subject, roi, get_protein(image),  out_path)
+                    separate_stains(image, subject, roi, get_protein(image), out_path, overwrite=False)
                 except Exception as e:
                     traceback.print_exc()
                     continue

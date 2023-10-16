@@ -1,16 +1,14 @@
-import re
 from collections.abc import Callable
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
 from zia import BASE_PATH
 from zia.config import read_config
-from zia.processing.lobulus_statistics import SlideStats
+from zia.statistics.data_provider import SlideStatsProvider
 
 
 def identity(x):
@@ -41,13 +39,63 @@ def visualize_subject_comparison(df: pd.DataFrame, species_oder: list[str], colo
         box_plot_subject_comparison(species_df, species, "perimeter", "perimeter", report_path=report_path, color=color)
 
 
+def visualize_species_correlation(df: pd.DataFrame, species_oder: list[str], colors: [List[Tuple[int]]], report_path: Path = None):
+    scatter_plot_correlation(df, ("perimeter", "area"), species_oder, colors, report_path=report_path, log=(False, False), fun=(identity, np.sqrt))
+    scatter_plot_correlation(df, ("perimeter", "compactness"), species_oder, colors, report_path=report_path, log=(False, False))
+    scatter_plot_correlation(df, ("area", "compactness"), species_oder, colors, report_path=report_path, log=(False, False))
+
+
+def scatter_plot_correlation(df: pd.DataFrame,
+                             attr: Tuple[str, str],
+                             species_order: list[str],
+                             colors: [List[Tuple[int]]],
+                             labels: Optional[Tuple[str, str]] = None,
+                             report_path: Optional[Path] = None,
+                             log: Tuple[bool, bool] = (False, False),
+                             fun: Tuple[Callable, Callable] = None):
+    x_attr, y_attr = attr
+    if fun is None:
+        x_fun, y_fun = identity, identity
+    else:
+        x_fun, y_fun = fun
+    x_label, y_label = labels if labels is not None else attr
+    groupby = df.groupby(by="species")
+    units = None
+
+    fig, ax = plt.subplots(1, 1, dpi=600)
+    ax: plt.Axes
+
+    for species, c in zip(species_order, colors):
+        species_df = groupby.get_group(species)
+        x, y = x_fun(species_df[x_attr]), y_fun(species_df[y_attr])
+        if units is None:
+            units = set(species_df[f"{x_attr}_unit"]).pop(), set(species_df[f"{y_attr}_unit"]).pop()
+
+        ax.scatter(x, y, marker="o", color=c, alpha=0.3)
+
+    x_unit, y_unit = units
+    ax.set_xlabel(f"{x_label} ({x_unit})")
+    ax.set_ylabel(f"{y_label} ({y_unit})")
+
+    if log is not None:
+        x_log, y_log = log
+
+        if x_log:
+            ax.set_xscale("log")
+        if y_log:
+            ax.set_yscale("log")
+
+    if report_path is not None:
+        plt.savefig(report_path / f"species_cor_{x_attr}_{y_attr}.jpeg")
+    plt.show()
+
+
 def box_plot_subject_comparison(species_df: pd.DataFrame,
                                 species: str,
                                 attribute: str,
                                 y_label: str,
                                 report_path: Path = None,
                                 log=False,
-                                cut_off_percentile=None,
                                 limits=None,
                                 color=(0, 0, 0)):
     data_dict = {}
@@ -81,21 +129,6 @@ def box_plot_subject_comparison(species_df: pd.DataFrame,
                    color=color + (0.5,),
                    s=1)
 
-    if cut_off_percentile is not None:
-        p0s = []
-        p1s = []
-        for data_values in data_dict.values():
-            p0 = np.percentile(data_values, q=cut_off_percentile * 100)
-            p1 = np.percentile(data_values, q=(1 - cut_off_percentile) * 100)
-
-            p0s.append(p0)
-            p1s.append(p1)
-
-        print(p0s)
-        print(p1s)
-
-        ax.set_ylim(bottom=min(p0s), top=max(p1s))
-
     if limits is not None:
         ax.set_ylim(limits)
 
@@ -115,7 +148,6 @@ def box_plot_species_comparison(df: pd.DataFrame,
                                 colors: List[Tuple[int]],
                                 report_path: Path = None,
                                 log=False,
-                                axis_cut_off_percentile=None,
                                 limits=None):
     data_dict = {}
     species_subject_dict = {}
@@ -159,21 +191,6 @@ def box_plot_species_comparison(df: pd.DataFrame,
                        data,
                        color=colors[i] + (0.5,),
                        s=1)
-
-    if axis_cut_off_percentile is not None:
-        p0s = []
-        p1s = []
-        for data_values in data_dict.values():
-            p0 = np.percentile(data_values, q=axis_cut_off_percentile * 100)
-            p1 = np.percentile(data_values, q=(1 - axis_cut_off_percentile) * 100)
-
-            p0s.append(p0)
-            p1s.append(p1)
-
-        print(p0s)
-        print(p1s)
-
-        ax.set_ylim(bottom=min(p0s), top=max(p1s))
 
     if limits is not None:
         ax.set_ylim(limits)
@@ -254,40 +271,6 @@ def violin_plot_species_comparison(df: pd.DataFrame,
     plt.show()
 
 
-def get_species_from_name(subject) -> Optional[str]:
-    """Metadata for image"""
-    rat_pattern = re.compile("NOR-\d+")
-    pig_pattern = re.compile("SSES2021 \d+")
-    mouse_pattern = re.compile("MNT-\d+")
-    human_pattern = re.compile("UKJ-19-\d+_Human")
-    if re.search(pig_pattern, subject):
-        return "pig"
-    if re.search(mouse_pattern, subject):
-        return "mouse"
-    if re.search(rat_pattern, subject):
-        return "rat"
-    if re.search(human_pattern, subject):
-        return "human"
-
-    return None
-
-
-def merge_to_one_df(slide_stats: Dict[str, Dict[str, SlideStats]]) -> pd.DataFrame:
-    dfs = []
-    for subject, rois in slide_stats.items():
-        species = get_species_from_name(subject)
-
-        for roi, slide_stat in rois.items():
-            slide_stat_df = slide_stat.to_dataframe()
-            slide_stat_df["species"] = species
-            slide_stat_df["subject"] = subject
-            slide_stat_df["roi"] = roi
-
-            dfs.append(slide_stat_df)
-
-    return pd.concat(dfs, ignore_index=True)
-
-
 def adjacent_values(vals, q1, q3):
     upper_adjacent_value = q3 + (q3 - q1) * 1.5
     upper_adjacent_value = np.clip(upper_adjacent_value, q3, vals[-1])
@@ -324,36 +307,13 @@ def box_plot_log(data_dict: Dict[str, pd.Series], ax: plt.Axes) -> dict:
 
 
 if __name__ == "__main__":
-    config = read_config(BASE_PATH / "configuration.ini")
-    data_dir_stain_separated = config.image_data_path / "slide_statistics"
-    report_path = config.reports_path / "boxplots"
-    report_path.mkdir(parents=True, exist_ok=True)
-    subject_dirs = sorted([f for f in data_dir_stain_separated.iterdir() if f.is_dir() and not f.name.startswith(".")])
-
-    slide_stats = {}
-
-    species_order = ["mouse", "rat", "pig", "human"]
-
     a = 0.5
-    colors = [(102 / 255, 194 / 255, 165 / 255),
-              (252 / 255, 141 / 255, 98 / 255),
-              (141 / 255, 160 / 255, 203 / 255),
-              (231 / 255, 138 / 255, 195 / 255)]
-
-    for subject_dir in subject_dirs:
-        subject = subject_dir.stem
-        roi_dict = {}
-        # print(subject)
-
-        roi_dirs = sorted([f for f in subject_dir.iterdir() if f.is_dir()])
-        for roi_dir in roi_dirs:
-            roi = roi_dir.stem
-            # print(roi)
-            roi_dict[roi] = SlideStats.load_from_file_system(roi_dir)
-
-        slide_stats[subject] = roi_dict
-
-    df = merge_to_one_df(slide_stats)
-    print(df.columns)
-    visualize_species_comparison(df, species_order, colors, report_path)
+    df = SlideStatsProvider.get_slide_stats_df()
+    report_path = SlideStatsProvider.create_report_path("boxplots")
+    # print(df.columns)
+    # visualize_species_comparison(df, species_order, colors, report_path)
     # visualize_subject_comparison(df, species_order, colors, report_path)
+    visualize_species_correlation(df,
+                                  SlideStatsProvider.species_order,
+                                  SlideStatsProvider.colors,
+                                  report_path)
