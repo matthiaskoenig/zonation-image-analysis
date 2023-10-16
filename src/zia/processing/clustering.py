@@ -226,7 +226,7 @@ def run_skeletize_image(image_stack: np.ndarray, n_clusters=5, write=False, plot
 
 
 if __name__ == "__main__":
-    subject = "MNT-021"
+    subject = "NOR-026"
     roi = "0"
     level = PyramidalLevel.FIVE
     pixel_width = 0.22724690376093626  # µm
