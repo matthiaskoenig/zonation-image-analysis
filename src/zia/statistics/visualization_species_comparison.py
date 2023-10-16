@@ -5,10 +5,12 @@ from typing import Dict, List, Optional, Tuple
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from scipy.stats._mannwhitneyu import MannwhitneyuResult, mannwhitneyu
 
 from zia import BASE_PATH
 from zia.config import read_config
 from zia.statistics.data_provider import SlideStatsProvider
+from zia.statistics.plot_significance import plot_significance
 
 
 def identity(x):
@@ -22,11 +24,11 @@ def create_subplots() -> Tuple[plt.Figure, plt.Axes]:
 def visualize_species_comparison(df: pd.DataFrame, species_oder: list[str], colors: [List[Tuple[int]]], report_path: Path = None):
     box_plot_species_comparison(df, "area", "area", species_oder, colors, report_path=report_path, log=True)
     box_plot_species_comparison(df, "compactness", "compactness", species_oder, colors, report_path=report_path, limits=(0, 1))
-    box_plot_species_comparison(df, "perimeter", "perimeter", species_oder, colors, report_path=report_path)
+    box_plot_species_comparison(df, "perimeter", "perimeter", species_oder, colors, report_path=report_path, log=True)
 
-    violin_plot_species_comparison(df, "area", "area", report_path=report_path, axis_cut_off_percentile=0.01)
-    violin_plot_species_comparison(df, "compactness", "compactness", report_path=report_path, limits=(0, 1))
-    violin_plot_species_comparison(df, "perimeter", "perimeter", report_path=report_path)
+    #violin_plot_species_comparison(df, "area", "area", report_path=report_path, axis_cut_off_percentile=0.01)
+    #violin_plot_species_comparison(df, "compactness", "compactness", report_path=report_path, limits=(0, 1))
+    #violin_plot_species_comparison(df, "perimeter", "perimeter", report_path=report_path)
     pass
 
 
@@ -184,6 +186,19 @@ def box_plot_species_comparison(df: pd.DataFrame,
     for patch, color in zip(bplot['boxes'], colors):
         patch.set_facecolor(color + (0.3,))
 
+    combinations = np.ones(shape=(len(data_dict), len(data_dict))) * -1
+
+    for i, g1 in enumerate(species_order):
+        for k, g2 in enumerate(species_order[i + 1:]):
+            x = data_dict.get(g1)
+            y = data_dict.get(g2)
+            if log:
+                x, y = np.log10(x), np.log10(y)
+            res: MannwhitneyuResult = mannwhitneyu(x, y)
+            combinations[i, k + i+ 1] = res.pvalue
+    print(combinations)
+    plot_significance(ax, combinations, log)
+
     for i, (species, subject_dict) in enumerate(species_subject_dict.items()):
         for subject, data in subject_dict.items():
             x_scatter = np.random.normal(i + 1, 0.05, size=len(data))
@@ -192,8 +207,6 @@ def box_plot_species_comparison(df: pd.DataFrame,
                        color=colors[i] + (0.5,),
                        s=1)
 
-    if limits is not None:
-        ax.set_ylim(limits)
 
     ax.set_xticklabels(species_order)
     ax.set_ylabel(f"{y_label} ({unit})")
@@ -311,9 +324,6 @@ if __name__ == "__main__":
     df = SlideStatsProvider.get_slide_stats_df()
     report_path = SlideStatsProvider.create_report_path("boxplots")
     # print(df.columns)
-    # visualize_species_comparison(df, species_order, colors, report_path)
+    visualize_species_comparison(df, SlideStatsProvider.species_order, SlideStatsProvider.colors, report_path)
     # visualize_subject_comparison(df, species_order, colors, report_path)
-    visualize_species_correlation(df,
-                                  SlideStatsProvider.species_order,
-                                  SlideStatsProvider.colors,
-                                  report_path)
+    # visualize_species_correlation(df,SlideStatsProvider.species_order,SlideStatsProvider.colors,report_path)
