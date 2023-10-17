@@ -1,18 +1,16 @@
 from pathlib import Path
 from typing import Dict, Optional
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import shapely
+import shapely.ops
 import zarr
 from shapely import Geometry
-import shapely.ops
 
 from zia import BASE_PATH
 from zia.annotations.annotation.util import PyramidalLevel
 from zia.annotations.pipelines.mask_generatation.image_analysis import MaskGenerator
-from zia.annotations.workflow_visualizations.util.image_plotting import plot_pic
 from zia.config import read_config
 from zia.data_store import ZarrGroups
 from zia.processing.lobulus_statistics import SlideStats, LobuleStatistics
@@ -64,7 +62,7 @@ def analyse_protein_expression_for_lobule(protein_array: np.ndarray, lobule_stat
 
     norm_pixels = (pixels - p_min) / (p_max - p_min)
 
-    percentages = list(range(1, 101))
+    percentages = list(range(0, 101, 5))
 
     percentiles = [(norm_pixels > (p / 100)).sum() / area for p in percentages]
 
