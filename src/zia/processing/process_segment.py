@@ -5,20 +5,25 @@ from typing import List, Tuple
 import numpy as np
 import shapely
 from matplotlib import pyplot as plt
-from shapely import LineString, polygonize, GeometryCollection, Polygon, make_valid, polygonize_full
+from shapely import LineString, polygonize, GeometryCollection, Polygon, make_valid, polygonize_full, affinity
 
 from zia.annotations.annotation.util import PyramidalLevel
 from zia.processing.get_segments import LineSegmentsFinder
 from zia.processing.lobulus_statistics import LobuleStatistics, SlideStats
 
 
+def translate_polygon(poly: shapely.Polygon, pad: int) -> Polygon:
+    return affinity.translate(poly, xoff=-pad, yoff=-pad)
+
+
 def process_line_segments(line_segments: List[List[Tuple[int, int]]],
                           vessel_classes: List[int],
                           vessel_contours: list,
-                          final_level: PyramidalLevel) -> SlideStats:
+                          final_level: PyramidalLevel,
+                          pad: int) -> SlideStats:
     linestrings = [LineString(s) for s in line_segments]
 
-    vessel_polys = [Polygon(cont.squeeze(axis=1).tolist()) for cont in vessel_contours if len(cont) >=4]
+    vessel_polys = [Polygon(cont.squeeze(axis=1).tolist()) for cont in vessel_contours if len(cont) >= 4]
     vessel_polys = [Polygon([(y, x) for x, y in poly.exterior.coords]) for poly in vessel_polys]
 
     vessel_polys = [p if p.is_valid else make_valid(p) for p in vessel_polys]
@@ -38,8 +43,16 @@ def process_line_segments(line_segments: List[List[Tuple[int, int]]],
 
     class_0: List[Polygon] = [p for p, c in zip(vessel_polys, vessel_classes) if c == 0]
     class_1: List[Polygon] = [p for p, c in zip(vessel_polys, vessel_classes) if c == 1]
+    unclassified: List[Polygon] = [p for p, c in zip(vessel_polys, vessel_classes) if c is None]
+
 
     stats = []
+
+    # translate polygons back by the pad applied in the clustering algorithm.
+    lobuli = [translate_polygon(p, pad) for p in lobuli]
+    class_1 = [translate_polygon(p, pad) for p in class_1]
+    class_0 = [translate_polygon(p, pad) for p in class_0]
+
     for lobulus_poly in lobuli:
         c0, c1 = [], []
         c0_idx, c1_idx = [], []
@@ -70,8 +83,9 @@ if __name__ == "__main__":
     slide_stats = process_line_segments(segmenter.segments_finished,
                                         classes,
                                         contours,
-                                        5) # Not important for testing here
+                                        5,
+                                        0)  # Not important for testing here
 
-    #slide_stats.to_geojson(results_path, "NOR_021")
+    # slide_stats.to_geojson(results_path, "NOR_021")
 
     slide_stats.plot()

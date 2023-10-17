@@ -20,7 +20,6 @@ from zia.processing.load_image_stack import load_image_stack_from_zarr
 numcodecs.register_codec(Jpeg2k)
 import cv2
 
-
 logger = get_logger(__file__)
 
 
@@ -61,6 +60,7 @@ def get_and_classify_background_polys(binary: np.ndarray, labels: np.ndarray, so
     classified_contours = []
 
     kernel = np.ones((3, 3), np.uint8)
+
     for cont in filtered_contours:
         # min_h, min_w = np.min(cont, axis=0).flatten()
         # max_h, max_w = np.max(cont, axis=0).flatten()
@@ -88,22 +88,38 @@ def get_and_classify_background_polys(binary: np.ndarray, labels: np.ndarray, so
         count_vectors.append(count_vector)
         classified_contours.append(cont)
 
-    kmeans = KMeans(n_clusters=2, n_init=10)
-    kmeans.fit(count_vectors)
+    if len(count_vectors) > 1:
+        kmeans = KMeans(n_clusters=2, n_init=10)
+        kmeans.fit(count_vectors)
 
-    # metric for sorting these clusters
-    sorted_idx = np.argsort(np.sum(kmeans.cluster_centers_[:, :2], axis=1))
-    classes = [sorted_idx[label] for label in kmeans.labels_]
+        # metric for sorting these clusters
+        sorted_idx = np.argsort(np.sum(kmeans.cluster_centers_[:, :2], axis=1))
+        classes = [sorted_idx[label] for label in kmeans.labels_]
 
-    if plot:
-        to_plot = np.zeros_like(binary, dtype=np.uint8)
+        if plot:
+            to_plot = np.zeros_like(binary, dtype=np.uint8)
 
-        for i, cnt in enumerate(classified_contours):
-            class_ = classes[i]
-            c = 255 if class_ == 0 else 175
-            cv2.drawContours(to_plot, [cnt], -1, c, 2)
+            for i, cnt in enumerate(classified_contours):
+                class_ = classes[i]
+                c = 255 if class_ == 0 else 175
+                cv2.drawContours(to_plot, [cnt], -1, c, 2)
 
-        plot_pic(to_plot)
+            plot_pic(to_plot)
+
+    if len(count_vectors) == 1:
+        logger.warning("Only one vessel found. Vessel could not be classified by ")
+
+        mean_c = 1 / n_clusters * sum([c * i for i, c in enumerate(count_vectors[0])])
+        reference_mean = 1 / n_clusters * sum([i for i in range(n_clusters)])
+
+        if mean_c > reference_mean:
+            class_ = 0
+        else:
+            class_ = 1
+
+        classes = [class_]
+    else:
+        classes = []
 
     return classes, classified_contours, tissue_boundary
 
@@ -112,10 +128,15 @@ def get_factor(x, n) -> float:
     return np.log(x) / np.log(n)
 
 
-def run_skeletize_image(image_stack: np.ndarray, n_clusters=5, write=False, plot=False) -> Tuple[np.ndarray, Tuple[List[int], list]]:
-    superpixelslic = cv2.ximgproc.createSuperpixelSLIC(image_stack, algorithm=cv2.ximgproc.MSLIC, region_size=6)
+def pad_image(image_stack: np.ndarray, pad: int) -> np.ndarray:
+    pad_width = ((pad, pad), (pad, pad), (0, 0))
+    return np.pad(image_stack, pad_width, mode="constant", constant_values=0)
 
-    superpixelslic.getNumberOfSuperpixels()
+
+def run_skeletize_image(image_stack: np.ndarray, n_clusters=5, write=False, plot=False, pad=10) -> Tuple[np.ndarray, Tuple[List[int], list]]:
+    image_stack = pad_image(image_stack, pad)
+
+    superpixelslic = cv2.ximgproc.createSuperpixelSLIC(image_stack, algorithm=cv2.ximgproc.MSLIC, region_size=6)
     superpixelslic.iterate(num_iterations=20)
 
     # Get the labels and number of superpixels
@@ -123,6 +144,10 @@ def run_skeletize_image(image_stack: np.ndarray, n_clusters=5, write=False, plot
     num_labels = superpixelslic.getNumberOfSuperpixels()
 
     merged = image_stack.astype(float)
+
+    if plot:
+        for i in range(merged.shape[2]):
+            plot_pic(merged[:, :, i])
 
     super_pixels = {label: merged[labels == label] for label in range(num_labels)}
 
@@ -141,6 +166,7 @@ def run_skeletize_image(image_stack: np.ndarray, n_clusters=5, write=False, plot
 
     # calculate the mean over each channel within the superpixel
     foreground_pixels_means = {label: np.mean(pixels, axis=0) for label, pixels in foreground_pixels.items()}
+    # print(foreground_pixels_means)
 
     # cluster the superpixels based on the mean channel values within the superpixel
     logger.info(f"Cluster (n={n_clusters}) the foreground superpixels based on superpixel mean values")
@@ -156,6 +182,7 @@ def run_skeletize_image(image_stack: np.ndarray, n_clusters=5, write=False, plot
 
     # replacing superpixel key with kmeans cluster key
     lookup = np.vectorize(superpixel_kmeans_map.get)
+
     foreground_clustered = lookup(labels)
 
     # create template for the background / vessels for classification
@@ -226,8 +253,8 @@ def run_skeletize_image(image_stack: np.ndarray, n_clusters=5, write=False, plot
 
 
 if __name__ == "__main__":
-    subject = "NOR-026"
-    roi = "0"
+    subject = "MNT-026"
+    roi = "1"
     level = PyramidalLevel.FIVE
     pixel_width = 0.22724690376093626  # µm
     n_clusters = 3
@@ -238,6 +265,7 @@ if __name__ == "__main__":
     zarr_group = zarr.open(store=str(zarr_path), path=f"{ZarrGroups.STAIN_1.value}/{roi}")
 
     merged = load_image_stack_from_zarr(zarr_group, level=level)
+
     logger.info(f"Load images for subject {subject}, size: {merged.shape}")
     # remove non overlapping pixels
 

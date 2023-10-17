@@ -19,7 +19,7 @@ logger = get_logger(__file__)
 pixel_width = 0.22724690376093626  # got that out of Qpath
 
 
-def find_lobules_for_subject(subject: str, roi: int, roi_group: zarr.Group, results_path: Path, plot=False) -> None:
+def find_lobules_for_subject(subject: str, roi: int, roi_group: zarr.Group, results_path: Path, plot=False, pad=10) -> None:
     logger.info(f"Load images for subject {subject}")
     loaded_level = PyramidalLevel.FIVE
     results_path = results_path / subject / f"{roi}"
@@ -33,7 +33,7 @@ def find_lobules_for_subject(subject: str, roi: int, roi_group: zarr.Group, resu
     final_level, filtered_image_stack = image_filter.prepare_image()
 
     logger.info("Run superpixel algorithm.")
-    thinned, (vessel_classes, vessel_contours) = run_skeletize_image(filtered_image_stack, n_clusters=3)
+    thinned, (vessel_classes, vessel_contours) = run_skeletize_image(filtered_image_stack, n_clusters=3, pad=pad)
 
     logger.info("Segmenting lines in thinned image.")
     line_segments = segment_thinned_image(thinned)
@@ -42,7 +42,8 @@ def find_lobules_for_subject(subject: str, roi: int, roi_group: zarr.Group, resu
     slide_stats = process_line_segments(line_segments,
                                         vessel_classes,
                                         vessel_contours,
-                                        final_level)
+                                        final_level,
+                                        pad)
     if plot:
         slide_stats.plot()
     slide_stats.to_geojson(result_dir=results_path)
