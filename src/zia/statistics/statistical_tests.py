@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Tuple, List, Optional, Dict
+from typing import List, Dict
 
 import numpy as np
 import pandas as pd
@@ -7,7 +7,7 @@ from scipy.stats import kruskal, mannwhitneyu
 from scipy.stats._mannwhitneyu import MannwhitneyuResult
 from scipy.stats._stats_py import KruskalResult
 
-from zia.statistics.data_provider import SlideStatsProvider
+from zia.statistics.utils.data_provider import SlideStatsProvider
 
 
 @dataclass(init=True)

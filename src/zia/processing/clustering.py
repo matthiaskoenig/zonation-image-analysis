@@ -106,7 +106,7 @@ def get_and_classify_background_polys(binary: np.ndarray, labels: np.ndarray, so
 
             plot_pic(to_plot)
 
-    if len(count_vectors) == 1:
+    elif len(count_vectors) == 1:
         logger.warning("Only one vessel found. Vessel could not be classified by ")
 
         mean_c = 1 / n_clusters * sum([c * i for i, c in enumerate(count_vectors[0])])
@@ -144,10 +144,6 @@ def run_skeletize_image(image_stack: np.ndarray, n_clusters=5, write=False, plot
     num_labels = superpixelslic.getNumberOfSuperpixels()
 
     merged = image_stack.astype(float)
-
-    if plot:
-        for i in range(merged.shape[2]):
-            plot_pic(merged[:, :, i])
 
     super_pixels = {label: merged[labels == label] for label in range(num_labels)}
 
@@ -253,8 +249,8 @@ def run_skeletize_image(image_stack: np.ndarray, n_clusters=5, write=False, plot
 
 
 if __name__ == "__main__":
-    subject = "MNT-026"
-    roi = "1"
+    subject = "NOR-021"
+    roi = "0"
     level = PyramidalLevel.FIVE
     pixel_width = 0.22724690376093626  # µm
     n_clusters = 3
@@ -276,4 +272,4 @@ if __name__ == "__main__":
     final_level, filtered = filter.prepare_image()
 
     logger.info("Run superpixel algorithm.")
-    run_skeletize_image(filtered, n_clusters=n_clusters, write=True, plot=True)
+    run_skeletize_image(filtered, n_clusters=n_clusters, write=True, plot=True, pad=10)

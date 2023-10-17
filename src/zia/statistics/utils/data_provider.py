@@ -9,7 +9,7 @@ from zia.config import read_config
 from zia.processing.lobulus_statistics import SlideStats
 
 
-def _get_species_from_name(subject) -> Optional[str]:
+def get_species_from_name(subject) -> Optional[str]:
     """Metadata for image"""
     rat_pattern = re.compile("NOR-\d+")
     pig_pattern = re.compile("SSES2021 \d+")
@@ -50,6 +50,7 @@ class SlideStatsProvider:
               (252 / 255, 141 / 255, 98 / 255),
               (141 / 255, 160 / 255, 203 / 255),
               (231 / 255, 138 / 255, 195 / 255)]
+
     @classmethod
     def get_report_path(cls) -> Path:
         return cls._config.reports_path
@@ -59,8 +60,14 @@ class SlideStatsProvider:
         report_path = SlideStatsProvider._config.reports_path / dir_name
         report_path.mkdir(parents=True, exist_ok=True)
         return report_path
+
     @classmethod
     def get_slide_stats_df(cls):
+
+        return _merge_to_one_df(cls.get_slide_stats())
+
+    @classmethod
+    def get_slide_stats(cls) -> Dict[str, Dict[str, SlideStats]]:
         data_dir_stain_separated = cls._config.image_data_path / "slide_statistics"
         subject_dirs = sorted([f for f in data_dir_stain_separated.iterdir() if f.is_dir() and not f.name.startswith(".")])
 
@@ -77,4 +84,4 @@ class SlideStatsProvider:
 
             slide_stats[subject] = roi_dict
 
-        return _merge_to_one_df(slide_stats)
+        return slide_stats

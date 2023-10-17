@@ -4,7 +4,7 @@ import pandas as pd
 
 import scipy.stats as st
 
-from zia.statistics.data_provider import SlideStatsProvider
+from zia.statistics.utils.data_provider import SlideStatsProvider
 
 
 def qq_plot(df: pd.DataFrame, attr: str, log=False):

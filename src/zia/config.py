@@ -27,6 +27,7 @@ class Configuration(BaseModel):
 
 
 def read_config(file_path: Path) -> Configuration:
+    print(file_path)
     """Read configuration setting."""
     config = configparser.ConfigParser()
     config.read(file_path)

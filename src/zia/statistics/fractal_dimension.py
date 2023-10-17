@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.optimize import curve_fit
 
-from zia.statistics.data_provider import SlideStatsProvider
+from zia.statistics.utils.data_provider import SlideStatsProvider
 
 
 def fractal(p, d, k):

@@ -7,10 +7,8 @@ import numpy as np
 import pandas as pd
 from scipy.stats._mannwhitneyu import MannwhitneyuResult, mannwhitneyu
 
-from zia import BASE_PATH
-from zia.config import read_config
-from zia.statistics.data_provider import SlideStatsProvider
-from zia.statistics.plot_significance import plot_significance
+from zia.statistics.utils.data_provider import SlideStatsProvider
+from zia.statistics.utils.plot_significance import plot_significance
 
 
 def identity(x):

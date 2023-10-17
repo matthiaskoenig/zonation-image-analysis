@@ -9,7 +9,7 @@ def normalizeStaining(img, Io=240, alpha=1, beta=0.15):
     """Normalize staining appearence of H&E stained images
 
     Example use:
-        see test.py
+        see statistical_tests.py
 
     Input:
         I: RGB input image
