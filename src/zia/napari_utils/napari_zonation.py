@@ -61,7 +61,7 @@ data_dir_registered_stain_separated: Path = Path(
 stains = ["HE", "GS", "CYP2E1", "CYP1A2", "CYP3A4", "CYP2D6"]
 
 zarr_store_path = data_dir_registered_stain_separated / f"{subject_id}.zarr"
-level = 3
+level = 2
 
 
 # get channels

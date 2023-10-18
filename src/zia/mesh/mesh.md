@@ -1,6 +1,4 @@
-
-
-## General concepts
+## Mesh - General concepts
 
 ### Delaunay triangulation
 Close relationship between Delaunay triangulation and the Voronoi diagram.
@@ -16,5 +14,5 @@ Typically, the domain to be meshed is specified as a coarse simplicial complex; 
 
 - A subdivision S is a maximal planar subdivision such that adding one edge connecting two vertices of S destroys the planarity of S. What does destroying the planarity mean? Adding an edge intersects at least one existing edge. 
 
-Deﬁnition (triangulation of a point set)
+Definition (triangulation of a point set)
 Let P be a set of points in the plane. A triangulation of the point set P is a maximal planar subdivision which has P as its vertex set.
