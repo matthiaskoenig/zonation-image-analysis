@@ -1,5 +1,16 @@
 # TODO
 
+Image preparatation
+- [ ] H & E und H & DAB stain separation
+- [ ] Histogram filtering (Background correction) & normalization
+
+Analysis:
+- [ ] global histogram properties; do some basic analysis
+- [ ] median filter
+- [ ] find maxima
+- [ ] use watershed/ Centroidal_Voronoi_tessellation to create separation lines
+
+
 ## Whole-slide image reading & writing
 https://github.com/matthiaskoenig/zonation-image-analysis/issues/1  
 https://github.com/matthiaskoenig/zonation-image-analysis/issues/2  

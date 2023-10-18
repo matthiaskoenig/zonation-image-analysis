@@ -7,13 +7,15 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from enum import Enum
-from typing import List, Optional, Set, Tuple, Union
+from pathlib import Path
+from typing import List, Optional, Set, Union
 
 import geojson as gj
-from shapely import MultiPolygon, Polygon
+from shapely import LineString, MultiPolygon, Polygon
 from shapely.geometry import shape
 
 from zia.annotations.annotation.geometry_utils import rescale_coords
+from zia.annotations.annotation.util import PyramidalLevel
 
 
 logger = logging.getLogger(__name__)
@@ -68,34 +70,24 @@ class Annotation:
     """
 
     def get_resized_geometry(
-        self, factor, offset=(0, 0)
-    ) -> Optional[Union[Polygon, MultiPolygon]]:
+        self, level: PyramidalLevel, offset=(0, 0)
+    ) -> Optional[Union[Polygon, MultiPolygon | LineString]]:
+        factor = 1 / 2**level
         if isinstance(self.geometry, Polygon):
             return Polygon(
-                Annotation._rescale_coords(
-                    self.geometry.exterior.coords, factor, offset
-                )
+                rescale_coords(self.geometry.exterior.coords, factor, offset)
             )
         if isinstance(self.geometry, MultiPolygon):
             return MultiPolygon(
                 [
-                    Polygon(
-                        Annotation._rescale_coords(poly.exterior.coords, factor, offset)
-                    )
+                    Polygon(rescale_coords(poly.exterior.coords, factor, offset))
                     for poly in self.geometry.geoms
                 ]
             )
+        if isinstance(self.geometry, LineString):
+            return LineString(rescale_coords(self.geometry.coords, factor, offset))
 
-        logger.warning(
-            f"Another geometry type encountered, "
-            f"which was not drawn: '{type(self.geometry)}'"
-        )
-
-    @classmethod
-    def _rescale_coords(
-        cls, coords, level: int, offset: Tuple[int, int]
-    ) -> List[Tuple[float, float]]:
-        return rescale_coords(coords, 1 / level, offset)
+        logger.warning(f"Another geometry type encountered: '{type(self.geometry)}'")
 
 
 """
@@ -106,8 +98,8 @@ a shapely geometry and the annotation type (annotation class assigned in QuPath)
 
 class AnnotationParser:
     @classmethod
-    def parse_geojson(cls, file_name: str) -> List[Annotation]:
-        with open(file_name) as f:
+    def parse_geojson(cls, path: Path) -> List[Annotation]:
+        with open(path) as f:
             data = gj.load(f)
 
         features = data["features"]
@@ -144,7 +136,7 @@ class AnnotationParser:
     @classmethod
     def get_annotation_by_type(
         cls,
-        features: List[Union[Polygon | MultiPolygon]],
+        features: List[Union[Polygon | MultiPolygon | LineString]],
         annotation_type: AnnotationType,
     ) -> List[Annotation]:
         return list(filter(lambda x: x.annotation_class == annotation_type, features))
@@ -152,7 +144,7 @@ class AnnotationParser:
     @classmethod
     def get_annotation_by_types(
         cls,
-        features: List[Union[Polygon | MultiPolygon]],
+        features: List[Union[Polygon | MultiPolygon | LineString]],
         annotation_types: Set[AnnotationType],
     ) -> List[Annotation]:
         nested_list = [

@@ -1,0 +1,10 @@
+[Paths]
+
+results_path =  /home/mkoenig/git/zonation-image-analysis/results
+reports_path = /home/mkoenig/git/zonation-image-analysis/reports
+data_path = /media/mkoenig/Extreme Pro/data/cyp_species_comparison/control
+annotation_path = /media/mkoenig/Extreme Pro/data/cyp_species_comparison_annotations/control
+image_data_path = /media/mkoenig/Extreme Pro/image_data
+
+[OpenSlide]
+open_slide =
