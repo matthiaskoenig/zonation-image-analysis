@@ -55,7 +55,9 @@ subject_id = "NOR-024"
 roi = 0
 
 data_dir_registered_stain_separated: Path = Path(
-    f"/media/mkoenig/Extreme Pro/image_data/stain_separated/")
+    # "/media/mkoenig/Extreme Pro/image_data/stain_separated/"
+    "/home/mkoenig/data/qualiperf/P3-MetFun/lobulus_segmentation/stain_separated/"
+)
 stains = ["HE", "GS", "CYP2E1", "CYP1A2", "CYP3A4", "CYP2D6"]
 
 zarr_store_path = data_dir_registered_stain_separated / f"{subject_id}.zarr"
@@ -92,7 +94,6 @@ def load_ndarray(store, stain, roi, protein, level) -> np.ndarray:
     array_path = f"stain_{stain}/{roi}/{protein}/{level}"
     data: zarr.Array = zarr.open(store=zarr_store_path, path=array_path)
     console.print(data)
-
     return np.array(data)
 
 
@@ -125,53 +126,6 @@ for k, channel in enumerate(selected_channels):
     image[:, :, k] = 255 - channel_data[channel]  # store inverted image
 
 
-# -----------------------------------------------------------------------------------
-# # 3. calculate superpixels
-# # https://pyimagesearch.com/2014/07/28/a-slic-superpixel-tutorial-using-python/
-# console.rule(title="Superpixel calculation", align="left", style="white")
-# from skimage.segmentation import slic, mark_boundaries
-# from skimage.measure import regionprops
-# from matplotlib import pyplot as plt
-#
-# # Assume image is given
-# n_segments = 200
-# # segments = slic(image, n_segments=n_segments, compactness=0.1, enforce_connectivity=True)
-#
-# # load the image and apply SLIC and extract (approximately)
-# # the supplied number of segments
-# # image = cv2.imread(args["image"])
-# segments = slic(img_as_float(image), n_segments=n_segments, sigma=5)
-#
-#
-# # show the output of SLIC
-# fig = plt.figure("Superpixels")
-# ax = fig.add_subplot(1, 1, 1)
-# ax.imshow(mark_boundaries(img_as_float(cv2.cvtColor(image, cv2.COLOR_BGR2RGB)), segments))
-# plt.axis("off")
-# plt.show()
-# console.rule(style="white")
-
-# # region properties
-# props = regionprops(segments, intensity_image=image)
-#
-# segmentsToExclude = []
-# for s, segment in enumerate(segments):
-#     if props[s].mean_intensity < 5:  # basically black
-#         segmentsToExclude.append(s)
-# -----------------------------------------------------------------------------------
-
 
 # Visualize
 visualize_protein_data(image=image, channel_names=selected_channels)
-
-# -----------------------------------------------------------------------------------
-# UMAP
-# 4. try t-sne/umap on the dataset
-# https://pyimagesearch.com/2014/07/28/a-slic-superpixel-tutorial-using-python/
-console.rule(title="Umap calculation", align="left", style="white")
-
-
-
-
-
-

@@ -130,12 +130,11 @@ class RoiSegmentation:
     def _extract_organ_shapes(
         cls, shapes: List[Polygon], organ_annotations: List[Annotation]
     ) -> List[Polygon]:
-        extracted = [
-            shape
-            for shape in shapes
-            for anno in organ_annotations
-            if shape.contains(anno.get_resized_geometry(PyramidalLevel.SEVEN))
-        ]
+        extracted = []
+        for shape in shapes:
+            for anno in organ_annotations:
+                if shape.contains(anno.get_resized_geometry(PyramidalLevel.SEVEN)) and shape not in extracted:
+                    extracted.append(shape)
         return extracted
 
     @classmethod

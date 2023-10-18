@@ -13,4 +13,4 @@ class PyramidalLevel(IntEnum):
 
     @classmethod
     def get_by_numeric_level(cls, level: int) -> "PyramidalLevel":
-        return PyramidalLevel(level)
+        return PyramidalLevel(int(level))

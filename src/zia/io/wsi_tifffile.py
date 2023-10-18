@@ -16,15 +16,11 @@ from zia.io.utils import check_image_path
 def read_ndpi(image_path: Path, chunkshape=(2 ** 11, 2 ** 11, 3)) -> List[zarr.Array]:
     """Read image with tifffile library."""
     check_image_path(image_path)
-    print("open zarr store")
     # read in zarr store
     store: tifffile.ZarrTiffStore = tifffile.imread(image_path, aszarr=True)
-    print(type(store))
-    print(store.keys())
     group = zarr.open(store, mode="r")  # zarr.core.Group or Array
     # FIXME: read metadata
     datasets = group.attrs["multiscales"][0]["datasets"]
-    print(group.attrs["multiscales"])
 
     # Load dask array from the zarr storage format
     data = [group.get(d["path"]) for d in datasets]

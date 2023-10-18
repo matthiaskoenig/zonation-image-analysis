@@ -1,12 +1,7 @@
-import re
-from pathlib import Path
 from typing import List, Dict
 
-import PIL.Image
 import numpy as np
 from matplotlib import pyplot as plt
-from PIL import Image
-from tifffile import imwrite
 
 from zia.annotations.pipelines.stain_separation.stain_separation_whole_image import separate_raw_image
 from zia.console import console
@@ -18,7 +13,6 @@ from zia.slide_alignment.image_manipulation import merge_images
 
 
 def image_prefixes_from_dir(p_dir: Path, stains: List[str]) -> Dict[str, str]:
-
     paths = [f for f in p_dir.iterdir() if f.is_file()]
     d: Dict[str, str] = {}
     for stain in stains:
@@ -125,7 +119,6 @@ if __name__ == "__main__":
 
         create_registration_image(subject_dir=subject_dir, stains=stains, results_dir=results_dir)
         create_stain_separation_images(subject_dir=subject_dir, stains=stains, results_dir=results_dir)
-
 
 """
 - NOR-026, CYP2D6 staining has a large hole, repeat if possible

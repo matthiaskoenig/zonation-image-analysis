@@ -26,21 +26,25 @@ def create_pyramid(template: np.ndarray) -> List[np.ndarray]:
 
 
 def write_slice_to_zarr_location(slice_image: np.ndarray,
+                                 image_pyramid: Dict[int, str],
                                  tile_slices: Tuple[slice, slice],
                                  zarr_store_address: str,
-                                 zarr_group: str,
-                                 roi_no: int):
+                                 synchronizer: zarr.sync.ThreadSynchronizer):
     rs, cs = tile_slices
     slice_pyramid = create_pyramid(slice_image)
     # persist tile pyramidacally
     for i, tile_image in enumerate(slice_pyramid):
-        zarr_array = zarr.convenience.open_array(store=zarr_store_address, path=f"{zarr_group}/{roi_no}/{i}", synchronizer=zarr.ProcessSynchronizer(f".chunklock{i}"))
-
+        # print(zarr_store_address, image_pyramid[i])
+        zarr_array = zarr.convenience.open_array(store=zarr_store_address,
+                                                 path=image_pyramid[i],
+                                                 write_empty_chunks=False,
+                                                 fill_value=255,
+                                                 synchronizer=synchronizer)
         factor = 2 ** i
 
         # resize the slice for level
-        new_rs = slice(int(rs.start / factor), int(rs.stop / factor))
-        new_cs = slice(int(cs.start / factor), int(cs.stop / factor))
+        new_rs = slice(int(np.ceil(rs.start / factor)), int(np.ceil(rs.stop / factor)))
+        new_cs = slice(int(np.ceil(cs.start / factor)), int(np.ceil(cs.stop / factor)))
 
         zarr_array[new_rs, new_cs] = tile_image.astype(zarr_array.dtype)
 

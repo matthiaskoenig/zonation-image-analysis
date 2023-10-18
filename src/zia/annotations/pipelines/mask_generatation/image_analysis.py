@@ -102,7 +102,7 @@ class MaskGenerator:
                                        f"Finished mask creation for ROI {roi_no}."))
 
     @classmethod
-    def _draw_polygons(
+    def draw_polygons(
         cls,
         mask: np.ndarray,
         polygons: Union[Polygon | MultiPolygon],
@@ -205,7 +205,7 @@ class MaskGenerator:
         )
 
         for polygon in polygons:
-            cls._draw_polygons(
+            cls.draw_polygons(
                 polygons=polygon, mask=mask, offset=(cs.start, rs.start), color=color
             )
 
