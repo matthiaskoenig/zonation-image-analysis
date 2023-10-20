@@ -12,6 +12,11 @@ devtools::install_github("shangll123/SpatialPCA")
 install.packages("peakRAM")
 install.packages("Matrix")
 
+# python to R conversion
+install.packages("RcppCNPy")
+install.packages("feather")
+install.packages("arrow")
+
 
 # Wraps common clustering algorithms in an easily extended S4 framework. 
 # Backends are implemented for hierarchical, k-means and graph-based clustering. 

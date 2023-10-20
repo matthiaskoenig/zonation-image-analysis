@@ -4,9 +4,10 @@ Example given data loading, caching, pre-processing for spatial PCA analysis.
 
 """
 from pathlib import Path
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Tuple
 
 import numpy as np
+import pandas as pd
 
 from zia.console import console
 import zarr
@@ -84,10 +85,62 @@ def load_subject_roi_ndarray(
     }
     return results
 
+
+def convert_to_spca_matrices(data: np.ndarray, proteins: List[str]) -> Tuple[np.ndarray, np.ndarray]:
+    """Create matrix for the spatial PCA analysis.
+
+    Returns location, sp_count.
+    """
+    pass
+    '''
+    import rpy2.robjects as ro
+    import rpy2.robjects.numpy2ri
+    rpy2.robjects.numpy2ri.activate()
+
+    nr,nc = B.shape
+    Br = ro.r.matrix(B, nrow=nr, ncol=nc)
+
+    ro.r.assign("B", Br)
+    '''
+    console.rule("SpatialPCA matrices")
+    # FIXME: filtering of empty items & insufficient data; mark this in the map
+
+    # create location and count matrix
+    Nx, Ny, Np = data.shape  # (Nx, Ny, Np)
+    location = np.zeros(shape=(Nx*Ny, 2))  # [Npixel, 2]
+    spcount = np.zeros(shape=(Np, Nx*Ny))  # [Protein, location]
+    pos_count = 0
+    for kx in range(Nx):
+        for ky in range(Ny):
+            for kp in range(Np):
+                if kp == 0:
+                    location[pos_count, 0] = kx
+                    location[pos_count, 1] = ky
+
+                spcount[kp, pos_count] = data[kx, ky, kp]
+
+    index_position = [f"pos_{kp}" for kp in range(Nx*Ny)]
+    df_location = pd.DataFrame(
+        data=location,
+        columns=["xccord", "ycoord"],
+        # index=index_position
+    )
+    df_location.reset_index(inplace=True)
+    df_spcount = pd.DataFrame(
+        data=spcount,
+        columns=index_position,
+        # index=proteins,
+    )
+    df_location.reset_index(inplace=True)
+
+    return df_location, df_spcount
+
+
 def get_all_rois():
     """Get all rois from the stain separated data."""
     # Prepare cached data set
     pass
+
 
 if __name__ == "__main__":
     # read the high dimensional dataset
@@ -96,7 +149,7 @@ if __name__ == "__main__":
     # subject_id = "SSES2021 9"
     subject_id = "NOR-024"
     roi = 0
-    level = 2
+    level = 6
     stain_separated_dir: Path = Path(
         # "/media/mkoenig/Extreme Pro/image_data/stain_separated/"
         "/home/mkoenig/data/qualiperf/P3-MetFun/lobulus_segmentation/stain_separated/"
@@ -108,7 +161,26 @@ if __name__ == "__main__":
         roi=roi,
         level=level,
     )
-    console.print(results["channels"])
-    console.print(results["data"].shape)
+    data: np.ndarray = results["data"]
+    channels: np.ndarray = results["channels"]
 
+    base_dir = Path("/home/mkoenig/git/zonation-image-analysis/spatialPCA")
+    npy_path = base_dir / f"{subject_id}_R{roi}_L{level}.npy"
+    location_path = base_dir / f"{subject_id}_R{roi}_L{level}_location.feather"
+    spcount_path = base_dir / f"{subject_id}_R{roi}_L{level}_spcount.feather"
+
+    # use feather for the exchange
+    proteins = [c.replace("_DOB", "") for c in channels]
+    console.print(f"{proteins=}")
+
+    np.save(npy_path, data)
+    df_location, df_spcount = convert_to_spca_matrices(data=data, proteins=proteins)
+
+    df_location.to_feather(location_path)
+    df_spcount.to_feather(spcount_path)
+    # np.save(location_path, location)
+    # np.save(spcount_path, spcount)
+
+    console.print(results["channels"])
+    console.print(data.shape)
 

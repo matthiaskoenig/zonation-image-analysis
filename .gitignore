@@ -26,5 +26,6 @@ configuration.ini
 
 # numpy arrays for testing and quick serialization
 *.npy
+*.feather
 *.pickle
 *.png
