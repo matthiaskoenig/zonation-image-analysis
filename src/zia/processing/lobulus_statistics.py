@@ -18,7 +18,7 @@ import geojson
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
-from shapely import Polygon, MultiPolygon, GeometryCollection
+from shapely import Polygon, MultiPolygon, GeometryCollection, minimum_bounding_radius
 from shapely.geometry import shape
 
 
@@ -162,13 +162,15 @@ class SlideStats:
                 n_central_vessel=len(stat.vessels_central),
                 n_portal_vessel=len(stat.vessels_portal),
                 central_vessel_cross_section=stat.get_central_vessel_cross_section() * dimension_factor ** 2,
-                central_vessel_cross_section_unit="µm^2",
+                central_vessel_cross_section_unit="µm$^$2",
                 portal_vessel_cross_section=stat.get_portal_vessel_cross_section() * dimension_factor ** 2,
-                portal_vessel_cross_section_unit="µm^2",
+                portal_vessel_cross_section_unit="µm$^$2",
                 compactness=stat.get_compactness(),
                 compactness_unit="-",
                 area_without_vessels=stat.get_poly_area_without_vessel_area() * dimension_factor ** 2,
-                area_without_vessels_unit="µm^2"
+                area_without_vessels_unit="µm$^$2",
+                minimum_bounding_radius=stat.get_enclosing_circle_radius() * dimension_factor,
+                minimum_bounding_radius_unit="µm2"
             )
             rows.append(row_dict)
         return pd.DataFrame(rows)
@@ -240,6 +242,9 @@ class LobuleStatistics:
         perimeter = self.get_perimeter()
 
         return area * 4 * np.pi / perimeter ** 2
+
+    def get_enclosing_circle_radius(self) -> float:
+        return minimum_bounding_radius(self.polygon)
 
     def to_geo_json_feature_collection(self) -> geojson.Feature:
         return geojson.Feature(geometry=self.polygon.__geo_interface__,

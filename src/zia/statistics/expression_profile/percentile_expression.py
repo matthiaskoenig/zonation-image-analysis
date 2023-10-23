@@ -50,6 +50,10 @@ def analyse_protein_expression_for_lobule(protein_array: np.ndarray, lobule_stat
     area = mask.sum()
 
     pixels = protein_array[mask]
+    empty_pixels = pixels[pixels == 0]
+    if empty_pixels.size / area > 0.2:
+        print("empty lobule on slide")
+        return None
 
     if pixels.size == 0:
         print(f"to small: {pixels.size}")

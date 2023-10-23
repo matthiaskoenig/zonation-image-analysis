@@ -9,6 +9,10 @@ from zia.config import read_config
 from zia.processing.lobulus_statistics import SlideStats
 
 
+def capitalize(s: str) -> str:
+    return s[0].upper() + s[1:]
+
+
 def get_species_from_name(subject) -> Optional[str]:
     """Metadata for image"""
     rat_pattern = re.compile("NOR-\d+")
@@ -30,7 +34,7 @@ def get_species_from_name(subject) -> Optional[str]:
 def _merge_to_one_df(slide_stats: Dict[str, Dict[str, SlideStats]]) -> pd.DataFrame:
     dfs = []
     for subject, rois in slide_stats.items():
-        species = _get_species_from_name(subject)
+        species = get_species_from_name(subject)
 
         for roi, slide_stat in rois.items():
             slide_stat_df = slide_stat.to_dataframe()
