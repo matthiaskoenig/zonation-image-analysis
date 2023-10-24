@@ -27,16 +27,18 @@ if __name__ == "__main__":
     df = pd.read_csv(config.reports_path / "lobule_distances.csv", sep=",", index_col=False)
     species_gb = df.groupby("species")
 
-    x_limits = get_xlimits(SlideStatsProvider.get_slide_stats_df(), 50)
+    x_limits = get_xlimits(SlideStatsProvider.get_slide_stats_df(), 75)
+    x_lim = min(list(x_limits.values()))
     bin_size = 50  # µm
-    fig, axes = plt.subplots(nrows=len(protein_order), ncols=len(species_order), dpi=300, figsize=(len(species_order) * 2, len(protein_order) * 1.85),
+    print(x_limits)
+    fig, axes = plt.subplots(nrows=2, ncols=3, dpi=300, figsize=(3 * 2.5, 2 * 2.5),
                              layout="constrained")
     for col, species in enumerate(species_order):
         species_df = species_gb.get_group(species)
         protein_gb = species_df.groupby("protein")
 
         for row, protein in enumerate(protein_order):
-            ax: plt.Axes = axes[row, col]
+            ax: plt.Axes = axes.flatten()[row]
             protein_df = protein_gb.get_group(protein)
 
             # normalization based on max intensity values of one slide
@@ -49,54 +51,41 @@ if __name__ == "__main__":
 
             protein_df = pd.concat(norm_dfs)
 
-            protein_df = protein_df[protein_df["d_central"] <= x_limits[species]]
+            protein_df = protein_df[protein_df["d_central"] <= x_lim]
 
-            bins = int(np.ceil(x_limits[species] / bin_size))
+            bins = int(np.ceil(x_lim / bin_size))
 
             binned, bins = pd.cut(protein_df["d_central"], bins=bins, retbins=True)
 
             x = []
             y = []
+            ler = []
+            her = []
             for i in range(len(bins) - 1):
                 df_bin = protein_df[(protein_df["d_central"] > bins[i]) & (protein_df["d_central"] <= bins[i + 1])]
-
+                norm_intensity = df_bin["intensity"]
                 x.append((bins[i] + bins[i + 1]) / 2)
-                y.append(df_bin["intensity"])
+                y.append(np.median(norm_intensity))
+                ler.append(np.percentile(norm_intensity, 25))
+                her.append(np.percentile(norm_intensity, 75))
 
-            d = (bins[1] - bins[0])
-            bp = ax.boxplot(x=y, positions=x, widths=d, patch_artist=True, showfliers=False, medianprops=dict(color="black"),
-                            whis=[5, 95])
-            for box in bp["boxes"]:
-                box.set(facecolor=colors[col], linewidth=0.5)
-            for box in bp["medians"]:
-                box.set(linewidth=0.5)
-            for box in bp["caps"]:
-                box.set(linewidth=0.5)
-            for box in bp["whiskers"]:
-                box.set(linewidth=0.5)
-
-            ax.set_xticks([])
-            # ax.fill_between(x, ler, her, alpha=0.5, color=colors[col])
-
-            # ax.set_xlim(left=0, right=1.4)
-            # ax.set_ylim(bottom=0, top=1)
-            # ax.legend(frameon=False)
+            ax.plot(x, y, color=colors[col][:3], marker="o", markeredgecolor="black", label=species)
+            ax.fill_between(x, ler, her, alpha=0.2, color=colors[col], edgecolor="none")
 
     fig: plt.Figure
-    fig.supxlabel("Distance to lobule center (µm)", fontsize=14)
-    fig.supylabel("Normalized intensity (-)", fontsize=14)
+    fig.supxlabel("Distance to lobule center (µm)", fontsize=12)
+    fig.supylabel("Normalized intensity (-)", fontsize=12)
 
-    for species, ax in zip(species_order, axes[-1, :].flatten()):
-        x = np.arange(0, 1500, 200)
-        this_range = x[x <= x_limits[species]]
-        ax.xaxis.set_ticks(this_range, labels=this_range)
-
-    for i, species in enumerate(species_order):
-        for ax in axes[:, i].flatten():
-            ax.set_xlim(left=0, right=x_limits[species])
+    for protein, ax in zip(protein_order, axes.flatten()):
+        x = np.arange(0, 1500, 100)
+        x_max = min(list(x_limits.values()))
+        x_range = x[x <= x_max]
+        ax.set_xlim(left=0, right=x_max)
+        ax.xaxis.set_ticks(x_range, x_range)
+        ax.set_title(protein, fontsize=10, fontweight="bold", y=0.85)
 
     for ax in axes.flatten():
-        ax.set_ylim(top=1.1, bottom=0)
+        ax.set_ylim(top=1.0, bottom=0.2)
 
     for ax in axes[:-1, 1:].flatten():
         ax.set_xticklabels([])
@@ -108,12 +97,20 @@ if __name__ == "__main__":
     for ax in axes[-1, 1:].flatten():
         ax.set_yticklabels([])
 
-    for protein, ax in zip(protein_order, axes[:, -1].flatten()):
+    h, l = axes[0, 0].get_legend_handles_labels()
+    lgd = fig.legend(
+        h, l,
+        frameon=False,
+        loc="outside upper center",
+        ncol=4
+    )
+
+    """for protein, ax in zip(protein_order, axes[:, -1].flatten()):
         ax.set_ylabel(protein, fontsize=14, fontweight="bold")
         ax.yaxis.set_label_position("right")
+         
+         for species, ax in zip(species_order, axes[0, :].flatten()):
+        ax.set_title(capitalize(species), fontsize=14, fontweight="bold")"""
 
-    for species, ax in zip(species_order, axes[0, :].flatten()):
-        ax.set_title(capitalize(species), fontsize=14, fontweight="bold")
-
-    fig.savefig(report_path / f"expression_profile.png")
+    fig.savefig(report_path / f"expression_profile_by_species.png", bbox_extra_artists=(lgd,))
     plt.show()

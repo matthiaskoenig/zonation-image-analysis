@@ -12,11 +12,17 @@ from shapely import Geometry, Polygon
 from zia import BASE_PATH
 from zia.annotations.annotation.util import PyramidalLevel
 from zia.annotations.pipelines.mask_generatation.image_analysis import MaskGenerator
-from zia.annotations.workflow_visualizations.util.image_plotting import plot_pic
 from zia.config import read_config
 from zia.data_store import ZarrGroups
 from zia.processing.lobulus_statistics import SlideStats, LobuleStatistics
 from zia.statistics.utils.data_provider import SlideStatsProvider, get_species_from_name
+
+
+@np.vectorize
+def dist(d_p: float, d_c: float) -> float:
+    if d_c == 0 and d_p == 0:
+        return np.nan
+    return 1 - d_c / (d_p + d_c)
 
 
 def open_protein_arrays(address: Path, path: str, level: PyramidalLevel) -> Dict[str, np.ndarray]:
@@ -32,7 +38,7 @@ def offset(geometry: Geometry, offset: Tuple[int, int]):
     return shapely.ops.transform(lambda x, y: (x - offset[0], y - offset[1]), geometry)
 
 
-def create_lobule_df(height: np.ndarray, width: np.ndarray, d_portal: np.ndarray, d_central: np.ndarray, intensity: list[float],
+def create_lobule_df(height: np.ndarray, width: np.ndarray, d_portal: np.ndarray, d_central: np.ndarray, pv_dist: np.ndarray, intensity: np.ndarray,
                      idx: int) -> pd.DataFrame:
     return pd.DataFrame(
         dict(lobule=idx,
@@ -40,7 +46,9 @@ def create_lobule_df(height: np.ndarray, width: np.ndarray, d_portal: np.ndarray
              height=height,
              d_portal=d_portal,
              d_central=d_central,
-             intensity=intensity)
+             pv_dist=pv_dist,
+             intensity=intensity
+             )
     ).explode(["width", "height", "d_portal", "d_central", "intensity"])
 
 
@@ -110,6 +118,7 @@ def analyse_protein_expression_for_lobule(protein_array: np.ndarray, lobule_stat
 
     d_central = dist_central[~mask] * factor
     d_portal = dist_portal[~mask] * factor
+    pv_dist = dist(d_portal, d_central)
 
     # print(d_central)
     # print(d_portal)
@@ -118,7 +127,7 @@ def analyse_protein_expression_for_lobule(protein_array: np.ndarray, lobule_stat
     height = positions[:, 0] + miny
     width = positions[:, 1] + minx
 
-    return create_lobule_df(height, width, d_portal, d_central, intensity, idx)
+    return create_lobule_df(height, width, d_portal, d_central, pv_dist, intensity, idx)
 
 
 def analyse_protein_expression(protein_array: np.ndarray, slide_stats: SlideStats) -> pd.DataFrame:
