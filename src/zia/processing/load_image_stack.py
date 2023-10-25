@@ -42,5 +42,4 @@ def load_image_stack_from_zarr(roi_group: zarr.Group, level=PyramidalLevel.FIVE,
             ratio = count / median_count
             log.info(f"Discarded {i} with non background pixel ratio : {ratio:.2f}")
 
-    print(len(arrays))
     return np.stack(list(arrays.values()), axis=-1)

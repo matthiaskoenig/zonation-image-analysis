@@ -116,7 +116,8 @@ class MaskGenerator:
             for polygon in polygons.geoms:
                 cls._draw_polygon(polygon, mask, offset, color)
         else:
-            logger.warning(f"Non polygon type geometry encountered {type(polygons)}")
+            pass
+            #logger.warning(f"Non polygon type geometry encountered {type(polygons)}")
 
     @classmethod
     def _draw_polygon(

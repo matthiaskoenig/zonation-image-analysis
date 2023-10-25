@@ -9,18 +9,6 @@ import pandas as pd
 
 from zia.statistics.utils.data_provider import SlideStatsProvider, capitalize
 
-
-def dist(d_p: float, d_c: float) -> float:
-    return 1 - d_c / (d_p + d_c)
-
-
-def get_xlimits(slide_stat_df: pd.DataFrame, q=50) -> Dict[str, float]:
-    limits = {}
-    for species, df in slide_stat_df.groupby("species"):
-        limits[species] = np.percentile(df["minimum_bounding_radius"], q)
-    return limits
-
-
 if __name__ == "__main__":
     config = read_config(BASE_PATH / "configuration.ini")
     report_path = config.reports_path / "expression_gradient"
@@ -31,8 +19,6 @@ if __name__ == "__main__":
     df = pd.read_csv(config.reports_path / "lobule_distances.csv", sep=",", index_col=False)
     species_gb = df.groupby("species")
 
-    x_limits = get_xlimits(SlideStatsProvider.get_slide_stats_df(), 50)
-    bin_size = 50  # µm
     fig, axes = plt.subplots(nrows=len(protein_order), ncols=len(species_order), dpi=300, figsize=(len(species_order) * 2, len(protein_order) * 1.85),
                              layout="constrained")
     for col, species in enumerate(species_order):
@@ -57,7 +43,7 @@ if __name__ == "__main__":
 
             # bins = int(np.ceil(x_limits[species] / bin_size))
 
-            binned, bins = pd.cut(protein_df["pv_dist"], bins=20, retbins=True)
+            binned, bins = pd.cut(protein_df["pv_dist"], bins=12, retbins=True)
 
             x = []
             y = []
@@ -67,6 +53,7 @@ if __name__ == "__main__":
                 y.append(df_bin["intensity"])
 
             d = (bins[1] - bins[0])
+
             bp = ax.boxplot(x=y, positions=x, widths=d, patch_artist=True, showfliers=False, medianprops=dict(color="black"),
                             whis=[5, 95])
             for box in bp["boxes"]:
@@ -79,11 +66,6 @@ if __name__ == "__main__":
                 box.set(linewidth=0.5)
 
             ax.set_xticks([])
-            # ax.fill_between(x, ler, her, alpha=0.5, color=colors[col])
-
-            # ax.set_xlim(left=0, right=1.4)
-            # ax.set_ylim(bottom=0, top=1)
-            # ax.legend(frameon=False)
 
     fig: plt.Figure
     fig.supxlabel("Portality (-)", fontsize=14)

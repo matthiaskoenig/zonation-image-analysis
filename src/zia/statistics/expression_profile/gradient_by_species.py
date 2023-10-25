@@ -39,7 +39,7 @@ if __name__ == "__main__":
 
             protein_df = pd.concat(norm_dfs)
 
-            bins = 20
+            bins = 12
 
             binned, bins = pd.cut(protein_df["pv_dist"], bins=bins, retbins=True)
 
