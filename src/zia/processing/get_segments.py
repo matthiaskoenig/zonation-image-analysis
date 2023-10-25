@@ -420,7 +420,7 @@ class LineSegmentsFinder:
         return potential_branches
 
 
-def segment_thinned_image(image: np.ndarray, write=False) -> List[List[Tuple[int,int]]]:
+def segment_thinned_image(image: np.ndarray, write=False, plot=False) -> List[List[Tuple[int,int]]]:
     pixels = np.argwhere(image == 255)
 
     pixels = [tuple(coords) for coords in pixels]
@@ -431,6 +431,16 @@ def segment_thinned_image(image: np.ndarray, write=False) -> List[List[Tuple[int
     if write:
         with open("segmenter.pickle", "wb") as f:
             pickle.dump(segmenter, f)
+
+    if plot:
+        fig, ax = plt.subplots(dpi=600)
+        ax: plt.Axes
+        ax.invert_yaxis()
+        colors = np.random.rand(len(segements_finished), 3)  # Random RGB values between 0 and 1
+        for i, line in enumerate(segements_finished):
+            x, y = zip(*line)
+            ax.plot(y, x, marker="none", color=colors[i], linewidth=0.2)
+
     return segements_finished
 
 

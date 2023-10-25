@@ -12,14 +12,20 @@ Takes list of polygons and calculates statistics on them.
 from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Union, Optional
+from typing import List, Union, Optional, Tuple
 
 import geojson
 import numpy as np
 import pandas as pd
+import shapely
+import shapely.ops
 from matplotlib import pyplot as plt
-from shapely import Polygon, MultiPolygon, GeometryCollection, minimum_bounding_radius
+from shapely import Polygon, MultiPolygon, GeometryCollection, minimum_bounding_radius, Geometry
 from shapely.geometry import shape
+
+
+def offset_geom(geometry: Geometry, offset: Tuple[int, int]):
+    return shapely.ops.transform(lambda x, y: (x - offset[0], y - offset[1]), geometry)
 
 
 @dataclass(init=True)
@@ -27,6 +33,7 @@ class SlideStats:
     lobule_stats: List[LobuleStatistics]
     vessels_central: List[Union[Polygon, MultiPolygon, GeometryCollection]]
     vessels_portal: List[Union[Polygon, MultiPolygon, GeometryCollection]]
+    unclassified: List[Union[Polygon, MultiPolygon, GeometryCollection]]
     meta_data: dict
 
     def to_geojson(self, result_dir: Path) -> None:
@@ -40,6 +47,11 @@ class SlideStats:
         features = [geojson.Feature(geometry=g.__geo_interface__) for g in self.vessels_portal]
         col = geojson.FeatureCollection(features=features)
         with open(result_dir / "portal_vessels.geojson", "w") as f:
+            geojson.dump(col, f)
+
+        features = [geojson.Feature(geometry=g.__geo_interface__) for g in self.unclassified]
+        col = geojson.FeatureCollection(features=features)
+        with open(result_dir / "unclassified_vessels.geojson", "w") as f:
             geojson.dump(col, f)
 
         lobule_features = []
@@ -75,6 +87,15 @@ class SlideStats:
 
         portal_vessels = [shape(feature["geometry"]) for feature in col["features"]]
 
+        unclassified_dir = result_dir / "unclassified_vessels.geojson"
+        if not unclassified_dir.exists():
+            raise FileNotFoundError(f"{unclassified_dir} does not exist.")
+
+        with open(unclassified_dir, "r") as f:
+            col = geojson.load(f)
+
+        unclassified = [shape(feature["geometry"]) for feature in col["features"]]
+
         lobule_dir = result_dir / "lobuli.geojson"
         if not lobule_dir.exists():
             raise FileNotFoundError(f"{lobule_dir} does not exist.")
@@ -87,18 +108,21 @@ class SlideStats:
         for feature in col["features"]:
             central_vessels_idx = feature["properties"]["central_vessels"]
             portal_vessels_idx = feature["properties"]["portal_vessels"]
+            unclassified_idx = feature["properties"]["unclassified"]
 
             lobule_stat = LobuleStatistics.from_polygon(
                 shape(feature["geometry"]),
                 [central_vessels[i] for i in central_vessels_idx],
                 [portal_vessels[i] for i in portal_vessels_idx],
+                [unclassified[i] for i in unclassified_idx],
                 central_vessels_idx,
-                portal_vessels_idx
+                portal_vessels_idx,
+                unclassified_idx
             )
 
             lobule_stats.append(lobule_stat)
 
-        return cls(lobule_stats, central_vessels, portal_vessels, col.get("metaData"))
+        return cls(lobule_stats, central_vessels, portal_vessels, unclassified, col.get("metaData"))
 
     def plot(self):
         fig, ax = plt.subplots(1, 1, dpi=600)
@@ -131,20 +155,39 @@ class SlideStats:
                      pvessel_alpha: float = 0.5,
                      cvessel_ec: str = "cyan",
                      cvessel_fc: Optional[str] = "cyan",
-                     cvessel_alpha: float = 0.5
+                     cvessel_alpha: float = 0.5,
+                     ucvessel_ec: str = "black",
+                     ucvessel_fc: Optional[str] = "black",
+                     ucvessel_alpha: float = 0.5,
+                     offset: Tuple = None
                      ):
 
         for i, stat in enumerate(self.lobule_stats):
-            x, y = stat.polygon.exterior.xy
+            if offset is not None:
+                polygon = offset_geom(stat.polygon, offset)
+            else:
+                polygon = stat.polygon
+
+            x, y = polygon.exterior.xy
             ax.fill(y, x, facecolor=lobulus_fc if lobulus_fc is not None else "none", edgecolor=lobulus_ec, alpha=lobulus_alpha, linewidth=1)
 
         for i, geom in enumerate(self.vessels_central):
+            if offset:
+                geom = offset_geom(geom, offset)
             x, y = geom.buffer(1.0).exterior.xy
             ax.fill(y, x, facecolor=cvessel_fc, edgecolor=cvessel_ec, alpha=cvessel_alpha, linewidth=1)
 
         for i, geom in enumerate(self.vessels_portal):
+            if offset:
+                geom = offset_geom(geom, offset)
             x, y = geom.buffer(1.0).exterior.xy
             ax.fill(y, x, facecolor=pvessel_fc, edgecolor=pvessel_ec, alpha=pvessel_alpha, linewidth=1)
+
+        for i, geom in enumerate(self.unclassified):
+            if offset:
+                geom = offset_geom(geom, offset)
+            x, y = geom.buffer(1.0).exterior.xy
+            ax.fill(y, x, facecolor=ucvessel_fc, edgecolor=ucvessel_ec, alpha=ucvessel_alpha, linewidth=1)
 
     def to_dataframe(self) -> pd.DataFrame:
         rows = []
@@ -181,22 +224,29 @@ class LobuleStatistics:
     polygon: Polygon
     vessels_central: List[Union[Polygon, MultiPolygon, GeometryCollection]]
     vessels_portal: List[Union[Polygon, MultiPolygon, GeometryCollection]]
+    unclassified: List[Union[Polygon, MultiPolygon, GeometryCollection]]
     vessels_central_idx: List[int]
     vessels_portal_idx: List[int]
+    unclassified_idx: List[int]
 
     @classmethod
     def from_polygon(cls, polygon: Polygon,
                      vessels_central: List[Polygon],
                      vessels_portal: List[Polygon],
+                     unclassified: List[Polygon],
                      vessels_central_idx: List[int],
-                     vessels_portal_idx: List[int]
+                     vessels_portal_idx: List[int],
+                     unclassified_idx: List[int]
+
                      ) -> LobuleStatistics:
         lobule_statistics = LobuleStatistics(
             polygon=polygon,
             vessels_central=vessels_central,
             vessels_portal=vessels_portal,
+            unclassified=unclassified,
             vessels_central_idx=vessels_central_idx,
             vessels_portal_idx=vessels_portal_idx,
+            unclassified_idx=unclassified_idx
         )
 
         return lobule_statistics
@@ -224,7 +274,7 @@ class LobuleStatistics:
 
     def get_poly_area_without_vessel_area(self) -> float:
         intersection_area = 0.0
-        for vp in self.vessels_portal + self.vessels_central:
+        for vp in self.vessels_portal + self.vessels_central + self.unclassified:
             if self.polygon.contains(vp):
                 intersection_area += vp.area
             else:
@@ -250,17 +300,13 @@ class LobuleStatistics:
         return geojson.Feature(geometry=self.polygon.__geo_interface__,
                                properties={
                                    "central_vessels": self.vessels_central_idx,
-                                   "portal_vessels": self.vessels_portal_idx
+                                   "portal_vessels": self.vessels_portal_idx,
+                                   "unclassified": self.unclassified_idx
                                })
 
     @classmethod
     def to_dataframe(cls, statistics: List[LobuleStatistics]) -> pd.DataFrame:
         pass
-
-
-def visualize_statistics(df_statistics: pd.DataFrame) -> None:
-    """Creates histograms or other figures."""
-    pass
 
 
 if __name__ == "__main__":

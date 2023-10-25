@@ -47,7 +47,9 @@ if __name__ == "__main__":
             ax: plt.Axes
             ax.imshow(roi_protein, cmap="binary_r")
 
-            slide_stats.plot_on_axis(ax)
+            slide_stats.plot_on_axis(ax,
+                                     lobulus_fc="lime",
+                                     lobulus_alpha=0.2)
             plt.savefig(report_path / f"{subject}_{roi}.jpeg")
 
             plt.show()

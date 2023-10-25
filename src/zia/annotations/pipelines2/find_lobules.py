@@ -33,10 +33,10 @@ def find_lobules_for_subject(subject: str, roi: int, roi_group: zarr.Group, resu
     final_level, filtered_image_stack = image_filter.prepare_image()
 
     logger.info("Run superpixel algorithm.")
-    thinned, (vessel_classes, vessel_contours) = run_skeletize_image(filtered_image_stack, n_clusters=3, pad=pad)
+    thinned, (vessel_classes, vessel_contours) = run_skeletize_image(filtered_image_stack, n_clusters=3, pad=pad, plot=plot)
 
     logger.info("Segmenting lines in thinned image.")
-    line_segments = segment_thinned_image(thinned)
+    line_segments = segment_thinned_image(thinned, plot=plot)
 
     logger.info("Creating lobule and vessel polygons from line segments and vessel contours.")
     slide_stats = process_line_segments(line_segments,
@@ -60,6 +60,7 @@ if __name__ == "__main__":
         zarr_store = zarr.open(store=subject_dir)
 
         subject = subject_dir.stem
+
         stain_1 = zarr_store.get(f"{ZarrGroups.STAIN_1.value}")
         if stain_1 is None:
             logger.error(f"Stain 1 does not exists for subject {subject}.")
