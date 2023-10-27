@@ -21,6 +21,8 @@ df_spcount <- feather::read_feather('NOR-024_R0_L6_location.feather')
 
 location1 <- npyLoad("NOR-024_R0_L4_location.npy")
 rownames(location1, c("xcoord", "ycoord"))
+
+range(dim)
 colnames(location1, c)
 
 
