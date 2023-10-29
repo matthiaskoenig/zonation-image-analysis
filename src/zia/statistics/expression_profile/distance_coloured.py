@@ -11,7 +11,7 @@ from zia.processing.lobulus_statistics import SlideStats
 from zia.statistics.utils.data_provider import SlideStatsProvider
 
 
-def plot_pic(array, slide_stats: SlideStats, min_h, min_w, title: str = None, cmap: str = "plasma", ) -> plt.Figure:
+def plot_pic(array, slide_stats: SlideStats, min_h, min_w, title: str = None, cmap: str = "magma", ) -> plt.Figure:
     fig: plt.Figure
     ax: plt.Axes
     base_size = 6.4
@@ -33,7 +33,7 @@ def plot_pic(array, slide_stats: SlideStats, min_h, min_w, title: str = None, cm
     show = ax.imshow(array, cmap=matplotlib.colormaps.get_cmap(cmap))
     cax = ax1.inset_axes([0.78, 0, 0.2, 1])
     fig.colorbar(show, cax=cax, orientation="horizontal")
-    cax.xaxis.set_ticks([np.nanmax(array), np.nanmin(array)], ["PF", "CV"])
+    cax.xaxis.set_ticks([np.nanmax(array), np.nanmin(array)], ["PP", "PV"])
     ax.axis("off")
     ax1.axis("off")
 

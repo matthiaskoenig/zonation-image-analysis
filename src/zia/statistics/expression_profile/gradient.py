@@ -12,13 +12,14 @@ import pandas as pd
 from zia.statistics.utils.data_provider import SlideStatsProvider, capitalize
 
 if __name__ == "__main__":
+    plt.style.use("tableau-colorblind10")
     config = read_config(BASE_PATH / "configuration.ini")
     report_path = config.reports_path / "expression_gradient"
     report_path.mkdir(exist_ok=True, parents=True)
-    protein_order = ["CYP1A2", "CYP2D6", "CYP2E1", "CYP3A4", "GS", "HE"]
+    protein_order = ["HE", "GS", "CYP1A2", "CYP2D6", "CYP2E1", "CYP3A4"]
     species_order = SlideStatsProvider.species_order
     colors = SlideStatsProvider.colors
-    protein_markers = ['#1b9e77', '#d95f02', '#7570b3', '#e7298a', '#66a61e', '#e6ab02']
+    # colors for proteins = #006BA4, #FF800E, #ABABAB, #595959, #5F9ED1, #C85200]
 
     df = pd.read_csv(config.reports_path / "lobule_distances.csv", sep=",", index_col=False)
     species_gb = df.groupby("species")
@@ -86,6 +87,10 @@ if __name__ == "__main__":
             for box in bp["whiskers"]:
                 box.set(linewidth=0.5)
 
+            lobule_count = len(protein_df.groupby(["subject", "lobule"]))
+
+            ax.text(x=0.98, y=0.01, s=f"n={lobule_count}", fontsize=10, ha="right", va="bottom", transform=ax.transAxes)
+
             ax.set_xticks([])
 
     # plot all species per protein
@@ -96,8 +101,8 @@ if __name__ == "__main__":
 
     # plot all proteins per species
     for i in range(len(species_order)):
-        for (x, medians), m in zip(medians_array[:, i], protein_markers):
-            axes[-1, i].plot(x, medians, marker="o", color=m, markerfacecolor=m, markeredgecolor="black",
+        for k, (x, medians) in enumerate(medians_array[:, i]):
+            axes[-1, i].plot(x, medians, marker="o", color=f"C{k}", markeredgecolor="black",
                              markersize=4)
 
     fig: plt.Figure
@@ -105,7 +110,7 @@ if __name__ == "__main__":
     fig.supylabel("Normalized intensity (-)", fontsize=14)
 
     for ax in axes[-1, :].flatten():
-        ax.xaxis.set_ticks([0, 1], labels=["PF", "CV"])
+        ax.xaxis.set_ticks([0, 1], labels=["PP", "PV"])
 
     axes[-1, -1].set_axis_off()
 
@@ -133,16 +138,12 @@ if __name__ == "__main__":
     for species, ax in zip(species_order, axes[0, :].flatten()):
         ax.set_title(capitalize(species), fontsize=14, fontweight="bold")
 
+    axes[-2, -1].xaxis.set_ticks([0, 1], labels=["PP", "PV"])
+
     handles = []
 
-    for protein, c in zip(protein_order, protein_markers):
-        handles.append(Line2D([], [], linestyle="-", color=c, marker="o", markeredgecolor="black", label=protein))
-
-    """for species, c in zip(species_order, colors):
-        handles.append(Patch(color=c, label=species))"""
-
-    """for i in range(2):
-        handles.append(Patch(color="none", label=""))"""
+    for i, protein in enumerate(protein_order):
+        handles.append(Line2D([], [], linestyle="-", color=f"C{i}", marker="o", markeredgecolor="black", label=protein))
 
     axes[-1, -1].legend(handles=handles, frameon=False, ncols=1, prop=dict(size=10))
 

@@ -1,11 +1,10 @@
 from pathlib import Path
 from typing import Tuple, List, Optional, Callable
 
-import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
-from zia.statistics.boxplots_species_comparison import identity, visualize_species_comparison
+from zia.statistics.lobulus_geometry.boxplots_species_comparison import identity
 from zia.statistics.utils.data_provider import SlideStatsProvider
 
 
