@@ -67,4 +67,4 @@ if __name__ == "__main__":
     df = SlideStatsProvider.get_slide_stats_df()
     report_path = SlideStatsProvider.create_report_path("boxplots")
 
-    visualize_species_correlation(df, SlideStatsProvider.species_order, SlideStatsProvider.colors, report_path)
+    visualize_species_correlation(df, SlideStatsProvider.species_order, SlideStatsProvider.species_colors, report_path)

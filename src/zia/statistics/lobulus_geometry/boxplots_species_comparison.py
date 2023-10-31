@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 from scipy.stats._mannwhitneyu import MannwhitneyuResult, mannwhitneyu
 
-from zia.statistics.utils.data_provider import SlideStatsProvider
+from zia.statistics.utils.data_provider import SlideStatsProvider, capitalize
 from zia.statistics.utils.plot_significance import plot_significance
 
 
@@ -35,9 +35,12 @@ def visualize_subject_comparison(df: pd.DataFrame, species_oder: list[str], colo
     groupby = df.groupby("species")
     for species, color in zip(species_oder, colors):
         species_df = groupby.get_group(species)
-        box_plot_subject_comparison(species_df, species, "area", "area", report_path=report_path, log=True, color=color)
-        box_plot_subject_comparison(species_df, species, "compactness", "compactness", report_path=report_path, limits=(0, 1), color=color)
-        box_plot_subject_comparison(species_df, species, "perimeter", "perimeter", report_path=report_path, color=color)
+        box_plot_subject_comparison(species_df, species, "area", "area", report_path=report_path, log=True, color=color, ax=None,
+                                    test_results=None)
+        box_plot_subject_comparison(species_df, species, "compactness", "compactness", report_path=report_path, limits=(0, 1), color=color, ax=None,
+                                    test_results=None)
+        box_plot_subject_comparison(species_df, species, "perimeter", "perimeter", report_path=report_path, color=color, ax=None,
+                                    test_results=None)
 
 
 def box_plot_subject_comparison(species_df: pd.DataFrame,
@@ -47,7 +50,11 @@ def box_plot_subject_comparison(species_df: pd.DataFrame,
                                 report_path: Path = None,
                                 log=False,
                                 limits=None,
-                                color=(0, 0, 0)):
+                                color=(0, 0, 0),
+                                ax: plt.Axes = None,
+                                test_results=None,
+                                annotate_n=True
+                                ):
     data_dict = {}
 
     unit = None
@@ -57,13 +64,15 @@ def box_plot_subject_comparison(species_df: pd.DataFrame,
         if unit is None:
             unit = set(species_df[f"{attribute}_unit"]).pop()
 
-    fig, ax = create_subplots()
-    fig.suptitle(species)
+    if ax is None:
+        fig, ax = create_subplots()
+        fig.suptitle(species)
 
     if not log:
-        bplot = ax.boxplot(data_dict.values(),
+        bplot = ax.boxplot(list(data_dict.values()),
                            showfliers=False,
                            showcaps=False,
+                           widths=0.66,
                            medianprops=dict(color="black"),
                            patch_artist=True)
     else:
@@ -72,6 +81,10 @@ def box_plot_subject_comparison(species_df: pd.DataFrame,
     for patch in bplot['boxes']:
         patch.set_facecolor(color + (0.3,))
 
+    print(list(data_dict.keys()))
+    if test_results is not None:
+        plot_significance(ax, list(data_dict.keys()), test_results, log)
+
     for i, (subject, data) in enumerate(data_dict.items()):
         x_scatter = np.random.normal(i + 1, 0.05, size=len(data))
         ax.scatter(x_scatter,
@@ -79,26 +92,39 @@ def box_plot_subject_comparison(species_df: pd.DataFrame,
                    color=color + (0.5,),
                    s=1)
 
+        if annotate_n:
+            n_axes = ax.inset_axes((0, 0, 1, 0.05), transform=ax.transAxes)
+            n_axes.text((i + 1) / len(data_dict) - 1 / 2 * 1 / len(data_dict),
+                        0,
+                        s=f"n={len(data_dict[subject])}",
+                        ha="center",
+                        va="bottom",
+                        fontsize=6)
+            n_axes.axis("off")
+            n_axes.patch.set_alpha(0.5)
+            n_axes.patch.set_facecolor("white")
+
     if limits is not None:
         ax.set_ylim(limits)
 
     ax.set_xticklabels([k.replace("_Human", "") for k in data_dict.keys()])
-    ax.set_ylabel(f"{y_label} ({unit})")
+    ax.set_ylabel(f"{capitalize(y_label)} ({unit})")
 
     if report_path is not None:
         plt.savefig(report_path / f"subjects_{species}_{attribute}.jpeg")
-
-    plt.show()
+        plt.show()
 
 
 def box_plot_species_comparison(df: pd.DataFrame,
                                 attribute: str,
                                 y_label: str,
                                 species_order: List[str],
-                                colors: List[Tuple[int]],
+                                colors: List[Tuple[float]],
                                 report_path: Path = None,
                                 log=False,
-                                limits=None):
+                                ax: plt.Axes = None,
+                                test_results=None,
+                                annotate_n=True):
     data_dict = {}
     species_subject_dict = {}
 
@@ -119,13 +145,15 @@ def box_plot_species_comparison(df: pd.DataFrame,
 
         species_subject_dict[species] = subject_data
 
-    fig, ax = plt.subplots(1, 1, dpi=600)
+    if ax is None:
+        fig, ax = plt.subplots(1, 1, dpi=600)
     ax: plt.Axes
 
     if not log:
         bplot = ax.boxplot([data_dict[s] for s in species_order],
                            showfliers=False,
                            showcaps=False,
+                           widths=0.66,
                            medianprops=dict(color="black"),
                            patch_artist=True)
     else:
@@ -134,33 +162,39 @@ def box_plot_species_comparison(df: pd.DataFrame,
     for patch, color in zip(bplot['boxes'], colors):
         patch.set_facecolor(color + (0.3,))
 
-    combinations = np.ones(shape=(len(data_dict), len(data_dict))) * -1
+    if test_results is not None:
+        plot_significance(ax, species_order, test_results, log)
 
-    for i, g1 in enumerate(species_order):
-        for k, g2 in enumerate(species_order[i + 1:]):
-            x = data_dict.get(g1)
-            y = data_dict.get(g2)
-            if log:
-                x, y = np.log10(x), np.log10(y)
-            res: MannwhitneyuResult = mannwhitneyu(x, y)
-            combinations[i, k + i + 1] = res.pvalue
-    print(combinations)
-    plot_significance(ax, combinations, log)
-
+    n_axes = ax.inset_axes((0, -0.07, 1, 0.07), transform=ax.transAxes)
+    ax.set_xticks([])
     for i, (species, subject_dict) in enumerate(species_subject_dict.items()):
         for subject, data in subject_dict.items():
-            x_scatter = np.random.normal(i + 1, 0.05, size=len(data))
+            x_scatter = np.random.normal(i + 1, 0.066, size=len(data))
             ax.scatter(x_scatter,
                        data,
                        color=colors[i] + (0.5,),
                        s=1)
+        if annotate_n:
+            n_axes.text((i + 1) / len(data_dict) - 1 / 2 * 1 / len(data_dict),
+                        0,
+                        s=f"{len(data_dict[species])}",
+                        ha="center",
+                        va="bottom",
+                        fontsize=8)
 
-    ax.set_xticklabels(species_order)
-    ax.set_ylabel(f"{y_label} ({unit})")
+            n_axes.fill_betweenx(y=[0, 1], x1=i / len(data_dict), x2=(i + 1) / len(data_dict), color="white" if i % 2 == 0 else "whitesmoke")
+
+        n_axes.set_xlim(left=0, right=1)
+
+
+    n_axes.set_xticks([(i + 1) / len(data_dict) - 1 / 2 * 1 / len(data_dict) for i in range(len(data_dict))], [capitalize(s) for s in species_order])
+    n_axes.set_yticks([])
+    # n_axes.set_ylabel("n", rotation=0, va="center")
+    ax.set_ylabel(f"{capitalize(y_label)} ({unit})")
 
     if report_path is not None:
         plt.savefig(report_path / f"species_{attribute}.jpeg")
-    plt.show()
+        plt.show()
 
 
 def violin_plot_species_comparison(df: pd.DataFrame,
@@ -224,7 +258,7 @@ def violin_plot_species_comparison(df: pd.DataFrame,
         ax.set_ylim(limits)
 
     ax.set_xticks(np.arange(1, len(data_plot) + 1), species_order)
-    ax.set_ylabel(f"{y_label} ({unit})")
+    ax.set_ylabel(f"{capitalize(y_label)} ({unit})")
 
     if report_path is not None:
         plt.savefig(report_path / f"species_violin_{attribute}.jpeg")
@@ -258,6 +292,7 @@ def box_plot_log(data_dict: Dict[str, pd.Series], ax: plt.Axes) -> dict:
     bplot = ax.bxp(bxpstats,
                    showfliers=False,
                    showcaps=False,
+                   widths=0.66,
                    medianprops=dict(color="black"),
                    patch_artist=True
                    )
@@ -271,6 +306,6 @@ if __name__ == "__main__":
     df = SlideStatsProvider.get_slide_stats_df()
     report_path = SlideStatsProvider.create_report_path("boxplots")
     # print(df.columns)
-    visualize_species_comparison(df, SlideStatsProvider.species_order, SlideStatsProvider.colors, report_path)
+    visualize_species_comparison(df, SlideStatsProvider.species_order, SlideStatsProvider.species_colors, report_path)
     # visualize_subject_comparison(df, species_order, colors, report_path)
     # visualize_species_correlation(df,SlideStatsProvider.species_order,SlideStatsProvider.colors,report_path)

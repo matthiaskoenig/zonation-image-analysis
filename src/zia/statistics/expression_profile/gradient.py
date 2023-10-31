@@ -18,7 +18,7 @@ if __name__ == "__main__":
     report_path.mkdir(exist_ok=True, parents=True)
     protein_order = ["HE", "GS", "CYP1A2", "CYP2D6", "CYP2E1", "CYP3A4"]
     species_order = SlideStatsProvider.species_order
-    colors = SlideStatsProvider.colors
+    colors = ["#77AADD", "#EE8866", "#DDDDDD", "#44BB99"]
     # colors for proteins = #006BA4, #FF800E, #ABABAB, #595959, #5F9ED1, #C85200]
 
     df = pd.read_csv(config.reports_path / "lobule_distances.csv", sep=",", index_col=False)

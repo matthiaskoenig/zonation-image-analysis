@@ -65,7 +65,7 @@ if __name__ == "__main__":
     report_path.mkdir(exist_ok=True, parents=True)
     protein_order = ["CYP1A2", "CYP2D6", "CYP2E1", "CYP3A4", "GS", "HE"]
     species_order = SlideStatsProvider.species_order
-    colors = SlideStatsProvider.colors
+    colors = SlideStatsProvider.species_colors
     df = pd.read_csv(config.reports_path / "lobule_distances.csv", sep=",", index_col=False)
     species_gb = df.groupby("species")
 

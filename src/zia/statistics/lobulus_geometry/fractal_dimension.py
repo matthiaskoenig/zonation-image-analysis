@@ -19,7 +19,7 @@ if __name__ == "__main__":
 
     markers = ["o", "v", "^", "s", "p", "P", "*", "h"]
 
-    for species, color in zip(SlideStatsProvider.species_order, SlideStatsProvider.colors):
+    for species, color in zip(SlideStatsProvider.species_order, SlideStatsProvider.species_colors):
         species_df = gb.get_group(species)
 
         marker_iter = iter(markers)

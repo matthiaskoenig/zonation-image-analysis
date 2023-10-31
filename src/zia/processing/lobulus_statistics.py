@@ -213,7 +213,7 @@ class SlideStats:
                 area_without_vessels=stat.get_poly_area_without_vessel_area() * dimension_factor ** 2,
                 area_without_vessels_unit="µm$^$2",
                 minimum_bounding_radius=stat.get_enclosing_circle_radius() * dimension_factor,
-                minimum_bounding_radius_unit="µm2"
+                minimum_bounding_radius_unit="µm"
             )
             rows.append(row_dict)
         return pd.DataFrame(rows)

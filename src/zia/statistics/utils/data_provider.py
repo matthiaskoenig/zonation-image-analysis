@@ -1,6 +1,6 @@
 import re
 from pathlib import Path
-from typing import Optional, Dict
+from typing import Optional, Dict, Tuple, List
 
 import pandas as pd
 
@@ -50,10 +50,12 @@ def _merge_to_one_df(slide_stats: Dict[str, Dict[str, SlideStats]]) -> pd.DataFr
 class SlideStatsProvider:
     _config = read_config(BASE_PATH / "configuration.ini")
     species_order = ["mouse", "rat", "pig", "human"]
-    colors = [(102 / 255, 194 / 255, 165 / 255),
-              (252 / 255, 141 / 255, 98 / 255),
-              (141 / 255, 160 / 255, 203 / 255),
-              (231 / 255, 138 / 255, 195 / 255)]
+    protein_order = ["HE", "GS", "CYP1A2", "CYP2D6", "CYP2E1", "CYP3A4"]
+    species_colors = ["#77AADD", "#EE8866", "#DDDDDD", "#44BB99"]
+
+    @classmethod
+    def get_species_colors_as_rgb(cls) -> List[Tuple[float]]:
+        return [(tuple(int(h.strip("#")[i:i + 2], 16)/255 for i in (0, 2, 4))) for h in cls.species_colors]
 
     @classmethod
     def get_report_path(cls) -> Path:

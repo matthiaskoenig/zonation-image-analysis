@@ -10,7 +10,7 @@ from zia.statistics.utils.data_provider import SlideStatsProvider
 def qq_plot(df: pd.DataFrame, attr: str, log=False):
     gb = df.groupby("species")
 
-    for species, color in zip(SlideStatsProvider.species_order, SlideStatsProvider.colors):
+    for species, color in zip(SlideStatsProvider.species_order, SlideStatsProvider.species_colors):
         species_df = gb.get_group(species)
         x = species_df[attr]
         if log:
