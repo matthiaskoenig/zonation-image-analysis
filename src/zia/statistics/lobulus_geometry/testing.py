@@ -76,6 +76,6 @@ if __name__ == "__main__":
         tukey_kramer_subject = test_turkey_hsd("subject", attributes, species_df, logs)
         tukey_kramer_subject.to_csv(report_path / f"tukey_{species}_subjects.csv", index=False)
 
-        # mouse roi comparison ->TODO: need to know which roi needs to be compared to which roi.
+        # mouse roi comparison -> TODO: need to know which roi needs to be compared to which roi.
         if species == "mouse":
             pass

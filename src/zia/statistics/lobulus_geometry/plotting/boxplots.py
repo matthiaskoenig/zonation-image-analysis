@@ -1,14 +1,13 @@
 from collections.abc import Callable
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from scipy.stats._mannwhitneyu import MannwhitneyuResult, mannwhitneyu
 
 from zia.statistics.utils.data_provider import SlideStatsProvider, capitalize
-from zia.statistics.utils.plot_significance import plot_significance
+from zia.statistics.lobulus_geometry.plotting.plot_significance import plot_significance
 
 
 def identity(x):

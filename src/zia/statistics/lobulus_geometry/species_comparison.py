@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import pandas as pd
 
-from zia.statistics.lobulus_geometry.boxplots_species_comparison import box_plot_species_comparison
+from zia.statistics.lobulus_geometry.plotting.boxplots import box_plot_species_comparison
 from zia.statistics.utils.data_provider import SlideStatsProvider
 
 if __name__ == "__main__":
@@ -11,7 +11,7 @@ if __name__ == "__main__":
 
     attributes = ["perimeter", "area", "compactness", "minimum_bounding_radius"]
     labels = ["perimeter", "area", "compactness", "min bounding radius"]
-    logs = [True, True, False, False]
+    logs = [True, True, False, True]
 
     test_results = pd.read_csv(SlideStatsProvider.get_report_path() / "statistical_test_results" / "tukey_species.csv", index_col=False)
 

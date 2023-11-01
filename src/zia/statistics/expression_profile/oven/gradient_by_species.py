@@ -9,14 +9,6 @@ import pandas as pd
 
 from zia.statistics.utils.data_provider import SlideStatsProvider, capitalize
 
-
-def get_xlimits(slide_stat_df: pd.DataFrame, q=50) -> Dict[str, float]:
-    limits = {}
-    for species, df in slide_stat_df.groupby("species"):
-        limits[species] = np.percentile(df["minimum_bounding_radius"], q)
-    return limits
-
-
 if __name__ == "__main__":
     config = read_config(BASE_PATH / "configuration.ini")
     report_path = config.reports_path / "expression_gradient"
@@ -27,10 +19,6 @@ if __name__ == "__main__":
     df = pd.read_csv(config.reports_path / "lobule_distances.csv", sep=",", index_col=False)
     species_gb = df.groupby("species")
 
-    x_limits = get_xlimits(SlideStatsProvider.get_slide_stats_df(), 75)
-    x_lim = min(list(x_limits.values()))
-    bin_size = 50  # µm
-    print(x_limits)
     fig, axes = plt.subplots(nrows=2, ncols=3, dpi=300, figsize=(3 * 2.5, 2 * 2.5),
                              layout="constrained")
     for col, species in enumerate(species_order):
@@ -51,18 +39,16 @@ if __name__ == "__main__":
 
             protein_df = pd.concat(norm_dfs)
 
-            protein_df = protein_df[protein_df["d_central"] <= x_lim]
+            bins = 12
 
-            bins = int(np.ceil(x_lim / bin_size))
-
-            binned, bins = pd.cut(protein_df["d_central"], bins=bins, retbins=True)
+            binned, bins = pd.cut(protein_df["pv_dist"], bins=bins, retbins=True)
 
             x = []
             y = []
             ler = []
             her = []
             for i in range(len(bins) - 1):
-                df_bin = protein_df[(protein_df["d_central"] > bins[i]) & (protein_df["d_central"] <= bins[i + 1])]
+                df_bin = protein_df[(protein_df["pv_dist"] > bins[i]) & (protein_df["pv_dist"] <= bins[i + 1])]
                 norm_intensity = df_bin["intensity"]
                 x.append((bins[i] + bins[i + 1]) / 2)
                 y.append(np.median(norm_intensity))
@@ -73,15 +59,12 @@ if __name__ == "__main__":
             ax.fill_between(x, ler, her, alpha=0.2, color=colors[col], edgecolor="none")
 
     fig: plt.Figure
-    fig.supxlabel("Distance to lobule center (µm)", fontsize=12)
+    fig.supxlabel("Portality (-)", fontsize=12)
     fig.supylabel("Normalized intensity (-)", fontsize=12)
 
     for protein, ax in zip(protein_order, axes.flatten()):
-        x = np.arange(0, 1500, 100)
-        x_max = min(list(x_limits.values()))
-        x_range = x[x <= x_max]
-        ax.set_xlim(left=0, right=x_max)
-        ax.xaxis.set_ticks(x_range, x_range)
+        ax.set_xlim(left=0, right=1)
+        ax.xaxis.set_ticks([0, 1], ["PF", "CV"])
         ax.set_title(protein, fontsize=10, fontweight="bold", y=0.85)
 
     for ax in axes.flatten():
@@ -105,12 +88,5 @@ if __name__ == "__main__":
         ncol=4
     )
 
-    """for protein, ax in zip(protein_order, axes[:, -1].flatten()):
-        ax.set_ylabel(protein, fontsize=14, fontweight="bold")
-        ax.yaxis.set_label_position("right")
-         
-         for species, ax in zip(species_order, axes[0, :].flatten()):
-        ax.set_title(capitalize(species), fontsize=14, fontweight="bold")"""
-
-    fig.savefig(report_path / f"expression_profile_by_species.png", bbox_extra_artists=(lgd,))
+    fig.savefig(report_path / f"gradient_by_species.png", bbox_extra_artists=(lgd,))
     plt.show()

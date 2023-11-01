@@ -30,14 +30,14 @@ def create_registration_image(subject_dir: Path, stains: List[str], results_dir:
 
     non_rigid_dir = subject_dir / subject_id / "non_rigid_registration"
     image_prefixes: Dict[str, str] = image_prefixes_from_dir(non_rigid_dir, stains=stains)
-    console.log(subject_id)
-    console.log(image_prefixes)
+    console.log_pair(subject_id)
+    console.log_pair(image_prefixes)
 
     # output_path = subject_dir / f"{subject_id}_registered.png"
     output_path = results_dir / f"{subject_id}_registered.png"
     image_paths = [non_rigid_dir / f"{prefix}.png" for prefix in image_prefixes.values()]
     merge_images(paths=image_paths, output_path=output_path, direction="horizontal")
-    console.log(output_path)
+    console.log_pair(output_path)
 
 
 def create_stain_separation_image(subject_dir: Path, stains: List[str], results_dir: Path):
@@ -48,10 +48,10 @@ def create_stain_separation_image(subject_dir: Path, stains: List[str], results_
     files = [ome_tiff_dir / f"{prefix}.ome.tiff" for prefix in image_prefixes.values()]
     output_path = results_dir / f"{subject_id}_registered_stain_separated.png"
 
-    console.log(subject_id)
-    console.log(image_prefixes)
+    console.log_pair(subject_id)
+    console.log_pair(image_prefixes)
 
-    console.log(output_path)
+    console.log_pair(output_path)
 
     fig, axes = plt.subplots(2, len(files), figsize=(3 * len(files), 3 * 0.90 * 2), dpi=1000)
     axes[0, 0].set_ylabel("Hematoxylin")

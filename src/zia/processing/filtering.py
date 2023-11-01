@@ -62,7 +62,7 @@ class Filter:
     def _get_level_diff(self):
         diff = np.log2(self.incoming_shape[0] / self.image.shape[0])
         new_level = self.level + diff
-        return PyramidalLevel.get_by_numeric_level(int(new_level))
+        return PyramidalLevel.get_by_numeric_level(round(new_level))
 
     def prepare_image(self) -> Tuple[int, np.ndarray]:
         self._apply_filter(self._invert_image)

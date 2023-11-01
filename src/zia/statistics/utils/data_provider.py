@@ -53,6 +53,10 @@ class SlideStatsProvider:
     protein_order = ["HE", "GS", "CYP1A2", "CYP2D6", "CYP2E1", "CYP3A4"]
     species_colors = ["#77AADD", "#EE8866", "#DDDDDD", "#44BB99"]
 
+    exclusion_dict = {
+        "UKJ-19-010_Human": ["CYP2D6", "GS"]
+    }
+
     @classmethod
     def get_species_colors_as_rgb(cls) -> List[Tuple[float]]:
         return [(tuple(int(h.strip("#")[i:i + 2], 16)/255 for i in (0, 2, 4))) for h in cls.species_colors]

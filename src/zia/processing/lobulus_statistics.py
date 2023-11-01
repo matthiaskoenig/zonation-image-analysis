@@ -171,6 +171,8 @@ class SlideStats:
             x, y = polygon.exterior.xy
             ax.fill(y, x, facecolor=lobulus_fc if lobulus_fc is not None else "none", edgecolor=lobulus_ec, alpha=lobulus_alpha, linewidth=1)
 
+            ax.text(s=f"{i}", x=polygon.centroid.y, y=polygon.centroid.x, va="center", ha="center", fontsize=6)
+
         for i, geom in enumerate(self.vessels_central):
             if offset:
                 geom = offset_geom(geom, offset)
