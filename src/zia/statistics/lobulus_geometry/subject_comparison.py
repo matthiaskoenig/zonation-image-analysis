@@ -19,8 +19,8 @@ if __name__ == "__main__":
                              figsize=(len(attributes) * 2.5, len(SlideStatsProvider.species_order) * 2.5),
                              layout="constrained")
 
-    df["minimum_bounding_radius"] = df["minimum_bounding_radius"] / 1000
-    df["minimum_bounding_radius_unit"] = "mm"
+    #df["minimum_bounding_radius"] = df["minimum_bounding_radius"] / 1000
+    #df["minimum_bounding_radius_unit"] = "mm"
 
     species_gb = df.groupby("species")
 
@@ -79,6 +79,7 @@ if __name__ == "__main__":
             in_axes.fill_betweenx(y=[0, 1], x1=i / len(counts), x2=(i + 1) / len(counts), color="white" if i % 2 == 0 else "whitesmoke")
 
         in_axes.set_xlim(left=0, right=1)
+
 
     plt.savefig(report_path / "subject_comparison.png")
     plt.show()

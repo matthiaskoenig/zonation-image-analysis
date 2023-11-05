@@ -6,7 +6,6 @@ import pandas as pd
 from matplotlib import pyplot as plt
 from matplotlib.patches import Patch
 
-from zia.statistics.lobulus_geometry.plotting.boxplots import identity
 from zia.statistics.lobulus_geometry.plotting.correlation_plots import scatter_plot_correlation
 from zia.statistics.utils.data_provider import SlideStatsProvider, capitalize
 
@@ -18,6 +17,8 @@ if __name__ == "__main__":
     attributes = ["perimeter", "area", "compactness"]
     labels = ["Perimeter", "Area", "Compactness"]
     logs = [True, True, False]
+    species_order = ["pig", "human", "mouse", "rat"]
+    species_colors = SlideStatsProvider.get_species_colors_as_rgb()[2:] + SlideStatsProvider.get_species_colors_as_rgb()[0:2]
 
     # df["minimum_bounding_radius"] = df["minimum_bounding_radius"] / 1000
     # df["minimum_bounding_radius_unit"] = "mm"
@@ -55,10 +56,10 @@ if __name__ == "__main__":
         limits_y = np.min(df[attr_pair[1]]), np.max(df[attr_pair[1]]),
 
         unit_pairs.append((set(df[f"{attr_pair[0]}_unit"]).pop(), set(df[f"{attr_pair[1]}_unit"]).pop()))
-        for k, (species, color, ax) in enumerate(zip(SlideStatsProvider.species_order, SlideStatsProvider.get_species_colors_as_rgb(), subaxes)):
+        for k, (species, color, ax) in enumerate(zip(species_order, species_colors, subaxes)):
             species_df = species_gb.get_group(species)
             scatter_plot_correlation(species_df, color=color, attr=attr_pair, log=log_pair, labels=label_pair, limits_x=limits_x, limits_y=limits_y,
-                                     ax=ax, scatter=False)
+                                     ax=ax, scatter=True)
             if i == 0:
                 legend_handles.append(Patch(color=color, label=capitalize(species)))
 
@@ -98,6 +99,7 @@ if __name__ == "__main__":
             for ax in subax_arr[:, 1].flatten():
                 ax.set_yticklabels([])
 
+    legend_handles = legend_handles[2:] + legend_handles[:2]
     axes[0, 1].legend(frameon=False, handles=legend_handles, loc="upper left", prop=dict(size=12))
     plt.savefig(report_path / "correlation_matrix.png")
     plt.show()

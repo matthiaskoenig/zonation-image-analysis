@@ -12,33 +12,38 @@ from zia.statistics.utils.data_provider import SlideStatsProvider
 
 
 def plot_pic(array, slide_stats: SlideStats, min_h, min_w, title: str = None, cmap: str = "magma", ) -> plt.Figure:
-    fig: plt.Figure
-    ax: plt.Axes
-    base_size = 6.4
-    array = array[min_h:, min_w:]
-    hw_ratio = array.shape[0] * 1.1 / array.shape[1]
+    fig: plt.Figure()
 
-    if hw_ratio > 0.5:
-        h, w = base_size, base_size / hw_ratio
-    else:
-        h, w = base_size * hw_ratio, base_size
+    px = 1 / plt.rcParams["figure.dpi"]  # pixel in inches
+    ax: plt.Axes
+    array = array[min_h:, min_w:]
+
+    h, w = array.shape[0], array.shape[1]
+
+    lower_axes_px = 20
+    upper_axes_px = 10
+
+    upper_axes_height = upper_axes_px / w
+    lower_axes_height = lower_axes_px / w
 
     pixel_width = 0.22724690376093626  # µm level 0
     p_factor = 2 ** 7 * pixel_width
 
-    fig, (ax, ax1) = plt.subplots(2, 1, figsize=(w, h), dpi=300, sharex=True, height_ratios=[0.95, 0.05])
+    rular_width = 1000 / p_factor / h  # rel ative length of rular
+    print(rular_width)
 
-    if title is not None:
-        ax.set_title(title)
+    fig, ax = plt.subplots(1, figsize=(w * px, h * px))
+
     show = ax.imshow(array, cmap=matplotlib.colormaps.get_cmap(cmap))
-    cax = ax1.inset_axes([0.78, 0, 0.2, 1])
+    lower_axes = ax.inset_axes((0, - lower_axes_height, 1, lower_axes_height), transform=ax.transAxes)
+
+    cax = lower_axes.inset_axes((0.8, 0, 0.18, 1), transform=lower_axes.transAxes)
+    rular_ax = lower_axes.inset_axes((0, -lower_axes_height, rular_width, lower_axes_height), transform=lower_axes.transAxes)
+
     fig.colorbar(show, cax=cax, orientation="horizontal")
     cax.xaxis.set_ticks([np.nanmax(array), np.nanmin(array)], ["PP", "PV"])
     ax.axis("off")
-    ax1.axis("off")
-
-    ax1.plot([0.02 * array.shape[1], 0.02 * array.shape[1] + (1000 / p_factor)], [0, 0], color="black",
-             marker="none", linewidth=2)
+    lower_axes.axis("off")
 
     slide_stats.plot_on_axis(ax,
                              lobulus_ec="white",
@@ -48,13 +53,22 @@ def plot_pic(array, slide_stats: SlideStats, min_h, min_w, title: str = None, cm
                              pvessel_ec="none",
                              offset=(min_h, min_w))
 
-    ax1.text(x=0.02 * array.shape[1] + (1000 / p_factor) / 2,
-             y=0,
-             s="1 mm",
-             fontsize=10,
-             ha="center",
-             va="bottom",
-             )
+    rular_ax.axis("off")
+    rular_ax.plot([0, 1], [1, 1], color="black",
+                  marker="none", linewidth=10)
+
+    rular_ax.text(x=0.5,
+                  y=1,
+                  s="1 mm",
+                  fontsize=10,
+                  ha="center",
+                  va="top",
+                  )
+
+    upper_axes = ax.inset_axes((0, 1, 1, upper_axes_height), transform=ax.transAxes)
+    upper_axes.axis("off")
+    upper_axes.text(0.5, 1, s=title, fontsize=10, ha="center", va="bottom")
+
     # fig.tight_layout()
     return fig
 
@@ -98,4 +112,5 @@ if __name__ == "__main__":
         fig = plot_pic(template, slide_stats, min_h, min_w, title=f"Subject: {subject}, ROI: {roi}")
         fig.savefig(report_path / f"distance_{subject}_{roi}.png", bbox_inches='tight', pad_inches=0)
         fig: plt.Figure
+        plt.show()
         plt.close(fig)

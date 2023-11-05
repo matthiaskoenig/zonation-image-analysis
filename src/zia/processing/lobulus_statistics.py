@@ -159,7 +159,8 @@ class SlideStats:
                      ucvessel_ec: str = "black",
                      ucvessel_fc: Optional[str] = "black",
                      ucvessel_alpha: float = 0.5,
-                     offset: Tuple = None
+                     offset: Tuple = None,
+                     enumerate_ = False
                      ):
 
         for i, stat in enumerate(self.lobule_stats):
@@ -171,25 +172,26 @@ class SlideStats:
             x, y = polygon.exterior.xy
             ax.fill(y, x, facecolor=lobulus_fc if lobulus_fc is not None else "none", edgecolor=lobulus_ec, alpha=lobulus_alpha, linewidth=1)
 
-            ax.text(s=f"{i}", x=polygon.centroid.y, y=polygon.centroid.x, va="center", ha="center", fontsize=6)
+            if enumerate_:
+                ax.text(s=f"{i}", x=polygon.centroid.y, y=polygon.centroid.x, va="center", ha="center", fontsize=6)
 
         for i, geom in enumerate(self.vessels_central):
             if offset:
                 geom = offset_geom(geom, offset)
             x, y = geom.buffer(1.0).exterior.xy
-            ax.fill(y, x, facecolor=cvessel_fc, edgecolor=cvessel_ec, alpha=cvessel_alpha, linewidth=1)
+            ax.fill(y, x, facecolor=cvessel_fc, edgecolor=cvessel_ec, alpha=cvessel_alpha)
 
         for i, geom in enumerate(self.vessels_portal):
             if offset:
                 geom = offset_geom(geom, offset)
             x, y = geom.buffer(1.0).exterior.xy
-            ax.fill(y, x, facecolor=pvessel_fc, edgecolor=pvessel_ec, alpha=pvessel_alpha, linewidth=1)
+            ax.fill(y, x, facecolor=pvessel_fc, edgecolor=pvessel_ec, alpha=pvessel_alpha)
 
         for i, geom in enumerate(self.unclassified):
             if offset:
                 geom = offset_geom(geom, offset)
             x, y = geom.buffer(1.0).exterior.xy
-            ax.fill(y, x, facecolor=ucvessel_fc, edgecolor=ucvessel_ec, alpha=ucvessel_alpha, linewidth=1)
+            ax.fill(y, x, facecolor=ucvessel_fc, edgecolor=ucvessel_ec, alpha=ucvessel_alpha)
 
     def to_dataframe(self) -> pd.DataFrame:
         rows = []

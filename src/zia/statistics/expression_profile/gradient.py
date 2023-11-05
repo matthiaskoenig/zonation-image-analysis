@@ -89,7 +89,7 @@ if __name__ == "__main__":
             for box in bp["whiskers"]:
                 box.set(linewidth=0.5)
 
-            lobule_count = len(protein_df.groupby(["subject", "lobule"]))
+            lobule_count = len(protein_df.groupby(["subject", "roi", "lobule"]))
 
             ax.text(x=0.98, y=0.01, s=f"n={lobule_count}", fontsize=10, ha="right", va="bottom", transform=ax.transAxes)
 

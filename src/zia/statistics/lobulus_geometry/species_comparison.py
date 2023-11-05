@@ -19,8 +19,9 @@ if __name__ == "__main__":
                              figsize=(len(attributes) * 2.5, 2.5),
                              layout="constrained")
 
-    df["minimum_bounding_radius"] = df["minimum_bounding_radius"] / 1000
-    df["minimum_bounding_radius_unit"] = "mm"
+    #df["minimum_bounding_radius"] = df["minimum_bounding_radius"] / 1000
+    #df["minimum_bounding_radius_unit"] = "mm"
+
     for attr, ax, log, y_label in zip(attributes, axes, logs, labels):
         test_results_attr = test_results[test_results["attr"] == attr]
         box_plot_species_comparison(df,
