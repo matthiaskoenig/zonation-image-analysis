@@ -159,8 +159,9 @@ class SlideStats:
                      ucvessel_ec: str = "black",
                      ucvessel_fc: Optional[str] = "black",
                      ucvessel_alpha: float = 0.5,
+                     linewidth=0.5,
                      offset: Tuple = None,
-                     enumerate_ = False
+                     enumerate_=False
                      ):
 
         for i, stat in enumerate(self.lobule_stats):
@@ -170,7 +171,7 @@ class SlideStats:
                 polygon = stat.polygon
 
             x, y = polygon.exterior.xy
-            ax.fill(y, x, facecolor=lobulus_fc if lobulus_fc is not None else "none", edgecolor=lobulus_ec, alpha=lobulus_alpha, linewidth=1)
+            ax.fill(y, x, facecolor=lobulus_fc if lobulus_fc is not None else "none", edgecolor=lobulus_ec, alpha=lobulus_alpha, linewidth=linewidth)
 
             if enumerate_:
                 ax.text(s=f"{i}", x=polygon.centroid.y, y=polygon.centroid.x, va="center", ha="center", fontsize=6)
@@ -179,19 +180,19 @@ class SlideStats:
             if offset:
                 geom = offset_geom(geom, offset)
             x, y = geom.buffer(1.0).exterior.xy
-            ax.fill(y, x, facecolor=cvessel_fc, edgecolor=cvessel_ec, alpha=cvessel_alpha)
+            ax.fill(y, x, facecolor=cvessel_fc, edgecolor=cvessel_ec, alpha=cvessel_alpha, linewidth=linewidth)
 
         for i, geom in enumerate(self.vessels_portal):
             if offset:
                 geom = offset_geom(geom, offset)
             x, y = geom.buffer(1.0).exterior.xy
-            ax.fill(y, x, facecolor=pvessel_fc, edgecolor=pvessel_ec, alpha=pvessel_alpha)
+            ax.fill(y, x, facecolor=pvessel_fc, edgecolor=pvessel_ec, alpha=pvessel_alpha, linewidth=linewidth)
 
         for i, geom in enumerate(self.unclassified):
             if offset:
                 geom = offset_geom(geom, offset)
             x, y = geom.buffer(1.0).exterior.xy
-            ax.fill(y, x, facecolor=ucvessel_fc, edgecolor=ucvessel_ec, alpha=ucvessel_alpha)
+            ax.fill(y, x, facecolor=ucvessel_fc, edgecolor=ucvessel_ec, alpha=ucvessel_alpha, linewidth=linewidth)
 
     def to_dataframe(self) -> pd.DataFrame:
         rows = []

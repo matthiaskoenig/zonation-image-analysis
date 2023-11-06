@@ -21,7 +21,6 @@ def read_ndpi(image_path: Path, chunkshape=(2 ** 11, 2 ** 11, 3)) -> List[zarr.A
     group = zarr.open(store, mode="r")  # zarr.core.Group or Array
     # FIXME: read metadata
     datasets = group.attrs["multiscales"][0]["datasets"]
-
     # Load dask array from the zarr storage format
     data = [group.get(d["path"]) for d in datasets]
     return data
