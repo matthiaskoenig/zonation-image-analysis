@@ -60,7 +60,7 @@ if __name__ == "__main__":
     df = SlideStatsProvider.get_slide_stats_df()
 
     attributes = ["area", "perimeter", "compactness", "minimum_bounding_radius"]
-    logs = [True, True, False, False]
+    logs = [True, True, False, True]
 
     # species comparison
     anova_results = test_one_way_anova("species", attributes, df, logs)
@@ -76,6 +76,11 @@ if __name__ == "__main__":
         tukey_kramer_subject = test_turkey_hsd("subject", attributes, species_df, logs)
         tukey_kramer_subject.to_csv(report_path / f"tukey_{species}_subjects.csv", index=False)
 
-        # mouse roi comparison -> TODO: need to know which roi needs to be compared to which roi.
+        # mouse roi comparison
         if species == "mouse":
-            pass
+            for subject, subject_df in species_df.groupby("subject"):
+                annova_mouse_rois = test_one_way_anova("roi", attributes, subject_df, logs)
+                annova_mouse_rois.to_csv(report_path / f"anova_mouse_rois.csv", index=False)
+
+                tukey_kramer_mouse_rois = test_turkey_hsd("roi", attributes, subject_df, logs)
+                tukey_kramer_mouse_rois.to_csv(report_path / f"tukey_mouse_rois.csv", index=False)

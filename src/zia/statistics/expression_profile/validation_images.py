@@ -110,7 +110,6 @@ def plot_he(ax: plt.Axes, he_array: np.ndarray):
 
 
 if __name__ == "__main__":
-
     config = read_config(BASE_PATH / "configuration.ini")
     report_path = config.reports_path / "supplementary_images"
     report_path.mkdir(exist_ok=True, parents=True)

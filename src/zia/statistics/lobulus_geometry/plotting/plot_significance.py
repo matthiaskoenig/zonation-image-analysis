@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 
 
-def plot_significance(ax: plt.Axes, groups: List[str], p_table: pd.DataFrame, log: bool, critical_p=0.01):
+def plot_significance(ax: plt.Axes, groups: List[str], p_table: pd.DataFrame, log: bool, critical_p=0.05):
     # Get info about y-axis
     bottom, top = ax.get_ylim()
     if log:
@@ -17,18 +17,13 @@ def plot_significance(ax: plt.Axes, groups: List[str], p_table: pd.DataFrame, lo
     p_values = []
     for i in range(len(groups)):
         for k in range(i + 1, len(groups)):
-
             g1, g2 = groups[i], groups[k]
-
-            print(g1, g2)
 
             p = p_table[((p_table.group1 == g1) & (p_table.group2 == g2)) | ((p_table.group1 == g2) & (p_table.group2 == g1))].iloc[0]["pvalue"]
 
             # Columns corresponding to the datasets of interest
             x1 = i + 1
             x2 = k + 1
-            # What level is this bar among the bars above the plot?
-            level = i
             # Plot the bar
 
             if p < critical_p:
@@ -68,8 +63,10 @@ def plot_significance(ax: plt.Axes, groups: List[str], p_table: pd.DataFrame, lo
                 [bar_tips, bar_height, bar_height, bar_tips], lw=1, c='k')
             # Significance level
             if p < 1e-4:
-                sig_symbol = '***'
+                sig_symbol = '****'
             elif p < 1e-3:
+                sig_symbol = '***'
+            elif p < 1e-2:
                 sig_symbol = '**'
             elif p < critical_p:
                 sig_symbol = '*'

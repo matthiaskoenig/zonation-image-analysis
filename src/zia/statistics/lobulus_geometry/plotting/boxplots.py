@@ -42,6 +42,77 @@ def visualize_subject_comparison(df: pd.DataFrame, species_oder: list[str], colo
                                     test_results=None)
 
 
+def box_plot_roi_comparison(subject_df: pd.DataFrame,
+                            subject: str,
+                            attribute: str,
+                            y_label: str,
+                            report_path: Path = None,
+                            log=False,
+                            limits=None,
+                            color=(0, 0, 0),
+                            ax: plt.Axes = None,
+                            test_results=None,
+                            annotate_n=True
+                            ):
+    data_dict = {}
+
+    unit = None
+
+    for roi, subject_df in subject_df.groupby("roi"):
+        data_dict[str(roi)] = subject_df[attribute]
+        if unit is None:
+            unit = set(subject_df[f"{attribute}_unit"]).pop()
+
+    if ax is None:
+        fig, ax = create_subplots()
+        fig.suptitle(str(roi))
+
+    if not log:
+        bplot = ax.boxplot(list(data_dict.values()),
+                           showfliers=False,
+                           showcaps=False,
+                           widths=0.66,
+                           medianprops=dict(color="black"),
+                           patch_artist=True)
+    else:
+        bplot = box_plot_log(data_dict, ax)
+
+    for patch in bplot['boxes']:
+        patch.set_facecolor(color + (0.3,))
+
+    if test_results is not None:
+        plot_significance(ax, list(data_dict.keys()), test_results, log)
+
+    for i, (roi, data) in enumerate(data_dict.items()):
+        x_scatter = np.random.normal(i + 1, 0.05, size=len(data))
+        ax.scatter(x_scatter,
+                   data,
+                   color=color + (0.5,),
+                   s=1)
+
+        if annotate_n:
+            n_axes = ax.inset_axes((0, 0, 1, 0.05), transform=ax.transAxes)
+            n_axes.text((i + 1) / len(data_dict) - 1 / 2 * 1 / len(data_dict),
+                        0,
+                        s=f"n={len(data_dict[roi])}",
+                        ha="center",
+                        va="bottom",
+                        fontsize=6)
+            n_axes.axis("off")
+            n_axes.patch.set_alpha(0.5)
+            n_axes.patch.set_facecolor("white")
+
+    if limits is not None:
+        ax.set_ylim(limits)
+
+    ax.set_xticklabels([k.replace("_Human", "") for k in data_dict.keys()])
+    ax.set_ylabel(f"{capitalize(y_label)} ({unit})")
+
+    if report_path is not None:
+        plt.savefig(report_path / f"mouse_{subject}_{attribute}.jpeg")
+        plt.show()
+
+
 def box_plot_subject_comparison(species_df: pd.DataFrame,
                                 species: str,
                                 attribute: str,
@@ -80,7 +151,6 @@ def box_plot_subject_comparison(species_df: pd.DataFrame,
     for patch in bplot['boxes']:
         patch.set_facecolor(color + (0.3,))
 
-    print(list(data_dict.keys()))
     if test_results is not None:
         plot_significance(ax, list(data_dict.keys()), test_results, log)
 
@@ -184,7 +254,6 @@ def box_plot_species_comparison(df: pd.DataFrame,
             n_axes.fill_betweenx(y=[0, 1], x1=i / len(data_dict), x2=(i + 1) / len(data_dict), color="white" if i % 2 == 0 else "whitesmoke")
 
         n_axes.set_xlim(left=0, right=1)
-
 
     n_axes.set_xticks([(i + 1) / len(data_dict) - 1 / 2 * 1 / len(data_dict) for i in range(len(data_dict))], [capitalize(s) for s in species_order])
     n_axes.set_yticks([])

@@ -65,7 +65,7 @@ if __name__ == "__main__":
             max_h = shape[0]
             w = shape[1]
 
-    fig, axes = plt.subplots(6, 4, figsize=(8.3, 8.3 * 1.085 * max_h / w), dpi=300, height_ratios=[0.05, 0.2325, 0.2325, 0.2325, 0.2325, 0.02])
+    fig, axes = plt.subplots(6, 4, figsize=(8.3, 8.3 * 1.1 * max_h / w), dpi=300, height_ratios=[0.05, 0.2325, 0.2325, 0.2325, 0.2325, 0.02])
 
     plt.subplots_adjust(hspace=0, wspace=0)
 

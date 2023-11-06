@@ -12,18 +12,21 @@ if __name__ == "__main__":
     attributes = ["perimeter", "area", "compactness", "minimum_bounding_radius"]
     labels = ["perimeter", "area", "compactness", "min bounding radius"]
     logs = [True, True, False, True]
+    test_results_path = SlideStatsProvider.get_report_path() / "statistical_test_results"
 
-    test_results = pd.read_csv(SlideStatsProvider.get_report_path() / "statistical_test_results" / "tukey_species.csv", index_col=False)
+    annova_result = pd.read_csv(test_results_path / f"anova_species.csv", index_col=False)
+    test_results = pd.read_csv(test_results_path / "tukey_species.csv", index_col=False)
 
     fig, axes = plt.subplots(1, len(attributes), dpi=300,
                              figsize=(len(attributes) * 2.5, 2.5),
                              layout="constrained")
 
-    #df["minimum_bounding_radius"] = df["minimum_bounding_radius"] / 1000
-    #df["minimum_bounding_radius_unit"] = "mm"
-
     for attr, ax, log, y_label in zip(attributes, axes, logs, labels):
-        test_results_attr = test_results[test_results["attr"] == attr]
+        if annova_result[annova_result["attr"] == attr].iloc[0]["pvalue"] < 0.05:
+            test_results_attr = test_results[test_results["attr"] == attr]
+        else:
+            test_results_attr = None
+
         box_plot_species_comparison(df,
                                     attr,
                                     y_label=y_label,
