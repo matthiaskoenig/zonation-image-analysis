@@ -73,7 +73,6 @@ class SlideStatsProvider:
 
     @classmethod
     def get_slide_stats_df(cls):
-
         return _merge_to_one_df(cls.get_slide_stats())
 
     @classmethod
