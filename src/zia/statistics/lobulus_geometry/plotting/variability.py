@@ -60,7 +60,6 @@ def plot_sampling(df_all: pd.DataFrame, species: str):
 
             n_values = np.array(range(1, n_lobuli + 1))
 
-
             means = np.zeros_like(n_values, dtype=float)
             medians = np.zeros_like(n_values, dtype=float)
             stds = np.zeros_like(n_values, dtype=float)
