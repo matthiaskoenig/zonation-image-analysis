@@ -1,4 +1,5 @@
 import pickle
+from pathlib import Path
 from typing import Tuple, List, Optional
 
 import cv2
@@ -181,7 +182,7 @@ class LineSegmentsFinder:
                     self.segments_to_do.append([connected_segment[-1], con_seg[-1]])
                 continue
 
-        #if len(finished) != 0:
+        # if len(finished) != 0:
         # segment.append(finished[0][-1])
         #    self.segments_finished.append(segment)
 
@@ -383,8 +384,6 @@ class LineSegmentsFinder:
 
         return self.segments_finished
 
-
-
     def filter_connected_segments(self, connected_segments: List[List[Tuple[int, int]]], segment: List[Tuple[int, int]]) -> List[
         List[Tuple[int, int]]]:
         """
@@ -420,7 +419,7 @@ class LineSegmentsFinder:
         return potential_branches
 
 
-def segment_thinned_image(image: np.ndarray, write=False, plot=False) -> List[List[Tuple[int,int]]]:
+def segment_thinned_image(image: np.ndarray, write=False, report_path: Path = None) -> List[List[Tuple[int, int]]]:
     pixels = np.argwhere(image == 255)
 
     pixels = [tuple(coords) for coords in pixels]
@@ -432,15 +431,16 @@ def segment_thinned_image(image: np.ndarray, write=False, plot=False) -> List[Li
         with open("segmenter.pickle", "wb") as f:
             pickle.dump(segmenter, f)
 
-    if plot:
-        fig, ax = plt.subplots(dpi=600)
+    if report_path is not None:
+        fig, ax = plt.subplots(dpi=300)
         ax: plt.Axes
         ax.invert_yaxis()
         colors = np.random.rand(len(segements_finished), 3)  # Random RGB values between 0 and 1
         for i, line in enumerate(segements_finished):
             x, y = zip(*line)
-            ax.plot(y, x, marker="none", color=colors[i], linewidth=0.2)
-
+            ax.plot(y, x, marker="none", color=colors[i], linewidth=1, alpha=0.8)
+            ax.axis("off")
+            plt.savefig(report_path / "line_segmentation.png")
     return segements_finished
 
 

@@ -5,6 +5,34 @@ from zia.statistics.lobulus_geometry.plotting.boxplots import box_plot_subject_c
 from zia.statistics.utils.data_provider import SlideStatsProvider, capitalize
 
 if __name__ == "__main__":
+
+    mouse_lobe_dict = {
+        "MNT-021_0": "LLL",
+        "MNT-021_1": "ML",
+        "MNT-021_2": "RL",
+        "MNT-021_3": "CL",
+        "MNT-022_0": "LLL",
+        "MNT-022_1": "ML",
+        "MNT-022_2": "RL",
+        "MNT-022_3": "CL",
+        "MNT-023_0": "LLL",
+        "MNT-023_1": "ML",
+        "MNT-023_2": "RL",
+        "MNT-023_3": "N/A",
+        "MNT-024_0": "LLL",
+        "MNT-024_1": "ML",
+        "MNT-024_2": "RL",
+        "MNT-024_3": "CL",
+        "MNT-025_0": "LLL",
+        "MNT-025_1": "ML",
+        "MNT-025_2": "RL",
+        "MNT-025_3": "CL",
+        "MNT-026_0": "LLL",
+        "MNT-026_1": "ML",
+        "MNT-026_2": "CL",
+        "MNT-026_3": "RL",
+    }
+
     df = SlideStatsProvider.get_slide_stats_df()
     report_path = SlideStatsProvider.create_report_path("boxplots")
     df.to_csv(report_path / "slide_statistics_df.csv", index=False)
@@ -25,17 +53,20 @@ if __name__ == "__main__":
     # df["minimum_bounding_radius"] = df["minimum_bounding_radius"] / 1000
     # df["minimum_bounding_radius_unit"] = "mm"
 
-    annova_result = pd.read_csv(test_results_path / f"anova_mouse_rois.csv", index_col=False)
-    test_results = pd.read_csv(test_results_path / f"tukey_mouse_rois.csv", index_col=False)
-
     for i, (subject, subject_df) in enumerate(df.groupby("subject")):
+        kruskal_results = pd.read_csv(test_results_path / f"kruskal_mouse_{subject}_rois.csv", index_col=False)
+        test_results = pd.read_csv(test_results_path / f"dunns_mouse_{subject}_rois.csv", index_col=False)
+
         for attr, ax, log, y_label in zip(attributes, axes[:, i], logs, labels):
-            if annova_result[annova_result["attr"] == attr].iloc[0]["pvalue"] < 0.05:
+            print(attr)
+            print(kruskal_results)
+            if kruskal_results[kruskal_results["attr"] == attr].iloc[0]["pvalue"] < 0.05:
                 test_results_attr = test_results[test_results["attr"] == attr]
             else:
                 test_results_attr = None
-
+            print(test_results_attr)
             box_plot_roi_comparison(subject_df,
+                                    roi_lobule_map=mouse_lobe_dict,
                                     subject=subject,
                                     attribute=attr,
                                     y_label=y_label,
@@ -83,5 +114,5 @@ if __name__ == "__main__":
 
         in_axes.set_xlim(left=0, right=1)
 
-    plt.savefig(report_path / "mouse_roi_comparison.png")
+    plt.savefig(report_path / "mouse_roi_comparison.png", dpi=600)
     plt.show()

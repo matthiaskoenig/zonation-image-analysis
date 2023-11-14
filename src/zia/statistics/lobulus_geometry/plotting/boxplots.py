@@ -43,6 +43,7 @@ def visualize_subject_comparison(df: pd.DataFrame, species_oder: list[str], colo
 
 
 def box_plot_roi_comparison(subject_df: pd.DataFrame,
+                            roi_lobule_map: dict[str, str],
                             subject: str,
                             attribute: str,
                             y_label: str,
@@ -51,10 +52,10 @@ def box_plot_roi_comparison(subject_df: pd.DataFrame,
                             limits=None,
                             color=(0, 0, 0),
                             ax: plt.Axes = None,
-                            test_results=None,
+                            test_results: pd.DataFrame = None,
                             annotate_n=True
                             ):
-    data_dict = {}
+    data_dict: Dict = {}
 
     unit = None
 
@@ -62,6 +63,22 @@ def box_plot_roi_comparison(subject_df: pd.DataFrame,
         data_dict[str(roi)] = subject_df[attribute]
         if unit is None:
             unit = set(subject_df[f"{attribute}_unit"]).pop()
+
+    subject_lobule_map = {k: v for k, v in roi_lobule_map.items() if subject in k and k.split("_")[-1] in data_dict.keys()}
+
+    lobule_roi_map = {v: k.split("_")[-1] for k, v in subject_lobule_map.items()}
+    # CLL: "1"
+    if test_results is not None:
+        test_results = test_results.copy(deep=True)
+
+        roi_lobule_map = {v: k for k, v in lobule_roi_map.items()}
+        print(roi_lobule_map)
+
+        test_results['group1'] = test_results['group1'].astype(str).map(roi_lobule_map)
+        test_results['group2'] = test_results['group2'].astype(str).map(roi_lobule_map)
+        print(test_results)
+
+    data_dict = {k: data_dict[lobule_roi_map[k]] for k in sorted(lobule_roi_map.keys())}
 
     if ax is None:
         fig, ax = create_subplots()
@@ -105,7 +122,7 @@ def box_plot_roi_comparison(subject_df: pd.DataFrame,
     if limits is not None:
         ax.set_ylim(limits)
 
-    ax.set_xticklabels([k.replace("_Human", "") for k in data_dict.keys()])
+    ax.set_xticklabels([f"{k}" for k in data_dict.keys()])
     ax.set_ylabel(f"{capitalize(y_label)} ({unit})")
 
     if report_path is not None:

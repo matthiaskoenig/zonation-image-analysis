@@ -14,15 +14,15 @@ if __name__ == "__main__":
     logs = [True, True, False, True]
     test_results_path = SlideStatsProvider.get_report_path() / "statistical_test_results"
 
-    annova_result = pd.read_csv(test_results_path / f"anova_species.csv", index_col=False)
-    test_results = pd.read_csv(test_results_path / "tukey_species.csv", index_col=False)
+    kruskal_result = pd.read_csv(test_results_path / f"kruskal_species.csv", index_col=False)
+    test_results = pd.read_csv(test_results_path / "dunns_species.csv", index_col=False)
 
     fig, axes = plt.subplots(1, len(attributes), dpi=300,
                              figsize=(len(attributes) * 2.5, 2.5),
                              layout="constrained")
 
     for attr, ax, log, y_label in zip(attributes, axes, logs, labels):
-        if annova_result[annova_result["attr"] == attr].iloc[0]["pvalue"] < 0.05:
+        if kruskal_result[kruskal_result["attr"] == attr].iloc[0]["pvalue"] < 0.05:
             test_results_attr = test_results[test_results["attr"] == attr]
         else:
             test_results_attr = None
@@ -37,5 +37,5 @@ if __name__ == "__main__":
                                     test_results=test_results_attr,
                                     annotate_n=True)
 
-    plt.savefig(report_path / "species_comparison.png")
+    plt.savefig(report_path / "species_comparison.png", dpi=600)
     plt.show()

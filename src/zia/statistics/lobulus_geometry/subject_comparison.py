@@ -26,11 +26,11 @@ if __name__ == "__main__":
 
     for i, species in enumerate(SlideStatsProvider.species_order):
         species_df = species_gb.get_group(species)
-        annova_result = pd.read_csv(test_results_path / f"anova_{species}_subjects.csv", index_col=False)
-        test_results = pd.read_csv(test_results_path / f"tukey_{species}_subjects.csv", index_col=False)
+        kruskal_result = pd.read_csv(test_results_path / f"kruskal_{species}_subjects.csv", index_col=False)
+        test_results = pd.read_csv(test_results_path / f"dunns_{species}_subjects.csv", index_col=False)
 
         for attr, ax, log, y_label in zip(attributes, axes[:, i], logs, labels):
-            if annova_result[annova_result["attr"] == attr].iloc[0]["pvalue"] < 0.05:
+            if kruskal_result[kruskal_result["attr"] == attr].iloc[0]["pvalue"] < 0.05:
                 test_results_attr = test_results[test_results["attr"] == attr]
             else:
                 test_results_attr = None
@@ -85,5 +85,5 @@ if __name__ == "__main__":
         in_axes.set_xlim(left=0, right=1)
 
 
-    plt.savefig(report_path / "subject_comparison.png")
+    plt.savefig(report_path / "subject_comparison.png", dpi=600)
     plt.show()

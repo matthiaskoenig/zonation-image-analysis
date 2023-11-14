@@ -19,6 +19,9 @@ def plot_significance(ax: plt.Axes, groups: List[str], p_table: pd.DataFrame, lo
         for k in range(i + 1, len(groups)):
             g1, g2 = groups[i], groups[k]
 
+            print(g1, g2)
+            p1 = p_table[((p_table.group1 == g1) & (p_table.group2 == g2)) | ((p_table.group1 == g2) & (p_table.group2 == g1))]
+            print(p1)
             p = p_table[((p_table.group1 == g1) & (p_table.group2 == g2)) | ((p_table.group1 == g2) & (p_table.group2 == g1))].iloc[0]["pvalue"]
 
             # Columns corresponding to the datasets of interest

@@ -59,7 +59,7 @@ if __name__ == "__main__":
         for k, (species, color, ax) in enumerate(zip(species_order, species_colors, subaxes)):
             species_df = species_gb.get_group(species)
             scatter_plot_correlation(species_df, color=color, attr=attr_pair, log=log_pair, labels=label_pair, limits_x=limits_x, limits_y=limits_y,
-                                     ax=ax, scatter=True)
+                                     ax=ax, scatter=False)
             if i == 0:
                 legend_handles.append(Patch(color=color, label=capitalize(species)))
 
@@ -101,5 +101,5 @@ if __name__ == "__main__":
 
     legend_handles = legend_handles[2:] + legend_handles[:2]
     axes[0, 1].legend(frameon=False, handles=legend_handles, loc="upper left", prop=dict(size=12))
-    plt.savefig(report_path / "correlation_matrix.png")
+    plt.savefig(report_path / "correlation_matrix_binned.png", dpi=600)
     plt.show()

@@ -123,5 +123,5 @@ if __name__ == "__main__":
         ax.text(x=-3, y=1, s=f"{let}", fontsize=11, fontweight="bold", transform=ax.transAxes,
                 va="top", ha="right")
 
-    plt.savefig(report_path / "representative_subjects.png", bbox_inches="tight")
+    plt.savefig(report_path / "representative_subjects.png", bbox_inches="tight", dpi=600)
     plt.show()
