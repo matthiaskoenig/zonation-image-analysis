@@ -36,13 +36,13 @@ class Filter:
     def _cut_off_percentile(self, img: np.ndarray, p: float):
         lower = np.percentile(img[img > 0], p)
         upper = np.percentile(img[img > 0], (1 - p) * 100)
-        img[(img < lower) & (img > upper)] = 0
+        img[(img < lower)] = lower
+        img[(img > upper)] = upper
         return img
 
     def _filter_img(self, img) -> np.ndarray:
         # print(img.shape)
         img = self._convolute_median(img, ksize=7)
-        img = self._cut_off_percentile(img, 0.05)
         img = self._adaptive_hist_norm(img, ksize=(8, 8))
         img = self._convolute_median(img, ksize=3)
         img = (img / np.max(img)) * 255
@@ -72,7 +72,7 @@ class Filter:
 
 
 if __name__ == "__main__":
-    #subject = "SSES2021 9"
+    # subject = "SSES2021 9"
     roi = "0"
     subject = "UKJ-19-041_Human"
     config = read_config(BASE_PATH / "configuration.ini")
