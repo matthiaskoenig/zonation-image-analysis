@@ -72,11 +72,9 @@ def box_plot_roi_comparison(subject_df: pd.DataFrame,
         test_results = test_results.copy(deep=True)
 
         roi_lobule_map = {v: k for k, v in lobule_roi_map.items()}
-        print(roi_lobule_map)
 
         test_results['group1'] = test_results['group1'].astype(str).map(roi_lobule_map)
         test_results['group2'] = test_results['group2'].astype(str).map(roi_lobule_map)
-        print(test_results)
 
     data_dict = {k: data_dict[lobule_roi_map[k]] for k in sorted(lobule_roi_map.keys())}
 
@@ -390,7 +388,6 @@ if __name__ == "__main__":
     a = 0.5
     df = SlideStatsProvider.get_slide_stats_df()
     report_path = SlideStatsProvider.create_report_path("boxplots")
-    # print(df.columns)
     visualize_species_comparison(df, SlideStatsProvider.species_order, SlideStatsProvider.species_colors, report_path)
     # visualize_subject_comparison(df, species_order, colors, report_path)
     # visualize_species_correlation(df,SlideStatsProvider.species_order,SlideStatsProvider.colors,report_path)

@@ -48,7 +48,7 @@ def _merge_to_one_df(slide_stats: Dict[str, Dict[str, SlideStats]]) -> pd.DataFr
 
 
 class SlideStatsProvider:
-    _config = read_config(BASE_PATH / "configuration.ini")
+    config = read_config(BASE_PATH / "configuration.ini")
     species_order = ["mouse", "rat", "pig", "human"]
     protein_order = ["HE", "GS", "CYP1A2", "CYP2D6", "CYP2E1", "CYP3A4"]
     species_colors = ["#77AADD", "#EE8866", "#DDDDDD", "#44BB99"]
@@ -63,11 +63,11 @@ class SlideStatsProvider:
 
     @classmethod
     def get_report_path(cls) -> Path:
-        return cls._config.reports_path
+        return cls.config.reports_path
 
     @classmethod
     def create_report_path(cls, dir_name: str) -> Path:
-        report_path = SlideStatsProvider._config.reports_path / dir_name
+        report_path = SlideStatsProvider.config.reports_path / dir_name
         report_path.mkdir(parents=True, exist_ok=True)
         return report_path
 
@@ -77,7 +77,7 @@ class SlideStatsProvider:
 
     @classmethod
     def get_slide_stats(cls) -> Dict[str, Dict[str, SlideStats]]:
-        data_dir_stain_separated = cls._config.image_data_path / "slide_statistics"
+        data_dir_stain_separated = cls.config.image_data_path / "slide_statistics"
         subject_dirs = sorted([f for f in data_dir_stain_separated.iterdir() if f.is_dir() and not f.name.startswith(".")])
 
         slide_stats = {}
