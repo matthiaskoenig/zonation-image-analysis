@@ -231,11 +231,12 @@ if __name__ == "__main__":
         species = key.split("-")[-1]
         df["nominal_var"] = species
         df.rename(columns={"nominal_var": "species", "group": "subject"}, inplace=True)
-        del df["log"]
+        df.drop(["log", "se", "median", "min", "max", "q1", "q3"], axis=1, inplace=True)
+        # df.drop(["log"], axis=1, inplace=True)
         dfs.append(df)
 
     df = pd.concat(dfs)
-    console.print(df)
+
 
 
     # 2. calculate statistics (n_lobule) for 99%, 95% and 90%
@@ -247,6 +248,22 @@ if __name__ == "__main__":
         df[key] = 1 / ((df["mean"]*d)** 2 / (1.96 ** 2 * df["std"] ** 2) + 1 / df["n"])
 
     console.print(df)
+
+    # sort
+    df.species = pd.Categorical(
+        df.species,
+        categories=["human", "pig", "rat", "mouse"],
+        ordered=True
+    )
+    df.attr = pd.Categorical(
+        df.attr,
+        categories=["perimeter", "area", "compactness", "minimum_bounding_radius"],
+        ordered=True
+    )
+    df.sort_values(by=["attr", "species"], inplace=True)
+
+    # store as xlsx
+    df.to_excel("n_lobuli.xlsx", sheet_name="data", index=False)
 
     # 3. create plot of the statistics
     plot_n_geometric(df, distances)
