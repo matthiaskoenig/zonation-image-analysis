@@ -25,7 +25,7 @@ def descriptive_stats(nomial_var: str, attributes: List[str], data_df: pd.DataFr
                      log=log,
                      unit=unit,
                      mean=np.mean(data),
-                     std=np.mean(data),
+                     std=np.std(data),
                      se=np.mean(data) / np.sqrt(len(data)),
                      median=np.median(data),
                      min=np.min(data),
@@ -42,9 +42,10 @@ def generate_descriptive_stats(slide_stats_df: pd.DataFrame,
                                report_path: Path,
                                attributes: List[str],
                                logs: List[bool]):
-
     # species comparison
     stats = descriptive_stats("species", attributes, slide_stats_df, logs)
+
+    stats.sort_values(by="group", key=lambda column: column.map(lambda e: SlideStatsProvider.species_order.index(e)), inplace=True)
     stats.to_csv(report_path / "stats_species.csv", index=False)
 
     # subject comparison

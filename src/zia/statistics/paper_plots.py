@@ -1,4 +1,8 @@
 from zia.log import get_logger
+from zia.statistics.expression_profile.expression_profile_gradient import generate_distance_df
+from zia.statistics.expression_profile.gradient import plot_gradient
+from zia.statistics.expression_profile.validation_for_paper import plot_overview_for_paper
+from zia.statistics.expression_profile.validation_images import plot_validation_for_all
 from zia.statistics.lobulus_geometry.correlation_matrix import plot_correlation_matrix
 from zia.statistics.lobulus_geometry.descriptive_stats import generate_descriptive_stats
 from zia.statistics.lobulus_geometry.mouse_lobe_comparison import plot_mouse_lobe_comparison
@@ -69,8 +73,6 @@ if __name__ == "__main__":
     # descriptive stats
     log.info("Generating descriptive statistics data frame")
     generate_descriptive_stats(df, report_path_descriptive_stats, attributes, logs)
-
-    exit(0)
 
     # generate the distance dataframe
     log.info("Generating distance intensity data frame")
