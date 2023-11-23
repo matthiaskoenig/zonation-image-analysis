@@ -95,6 +95,8 @@ def plot_correlation_matrix(slide_stats_df: pd.DataFrame,
     legend_handles = legend_handles[2:] + legend_handles[:2]
     axes[0, 1].legend(frameon=False, handles=legend_handles, loc="upper left", prop=dict(size=12))
     plt.savefig(report_path / f"correlation_matrix{'_binned' if binned else ''}.png", dpi=600)
+    plt.savefig(report_path / f"correlation_matrix{'_binned' if binned else ''}.svg", dpi=600)
+
     plt.show()
 
 

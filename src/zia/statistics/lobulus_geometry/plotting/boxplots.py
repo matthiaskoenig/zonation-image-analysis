@@ -68,13 +68,6 @@ def box_plot_roi_comparison(subject_df: pd.DataFrame,
 
     lobule_roi_map = {v: k.split("_")[-1] for k, v in subject_lobule_map.items()}
     # CLL: "1"
-    if test_results is not None:
-        test_results = test_results.copy(deep=True)
-
-        roi_lobule_map = {v: k for k, v in lobule_roi_map.items()}
-
-        test_results['group1'] = test_results['group1'].astype(str).map(roi_lobule_map)
-        test_results['group2'] = test_results['group2'].astype(str).map(roi_lobule_map)
 
     data_dict = {k: data_dict[lobule_roi_map[k]] for k in sorted(lobule_roi_map.keys())}
 

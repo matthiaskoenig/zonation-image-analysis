@@ -7,13 +7,13 @@ import pandas as pd
 from zia.statistics.lobulus_geometry.plotting.boxplots import box_plot_subject_comparison
 from zia.statistics.utils.data_provider import SlideStatsProvider, capitalize
 
+
 def plot_subject_comparison(slide_stats_df: pd.DataFrame,
                             report_path: Path,
                             attributes: List[str],
                             labels: List[str],
                             logs: List[bool],
                             test_results_path: Path):
-
     fig, axes = plt.subplots(len(SlideStatsProvider.species_order), len(attributes), dpi=300,
                              figsize=(len(attributes) * 2.5, len(SlideStatsProvider.species_order) * 2.5),
                              layout="constrained")
@@ -22,8 +22,8 @@ def plot_subject_comparison(slide_stats_df: pd.DataFrame,
 
     for i, species in enumerate(SlideStatsProvider.species_order):
         species_df = species_gb.get_group(species)
-        kruskal_result = pd.read_csv(test_results_path / f"kruskal_{species}_subjects.csv", index_col=False)
-        test_results = pd.read_csv(test_results_path / f"dunns_{species}_subjects.csv", index_col=False)
+        kruskal_result = pd.read_excel(test_results_path / "test-subject-comparison.xlsx", sheet_name=f"kruskal-wallis-{species}", index_col=False)
+        test_results = pd.read_excel(test_results_path / "test-subject-comparison.xlsx", sheet_name=f"dunns-{species}", index_col=False)
 
         for attr, ax, log, y_label in zip(attributes, axes[:, i], logs, labels):
             if kruskal_result[kruskal_result["attr"] == attr].iloc[0]["pvalue"] < 0.05:
@@ -81,7 +81,10 @@ def plot_subject_comparison(slide_stats_df: pd.DataFrame,
         in_axes.set_xlim(left=0, right=1)
 
     plt.savefig(report_path / "subject_comparison.png", dpi=600)
+    plt.savefig(report_path / "subject_comparison.svg", dpi=600)
+
     plt.show()
+
 
 if __name__ == "__main__":
     slide_stats_df = SlideStatsProvider.get_slide_stats_df()

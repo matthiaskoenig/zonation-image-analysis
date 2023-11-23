@@ -14,8 +14,8 @@ def plot_species_comparison(slide_stats_df: pd.DataFrame,
                             logs: List[bool],
                             test_results_path: Path):
 
-    kruskal_result = pd.read_csv(test_results_path / f"kruskal_species.csv", index_col=False)
-    dunns_result = pd.read_csv(test_results_path / "dunns_species.csv", index_col=False)
+    kruskal_result = pd.read_excel(test_results_path / f"test-species-comparison.xlsx", sheet_name="kruskal-wallis", index_col=False)
+    dunns_result = pd.read_excel(test_results_path / "test-species-comparison.xlsx", sheet_name="dunns-post-hoc", index_col=False)
 
     fig, axes = plt.subplots(1, len(attributes), dpi=300,
                              figsize=(len(attributes) * 2.5, 2.5),
@@ -38,6 +38,8 @@ def plot_species_comparison(slide_stats_df: pd.DataFrame,
                                     annotate_n=True)
 
     plt.savefig(report_path / "species_comparison.png", dpi=600)
+    plt.savefig(report_path / "species_comparison.svg", dpi=600)
+
     plt.show()
 
 

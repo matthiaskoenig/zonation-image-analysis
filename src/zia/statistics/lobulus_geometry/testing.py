@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List
+from typing import List, Dict
 
 import numpy as np
 import pandas as pd
@@ -123,57 +123,49 @@ def test_dunns(nomial_var: str, attributes: List[str], data: pd.DataFrame, logs:
 def run_all_tests(slide_stats_df: pd.DataFrame,
                   test_result_path: Path,
                   attributes: List[str],
-                  logs: List[bool], ):
-
+                  logs: List[bool],
+                  mouse_lobe_dict: Dict[str, str]):
     # species comparison
-    anova_results = test_one_way_anova("species", attributes, slide_stats_df, logs)
-    anova_results.to_csv(test_result_path / "anova_species.csv", index=False)
+    with pd.ExcelWriter(test_result_path / "test-species-comparison.xlsx") as species_writer:
+        kruskal = test_kruskal("species", attributes, slide_stats_df, logs)
+        kruskal.to_excel(species_writer, "kruskal-wallis", index=False)
 
-    anova_results = test_kruskal("species", attributes, slide_stats_df, logs)
-    anova_results.to_csv(test_result_path / "kruskal_species.csv", index=False)
+        levennes_result = test_levenne("species", attributes, slide_stats_df, logs)
+        levennes_result.to_excel(species_writer, "levenne", index=False)
 
-    levennes_result = test_levenne("species", attributes, slide_stats_df, logs)
-    levennes_result.to_csv(test_result_path / "levenne_species.csv", index=False)
-    tukey_kramer_result = test_turkey_hsd("species", attributes, slide_stats_df, logs)
-    tukey_kramer_result.to_csv(test_result_path / "tukey_species.csv", index=False)
-
-    dunns_result = test_dunns("species", attributes, slide_stats_df, logs)
-    dunns_result.to_csv(test_result_path / "dunns_species.csv", index=False)
+        dunns_result = test_dunns("species", attributes, slide_stats_df, logs)
+        dunns_result.to_excel(species_writer, "dunns-post-hoc", index=False)
 
     # subject comparison
-    for species, species_df in slide_stats_df.groupby("species"):
-        annova_results_subjects = test_one_way_anova("subject", attributes, species_df, logs)
-        annova_results_subjects.to_csv(test_result_path / f"anova_{species}_subjects.csv", index=False)
+    with pd.ExcelWriter(test_result_path / "test-subject-comparison.xlsx") as subject_writer:
+        for species, species_df in slide_stats_df.groupby("species"):
+            kruskal_results_subjects = test_kruskal("subject", attributes, species_df, logs)
+            kruskal_results_subjects.to_excel(subject_writer, f"kruskal-wallis-{species}", index=False)
 
-        kruskal_results_subjects = test_kruskal("subject", attributes, species_df, logs)
-        kruskal_results_subjects.to_csv(test_result_path / f"kruskal_{species}_subjects.csv", index=False)
+            levennes_result = test_levenne("subject", attributes, species_df, logs)
+            levennes_result.to_excel(subject_writer, f"levenne-{species}", index=False)
 
-        levennes_result = test_levenne("subject", attributes, species_df, logs)
-        levennes_result.to_csv(test_result_path / f"levenne_{species}_subject.csv", index=False)
+            dunns_subject = test_dunns("subject", attributes, species_df, logs)
+            dunns_subject.to_excel(subject_writer, f"dunns-{species}", index=False)
 
-        tukey_kramer_subject = test_turkey_hsd("subject", attributes, species_df, logs)
-        tukey_kramer_subject.to_csv(test_result_path / f"tukey_{species}_subjects.csv", index=False)
+            # mouse roi comparison
+            if species == "mouse":
+                with pd.ExcelWriter(test_result_path / "test-mouse-lobe-comparison.xlsx") as mouse_writer:
+                    for subject, subject_df in species_df.groupby("subject"):
 
-        dunns_subject = test_dunns("subject", attributes, species_df, logs)
-        dunns_subject.to_csv(test_result_path / f"dunns_{species}_subjects.csv", index=False)
+                        roi_dict = {k.split("_")[1]: v for k, v in mouse_lobe_dict.items() if str(subject) in k}
 
-        # mouse roi comparison
-        if species == "mouse":
-            for subject, subject_df in species_df.groupby("subject"):
-                annova_mouse_rois = test_one_way_anova("roi", attributes, subject_df, logs)
-                annova_mouse_rois.to_csv(test_result_path / f"anova_mouse_{subject}_rois.csv", index=False)
+                        kruskal_mouse_rois = test_kruskal("roi", attributes, subject_df, logs)
+                        levennes_result = test_levenne("roi", attributes, subject_df, logs)
+                        dunns_mouse_rois = test_dunns("roi", attributes, subject_df, logs)
 
-                kruskal_mouse_rois = test_kruskal("roi", attributes, subject_df, logs)
-                kruskal_mouse_rois.to_csv(test_result_path / f"kruskal_mouse_{subject}_rois.csv", index=False)
+                        for df_to_transform in [dunns_mouse_rois]:
+                            df_to_transform["group1"] = df_to_transform["group1"].map(roi_dict)
+                            df_to_transform["group2"] = df_to_transform["group2"].map(roi_dict)
 
-                levennes_result = test_levenne("roi", attributes, subject_df, logs)
-                levennes_result.to_csv(test_result_path / "levenne_mouse_{subject_rois.csv", index=False)
-
-                tukey_kramer_mouse_rois = test_turkey_hsd("roi", attributes, subject_df, logs)
-                tukey_kramer_mouse_rois.to_csv(test_result_path / f"tukey_mouse_{subject}_rois.csv", index=False)
-
-                dunns_mouse_rois = test_dunns("roi", attributes, subject_df, logs)
-                dunns_mouse_rois.to_csv(test_result_path / f"dunns_mouse_{subject}_rois.csv", index=False)
+                        kruskal_mouse_rois.to_excel(mouse_writer, f"kruskal-wallis-mouse-lobes-{subject}", index=False)
+                        levennes_result.to_excel(mouse_writer, f"levenne-mouse-lobes-{subject}", index=False)
+                        dunns_mouse_rois.to_excel(mouse_writer, f"dunns-mouse-lobes-{subject}", index=False)
 
 
 if __name__ == "__main__":

@@ -141,6 +141,8 @@ def plot_gradient(report_path: Path, distance_df: pd.DataFrame):
     axes[-1, -1].legend(handles=handles, frameon=False, ncols=1, prop=dict(size=10))
 
     fig.savefig(report_path / f"gradient.png", dpi=600)
+    fig.savefig(report_path / f"gradient.svg", dpi=600)
+
     plt.show()
 
 

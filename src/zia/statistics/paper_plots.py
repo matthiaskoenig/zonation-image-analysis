@@ -17,7 +17,6 @@ if __name__ == "__main__":
     df = SlideStatsProvider.get_slide_stats_df()
 
     report_path_base = SlideStatsProvider.create_report_path("manuscript")
-
     report_path_stats_test = report_path_base / "statistical-test"
     report_path_paper_plots = report_path_base / "paper-plots"
     report_path_descriptive_stats = report_path_base / "descriptive-stats"
@@ -60,7 +59,7 @@ if __name__ == "__main__":
 
     # run the statistical tests
     log.info("Running statistical test")
-    run_all_tests(df, report_path_stats_test, attributes, logs)
+    run_all_tests(df, report_path_stats_test, attributes, logs, mouse_lobe_dict)
 
     # boxplots
     log.info("Creating box plots")
@@ -72,7 +71,7 @@ if __name__ == "__main__":
 
     # descriptive stats
     log.info("Generating descriptive statistics data frame")
-    generate_descriptive_stats(df, report_path_descriptive_stats, attributes, logs)
+    generate_descriptive_stats(df, report_path_descriptive_stats, attributes, logs, mouse_lobe_dict)
 
     # generate the distance dataframe
     log.info("Generating distance intensity data frame")

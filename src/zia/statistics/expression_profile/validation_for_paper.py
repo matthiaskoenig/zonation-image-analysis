@@ -112,6 +112,8 @@ def plot_overview_for_paper(report_path: Path,
                 va="top", ha="right")
 
     plt.savefig(report_path / "representative_subjects.png", bbox_inches="tight", dpi=600)
+    plt.savefig(report_path / "representative_subjects.svg", bbox_inches="tight", dpi=600)
+
     plt.show()
 
 

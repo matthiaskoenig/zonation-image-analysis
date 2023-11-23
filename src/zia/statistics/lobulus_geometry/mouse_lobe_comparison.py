@@ -7,6 +7,7 @@ import pandas as pd
 from zia.statistics.lobulus_geometry.plotting.boxplots import box_plot_subject_comparison, box_plot_roi_comparison
 from zia.statistics.utils.data_provider import SlideStatsProvider, capitalize
 
+
 def plot_mouse_lobe_comparison(slide_stats_df: pd.DataFrame,
                                report_path: Path,
                                attributes: List[str],
@@ -14,7 +15,6 @@ def plot_mouse_lobe_comparison(slide_stats_df: pd.DataFrame,
                                logs: List[bool],
                                test_results_path: Path,
                                mouse_lobe_dict: Dict[str, str]):
-
     slide_stats_df = slide_stats_df[slide_stats_df["species"] == "mouse"]
 
     fig, axes = plt.subplots(len(attributes), len(set(slide_stats_df["subject"].values)), dpi=300,
@@ -23,8 +23,10 @@ def plot_mouse_lobe_comparison(slide_stats_df: pd.DataFrame,
                              layout="constrained")
 
     for i, (subject, subject_df) in enumerate(slide_stats_df.groupby("subject")):
-        kruskal_results = pd.read_csv(test_results_path / f"kruskal_mouse_{subject}_rois.csv", index_col=False)
-        test_results = pd.read_csv(test_results_path / f"dunns_mouse_{subject}_rois.csv", index_col=False)
+        kruskal_results = pd.read_excel(test_results_path / "test-mouse-lobe-comparison.xlsx", sheet_name=f"kruskal-wallis-mouse-lobes-{subject}",
+                                        index_col=False)
+        test_results = pd.read_excel(test_results_path / "test-mouse-lobe-comparison.xlsx", sheet_name=f"dunns-mouse-lobes-{subject}",
+                                     index_col=False)
 
         for attr, ax, log, y_label in zip(attributes, axes[:, i], logs, labels):
             if kruskal_results[kruskal_results["attr"] == attr].iloc[0]["pvalue"] < 0.05:
@@ -80,11 +82,12 @@ def plot_mouse_lobe_comparison(slide_stats_df: pd.DataFrame,
         in_axes.set_xlim(left=0, right=1)
 
     plt.savefig(report_path / "mouse_roi_comparison.png", dpi=600)
+    plt.savefig(report_path / "mouse_roi_comparison.svg", dpi=600)
+
     plt.show()
 
 
 if __name__ == "__main__":
-
     mouse_lobe_dict = {
         "MNT-021_0": "LLL",
         "MNT-021_1": "ML",
@@ -124,4 +127,4 @@ if __name__ == "__main__":
 
     df = df[df["species"] == "mouse"]
 
-    plot_mouse_lobe_comparison(df, report_path,attributes, labels, logs, test_results_path, mouse_lobe_dict)
+    plot_mouse_lobe_comparison(df, report_path, attributes, labels, logs, test_results_path, mouse_lobe_dict)
