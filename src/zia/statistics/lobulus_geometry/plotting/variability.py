@@ -183,13 +183,17 @@ def plot_sampling(df_all: pd.DataFrame, species: str):
 
 def plot_n_geometric(df: pd.DataFrame, distances) -> None:
     """Plot the n required for geometric calculation."""
-    f, axes = plt.subplots(nrows=1, ncols=4, dpi=300, figsize=(20, 5))
+    f: plt.Figure
+    f, axes = plt.subplots(nrows=1, ncols=4, dpi=300, figsize=(17, 4))
+    f.subplots_adjust(wspace=0.3)
 
     for kplot, attr in enumerate(["perimeter", "area", "compactness", "minimum_bounding_radius"]):
         ax = axes[kplot]
-        ax.set_title(attr)
-        ax.set_ylabel("Number lobuli")
-        ax.set_xlabel("Margin of error [%]")
+        ax.set_title(attr, fontdict={"fontweight": "bold"})
+        ax.set_ylabel("Number lobuli", fontdict={"fontweight": "bold"})
+        ax.set_xlabel("Margin of error [%]", fontdict={"fontweight": "bold"})
+        # ax.set_ylim(top=np.max(df[f"n{distances[0]}"].values))
+        ax.set_ylim(top=60)
         for species in ["mouse", "rat", "pig", "human"]:
             df_species = df[(df.species == species) & (df.attr == attr)]
             # collect data
@@ -214,6 +218,7 @@ def plot_n_geometric(df: pd.DataFrame, distances) -> None:
         ax.legend()
 
     plt.show()
+    f.savefig("n_lobuli.png", bbox_inches="tight")
 
 
 if __name__ == "__main__":
