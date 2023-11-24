@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Tuple, List, Optional, Callable
+from typing import List
 
 import numpy as np
 import pandas as pd
@@ -9,23 +9,16 @@ from matplotlib.patches import Patch
 from zia.statistics.lobulus_geometry.plotting.correlation_plots import scatter_plot_correlation
 from zia.statistics.utils.data_provider import SlideStatsProvider, capitalize
 
-if __name__ == "__main__":
-    df = SlideStatsProvider.get_slide_stats_df()
-    report_path = SlideStatsProvider.create_report_path("correlation")
-    df.to_csv(report_path / "slide_statistics_df.csv", index=False)
 
-    attributes = ["perimeter", "area", "compactness"]
-    labels = ["Perimeter", "Area", "Compactness"]
-    logs = [True, True, False]
+def plot_correlation_matrix(slide_stats_df: pd.DataFrame,
+                            report_path: Path,
+                            attributes: List[str],
+                            labels: List[str],
+                            logs: List[bool],
+                            binned: bool):
+
     species_order = ["pig", "human", "mouse", "rat"]
     species_colors = SlideStatsProvider.get_species_colors_as_rgb()[2:] + SlideStatsProvider.get_species_colors_as_rgb()[0:2]
-
-    # df["minimum_bounding_radius"] = df["minimum_bounding_radius"] / 1000
-    # df["minimum_bounding_radius_unit"] = "mm"
-
-    test_results_path = SlideStatsProvider.get_report_path() / "statistical_test_results"
-
-    len_attr = len(attributes)
 
     idxs = [(k - 1, i) for i in range(len(attributes) - 1) for k in range(i + 1, len(attributes))]
     attr_pairs = [(attributes[i], attributes[k]) for i in range(len(attributes) - 1) for k in range(i + 1, len(attributes))]
@@ -46,20 +39,20 @@ if __name__ == "__main__":
                                              transform=ax.transAxes))
         fig_subaxes.append(subaxes)
 
-    species_gb = df.groupby("species")
+    species_gb = slide_stats_df.groupby("species")
 
     unit_pairs = []
 
     legend_handles = []
     for i, (attr_pair, log_pair, label_pair, subaxes) in enumerate(zip(attr_pairs, logs_pairs, label_pairs, fig_subaxes)):
-        limits_x = np.min(df[attr_pair[0]]), np.max(df[attr_pair[0]]),
-        limits_y = np.min(df[attr_pair[1]]), np.max(df[attr_pair[1]]),
+        limits_x = np.min(slide_stats_df[attr_pair[0]]), np.max(slide_stats_df[attr_pair[0]]),
+        limits_y = np.min(slide_stats_df[attr_pair[1]]), np.max(slide_stats_df[attr_pair[1]]),
 
-        unit_pairs.append((set(df[f"{attr_pair[0]}_unit"]).pop(), set(df[f"{attr_pair[1]}_unit"]).pop()))
+        unit_pairs.append((set(slide_stats_df[f"{attr_pair[0]}_unit"]).pop(), set(slide_stats_df[f"{attr_pair[1]}_unit"]).pop()))
         for k, (species, color, ax) in enumerate(zip(species_order, species_colors, subaxes)):
             species_df = species_gb.get_group(species)
             scatter_plot_correlation(species_df, color=color, attr=attr_pair, log=log_pair, labels=label_pair, limits_x=limits_x, limits_y=limits_y,
-                                     ax=ax, scatter=True)
+                                     ax=ax, scatter=not binned)
             if i == 0:
                 legend_handles.append(Patch(color=color, label=capitalize(species)))
 
@@ -101,5 +94,22 @@ if __name__ == "__main__":
 
     legend_handles = legend_handles[2:] + legend_handles[:2]
     axes[0, 1].legend(frameon=False, handles=legend_handles, loc="upper left", prop=dict(size=12))
-    plt.savefig(report_path / "correlation_matrix.png")
+    plt.savefig(report_path / f"correlation_matrix{'_binned' if binned else ''}.png", dpi=600)
+    plt.savefig(report_path / f"correlation_matrix{'_binned' if binned else ''}.svg", dpi=600)
+
     plt.show()
+
+
+if __name__ == "__main__":
+    df = SlideStatsProvider.get_slide_stats_df()
+    report_path = SlideStatsProvider.create_report_path("correlation")
+    df.to_csv(report_path / "slide_statistics_df.csv", index=False)
+
+    attributes = ["perimeter", "area", "compactness"]
+    labels = ["Perimeter", "Area", "Compactness"]
+    logs = [True, True, False]
+
+    plot_correlation_matrix(df, report_path, attributes, labels, logs, binned=True)
+
+
+

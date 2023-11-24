@@ -1,36 +1,32 @@
+from pathlib import Path
+from typing import List
+
 import matplotlib.pyplot as plt
 import pandas as pd
 
 from zia.statistics.lobulus_geometry.plotting.boxplots import box_plot_subject_comparison
 from zia.statistics.utils.data_provider import SlideStatsProvider, capitalize
 
-if __name__ == "__main__":
-    df = SlideStatsProvider.get_slide_stats_df()
-    report_path = SlideStatsProvider.create_report_path("boxplots")
-    df.to_csv(report_path / "slide_statistics_df.csv", index=False)
 
-    attributes = ["perimeter", "area", "compactness", "minimum_bounding_radius"]
-    labels = ["perimeter", "area", "compactness", "min bounding radius"]
-    logs = [True, True, False, True]
-
-    test_results_path = SlideStatsProvider.get_report_path() / "statistical_test_results"
-
+def plot_subject_comparison(slide_stats_df: pd.DataFrame,
+                            report_path: Path,
+                            attributes: List[str],
+                            labels: List[str],
+                            logs: List[bool],
+                            test_results_path: Path):
     fig, axes = plt.subplots(len(SlideStatsProvider.species_order), len(attributes), dpi=300,
                              figsize=(len(attributes) * 2.5, len(SlideStatsProvider.species_order) * 2.5),
                              layout="constrained")
 
-    #df["minimum_bounding_radius"] = df["minimum_bounding_radius"] / 1000
-    #df["minimum_bounding_radius_unit"] = "mm"
-
-    species_gb = df.groupby("species")
+    species_gb = slide_stats_df.groupby("species")
 
     for i, species in enumerate(SlideStatsProvider.species_order):
         species_df = species_gb.get_group(species)
-        annova_result = pd.read_csv(test_results_path / f"anova_{species}_subjects.csv", index_col=False)
-        test_results = pd.read_csv(test_results_path / f"tukey_{species}_subjects.csv", index_col=False)
+        kruskal_result = pd.read_excel(test_results_path / "test-subject-comparison.xlsx", sheet_name=f"kruskal-wallis-{species}", index_col=False)
+        test_results = pd.read_excel(test_results_path / "test-subject-comparison.xlsx", sheet_name=f"dunns-{species}", index_col=False)
 
         for attr, ax, log, y_label in zip(attributes, axes[:, i], logs, labels):
-            if annova_result[annova_result["attr"] == attr].iloc[0]["pvalue"] < 0.05:
+            if kruskal_result[kruskal_result["attr"] == attr].iloc[0]["pvalue"] < 0.05:
                 test_results_attr = test_results[test_results["attr"] == attr]
             else:
                 test_results_attr = None
@@ -58,7 +54,7 @@ if __name__ == "__main__":
         ax.set_title(capitalize(species), fontweight="bold")
 
     for species, ax in zip(SlideStatsProvider.species_order, axes[-1, :].flatten()):
-        species_df = df[df["species"] == species]
+        species_df = slide_stats_df[slide_stats_df["species"] == species]
 
         counts = []
         for subject, subject_df in species_df.groupby("subject"):
@@ -84,6 +80,21 @@ if __name__ == "__main__":
 
         in_axes.set_xlim(left=0, right=1)
 
+    plt.savefig(report_path / "subject_comparison.png", dpi=600)
+    plt.savefig(report_path / "subject_comparison.svg", dpi=600)
 
-    plt.savefig(report_path / "subject_comparison.png")
     plt.show()
+
+
+if __name__ == "__main__":
+    slide_stats_df = SlideStatsProvider.get_slide_stats_df()
+    report_path = SlideStatsProvider.create_report_path("boxplots")
+    slide_stats_df.to_csv(report_path / "slide_statistics_df.csv", index=False)
+
+    attributes = ["perimeter", "area", "compactness", "minimum_bounding_radius"]
+    labels = ["perimeter", "area", "compactness", "min bounding radius"]
+    logs = [True, True, False, True]
+
+    test_results_path = SlideStatsProvider.get_report_path() / "statistical_test_results"
+
+    plot_subject_comparison(slide_stats_df, report_path, attributes, labels, logs, test_results_path)

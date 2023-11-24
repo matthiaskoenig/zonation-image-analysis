@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Dict, Optional, Tuple, List
+from typing import Dict, Optional, List
 
 import cv2
 import numpy as np
@@ -11,8 +11,6 @@ from shapely import Geometry, Polygon
 
 from zia import BASE_PATH
 from zia.annotations.annotation.util import PyramidalLevel
-from zia.annotations.pipelines.mask_generatation.image_analysis import MaskGenerator
-from zia.annotations.workflow_visualizations.util.image_plotting import plot_pic
 from zia.config import read_config
 from zia.data_store import ZarrGroups
 from zia.processing.lobulus_statistics import SlideStats, LobuleStatistics
@@ -163,7 +161,10 @@ def analyse_lobuli(slide_stats: SlideStats, protein_arrays: Dict[str, np.ndarray
     return pd.concat(protein_dfs)
 
 
-if __name__ == "__main__":
+def generate_distance_df(report_path: Path, overwrite=True) -> pd.DataFrame:
+    if overwrite == False and (report_path / "lobule_distances.csv").exists():
+        return pd.read_csv(report_path / "lobule_distances.csv", index_col=False)
+
     config = read_config(BASE_PATH / "configuration.ini")
 
     slide_stats_dict = SlideStatsProvider.get_slide_stats()
@@ -192,7 +193,16 @@ if __name__ == "__main__":
         subject_dfs.append(subject_df)
 
     final_df = pd.concat(subject_dfs)
+    final_df["roi"] = pd.to_numeric(final_df["roi"])
 
-    print(set(final_df.species))
+    final_df.to_csv(report_path / "lobule_distances.csv", sep=",", index=False)
 
-    final_df.to_csv(config.reports_path / "lobule_distances.csv", sep=",", index=False)
+    return final_df
+
+
+if __name__ == "__main__":
+    config = SlideStatsProvider.config
+
+    report_path = config.reports_path
+
+    generate_distance_df(report_path=report_path)

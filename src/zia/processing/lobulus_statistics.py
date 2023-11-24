@@ -124,8 +124,8 @@ class SlideStats:
 
         return cls(lobule_stats, central_vessels, portal_vessels, unclassified, col.get("metaData"))
 
-    def plot(self):
-        fig, ax = plt.subplots(1, 1, dpi=600)
+    def plot(self, report_path=None):
+        fig, ax = plt.subplots(1, 1, dpi=300)
         colors = np.random.rand(len(self.lobule_stats), 3)  # Random RGB values between 0 and 1
         for i, stat in enumerate(self.lobule_stats):
             x, y = stat.polygon.exterior.xy
@@ -143,6 +143,11 @@ class SlideStats:
 
         ax.set_aspect("equal")
         ax.invert_yaxis()
+
+        ax.axis("off")
+
+        if report_path is not None:
+            plt.savefig(report_path / "polygons.png", bbox_inches="tight")
 
         plt.show()
 

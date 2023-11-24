@@ -1,30 +1,21 @@
-from typing import Dict
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.lines import Line2D
-from matplotlib.patches import Patch
-
-from zia import BASE_PATH
-from zia.config import read_config
 import pandas as pd
+from matplotlib.lines import Line2D
 
 from zia.statistics.utils.data_provider import SlideStatsProvider, capitalize
 
-if __name__ == "__main__":
+
+def plot_gradient(report_path: Path, distance_df: pd.DataFrame):
     plt.style.use("tableau-colorblind10")
-    config = read_config(BASE_PATH / "configuration.ini")
-    report_path = config.reports_path / "expression_gradient"
-    report_path.mkdir(exist_ok=True, parents=True)
+
     protein_order = ["HE", "GS", "CYP1A2", "CYP2D6", "CYP2E1", "CYP3A4"]
     species_order = SlideStatsProvider.species_order
     colors = ["#77AADD", "#EE8866", "#DDDDDD", "#44BB99"]
 
-    df = pd.read_csv(config.reports_path / "lobule_distances.csv", sep=",", index_col=False)
-
-
-
-    species_gb = df.groupby("species")
+    species_gb = distance_df.groupby("species")
 
     fig, axes = plt.subplots(nrows=len(protein_order) + 1, ncols=len(species_order) + 1, dpi=300,
                              figsize=(len(species_order) * 2, len(protein_order) * 1.85),
@@ -149,5 +140,15 @@ if __name__ == "__main__":
 
     axes[-1, -1].legend(handles=handles, frameon=False, ncols=1, prop=dict(size=10))
 
-    fig.savefig(report_path / f"gradient.png")
+    fig.savefig(report_path / f"gradient.png", dpi=600)
+    fig.savefig(report_path / f"gradient.svg", dpi=600)
+
     plt.show()
+
+
+if __name__ == "__main__":
+    config = SlideStatsProvider.config
+    report_path = config.reports_path / "expression_gradient"
+    distance_df = pd.read_csv(config.reports_path / "lobule_distances.csv", sep=",", index_col=False)
+
+    plot_gradient(report_path, distance_df)

@@ -1,10 +1,8 @@
-from typing import List
+from pathlib import Path
 
-import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import zarr
 from matplotlib import cm
 from matplotlib.colors import to_rgb, to_rgba
 from matplotlib.lines import Line2D
@@ -13,30 +11,20 @@ from matplotlib.patches import Patch
 from zia import BASE_PATH
 from zia.config import read_config
 from zia.data_store import ZarrGroups
-from zia.io.wsi_openslide import read_wsi, openslide
 from zia.io.wsi_tifffile import read_ndpi
 from zia.statistics.expression_profile.expression_profile_gradient import open_protein_arrays
 from zia.statistics.expression_profile.validation_images import plot_mixed_channel, plot_boundaries, plot_distances, get_level_seven_array, plot_he
 from zia.statistics.utils.data_provider import SlideStatsProvider, capitalize
 
 
-
-
-
-if __name__ == "__main__":
+def plot_overview_for_paper(report_path: Path,
+                            distance_df: pd.DataFrame):
     subjects = ["MNT-023", "NOR-021", "SSES2021 10", "UKJ-19-026_Human"]
-    rois = [0, 0, 0, 0]
+    rois = [0,0,0,0]
     config = read_config(BASE_PATH / "configuration.ini")
-    report_path = config.reports_path / "supplementary_images"
-    report_path.mkdir(exist_ok=True, parents=True)
-    protein_order = ["CYP1A2", "CYP2D6", "CYP2E1", "CYP3A4", "GS", "HE"]
-    species_order = SlideStatsProvider.species_order
-    colors = SlideStatsProvider.species_colors
-    df = pd.read_csv(config.reports_path / "lobule_distances.csv", sep=",", index_col=False)
-    species_gb = df.groupby("species")
 
     slide_stats_dict = SlideStatsProvider.get_slide_stats()
-    distance_gb = df.groupby(["subject", "roi"])
+    distance_gb = distance_df.groupby(["subject", "roi"])
 
     slide_paths = []
     for subject, roi in zip(subjects, rois):
@@ -123,5 +111,14 @@ if __name__ == "__main__":
         ax.text(x=-3, y=1, s=f"{let}", fontsize=11, fontweight="bold", transform=ax.transAxes,
                 va="top", ha="right")
 
-    plt.savefig(report_path / "representative_subjects.png", bbox_inches="tight")
+    plt.savefig(report_path / "representative_subjects.png", bbox_inches="tight", dpi=600)
+    plt.savefig(report_path / "representative_subjects.svg", bbox_inches="tight", dpi=600)
+
     plt.show()
+
+
+if __name__ == "__main__":
+    config = SlideStatsProvider.config
+    report_path = config.reports_path / "supplementary_images"
+    distance_df = pd.read_csv(config.reports_path / "lobule_distances.csv", sep=",", index_col=False)
+    plot_overview_for_paper(report_path, distance_df)

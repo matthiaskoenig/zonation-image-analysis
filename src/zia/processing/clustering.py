@@ -1,4 +1,4 @@
-import pickle
+from pathlib import Path
 from typing import List, Tuple
 
 import numcodecs
@@ -133,15 +133,26 @@ def pad_image(image_stack: np.ndarray, pad: int) -> np.ndarray:
     return np.pad(image_stack, pad_width, mode="constant", constant_values=0)
 
 
-def run_skeletize_image(image_stack: np.ndarray, n_clusters=5, write=False, plot=False, pad=10) -> Tuple[np.ndarray, Tuple[List[int], list]]:
+def run_skeletize_image(image_stack: np.ndarray, n_clusters=5, write=False, plot=False, pad=10, report_path: Path = None) -> Tuple[
+    np.ndarray, Tuple[List[int], list]]:
     image_stack = pad_image(image_stack, pad)
 
     superpixelslic = cv2.ximgproc.createSuperpixelSLIC(image_stack, algorithm=cv2.ximgproc.MSLIC, region_size=6)
     superpixelslic.iterate(num_iterations=20)
 
+    superpixel_mask = superpixelslic.getLabelContourMask(thick_line=False)
     # Get the labels and number of superpixels
     labels = superpixelslic.getLabels()
+
     num_labels = superpixelslic.getNumberOfSuperpixels()
+
+    if report_path is not None:
+        """out_template = np.zeros(shape=(image_stack.shape[0], image_stack.shape[1], 3)).astype(np.uint8)
+        for i in range(num_labels):
+            out_template[labels == i] = np.random.randint(255, size=(3,))
+        out_template[(superpixel_mask == 255)] = [255, 255, 0]"""
+
+        cv2.imwrite(str(report_path / "superpixels.png"), superpixel_mask)
 
     merged = image_stack.astype(float)
 
@@ -160,9 +171,30 @@ def run_skeletize_image(image_stack: np.ndarray, n_clusters=5, write=False, plot
         else:
             foreground_pixels[label] = pixels
 
+    if report_path is not None:
+        out_template = np.zeros(shape=(image_stack.shape[0], image_stack.shape[1], 3)).astype(np.uint8)
+        for i in range(num_labels):
+            if i in background_pixels.keys():
+                out_template[labels == i] = np.array([0, 0, 0])
+            else:
+                out_template[labels == i] = np.array([255, 255, 255])
+        cv2.imwrite(str(report_path / "superpixels_bg_fg.png"), out_template)
+
     # calculate the mean over each channel within the superpixel
     foreground_pixels_means = {label: np.mean(pixels, axis=0) for label, pixels in foreground_pixels.items()}
     # print(foreground_pixels_means)
+
+    if report_path is not None:
+        for k in range(merged.shape[2]):
+            out_template = np.zeros(shape=(image_stack.shape[0], image_stack.shape[1])).astype(np.uint8)
+            for i, mean in foreground_pixels_means.items():
+                out_template[labels == i] = mean[k]
+            out_template = out_template / np.max(out_template) * 255
+            out_template = out_template.astype(np.uint8)
+            out_template = cv2.cvtColor(out_template, cv2.COLOR_GRAY2RGB)
+            out_template[np.all(out_template != [0, 0, 0], axis=2) & (superpixel_mask == 255)] = [255, 255, 0]
+            # out_template=out_template[180:230, 220:270, :]
+            cv2.imwrite(str(report_path / f"superpixel_means_{k}.png"), out_template)
 
     # cluster the superpixels based on the mean channel values within the superpixel
     logger.info(f"Cluster (n={n_clusters}) the foreground superpixels based on superpixel mean values")
@@ -187,6 +219,13 @@ def run_skeletize_image(image_stack: np.ndarray, n_clusters=5, write=False, plot
     for i in range(n_clusters):
         background_template[foreground_clustered == sorted_label_idx[i]] = 0
 
+    if report_path is not None:
+        out_template = np.ones(shape=(image_stack.shape[0], image_stack.shape[1])).astype(np.uint8)
+        for i in range(n_clusters):
+            out_template[foreground_clustered == sorted_label_idx[i]] = round((i + 1) * 255 / n_clusters)
+
+        cv2.imwrite(str(report_path / "foreground_clustered.png"), out_template)
+
     if plot:
         plot_pic(background_template)
 
@@ -197,9 +236,7 @@ def run_skeletize_image(image_stack: np.ndarray, n_clusters=5, write=False, plot
                                                                                     plot=plot)
 
     logger.info("Save vessel contours with classes")
-    if write:
-        with open("vessels.pickle", "wb") as f:
-            pickle.dump((classes, filtered_contours), f)
+
     # shades of gray, n clusters + 2 for background
     template = np.zeros_like(merged[:, :, 0]).astype(np.uint8)
     shades = n_clusters + 2
@@ -226,11 +263,29 @@ def run_skeletize_image(image_stack: np.ndarray, n_clusters=5, write=False, plot
     template[~tissue_mask] = 0
     cv2.drawContours(template, [tissue_boundary], -1, 255, thickness=1)
 
+    if report_path is not None:
+        out_template = np.zeros(shape=(merged.shape[0], merged.shape[1], 4)).astype(np.uint8)
+        cv2.drawContours(out_template, class_0_contours, -1, (255, 255, 0, 127), thickness=cv2.FILLED)
+        cv2.drawContours(out_template, class_0_contours, -1, (255, 255, 0, 255), thickness=2)
+
+        cv2.drawContours(out_template, class_1_contours, -1, (255, 0, 255, 127), thickness=cv2.FILLED)
+        cv2.drawContours(out_template, class_1_contours, -1, (255, 0, 255, 255), thickness=2)
+
+        cv2.drawContours(out_template, [tissue_boundary], -1, (255, 255, 255, 255), thickness=3)
+
+        cv2.imwrite(str(report_path / f"classified_vessels.png"), out_template)
+        cv2.imwrite(str(report_path / f"final_clustered_map.png"), template)
+
     if plot:
         plot_pic(template)
 
     logger.info("Run thinning algorithm.")
     thinned = cv2.ximgproc.thinning(template.reshape(template.shape[0], template.shape[1], 1).astype(np.uint8))
+
+    if plot:
+        plot_pic(thinned)
+
+    ## drawing the vessels on the mask and thinn again to prevent pixel accumulations, the segmentation can't hanlde
 
     cv2.drawContours(thinned, class_0_contours, -1, 0, thickness=cv2.FILLED)
     cv2.drawContours(thinned, class_0_contours, -1, 255, thickness=1)
@@ -242,8 +297,8 @@ def run_skeletize_image(image_stack: np.ndarray, n_clusters=5, write=False, plot
 
     if plot:
         plot_pic(thinned)
-    if write:
-        cv2.imwrite("thinned.png", thinned)
+    if report_path is not None:
+        cv2.imwrite(str(report_path / "thinned.png"), thinned)
 
     return thinned, (classes, filtered_contours)
 

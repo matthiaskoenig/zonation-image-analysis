@@ -43,6 +43,7 @@ def visualize_subject_comparison(df: pd.DataFrame, species_oder: list[str], colo
 
 
 def box_plot_roi_comparison(subject_df: pd.DataFrame,
+                            roi_lobule_map: dict[str, str],
                             subject: str,
                             attribute: str,
                             y_label: str,
@@ -51,10 +52,10 @@ def box_plot_roi_comparison(subject_df: pd.DataFrame,
                             limits=None,
                             color=(0, 0, 0),
                             ax: plt.Axes = None,
-                            test_results=None,
+                            test_results: pd.DataFrame = None,
                             annotate_n=True
                             ):
-    data_dict = {}
+    data_dict: Dict = {}
 
     unit = None
 
@@ -62,6 +63,13 @@ def box_plot_roi_comparison(subject_df: pd.DataFrame,
         data_dict[str(roi)] = subject_df[attribute]
         if unit is None:
             unit = set(subject_df[f"{attribute}_unit"]).pop()
+
+    subject_lobule_map = {k: v for k, v in roi_lobule_map.items() if subject in k and k.split("_")[-1] in data_dict.keys()}
+
+    lobule_roi_map = {v: k.split("_")[-1] for k, v in subject_lobule_map.items()}
+    # CLL: "1"
+
+    data_dict = {k: data_dict[lobule_roi_map[k]] for k in sorted(lobule_roi_map.keys())}
 
     if ax is None:
         fig, ax = create_subplots()
@@ -105,7 +113,7 @@ def box_plot_roi_comparison(subject_df: pd.DataFrame,
     if limits is not None:
         ax.set_ylim(limits)
 
-    ax.set_xticklabels([k.replace("_Human", "") for k in data_dict.keys()])
+    ax.set_xticklabels([f"{k}" for k in data_dict.keys()])
     ax.set_ylabel(f"{capitalize(y_label)} ({unit})")
 
     if report_path is not None:
@@ -373,7 +381,6 @@ if __name__ == "__main__":
     a = 0.5
     df = SlideStatsProvider.get_slide_stats_df()
     report_path = SlideStatsProvider.create_report_path("boxplots")
-    # print(df.columns)
     visualize_species_comparison(df, SlideStatsProvider.species_order, SlideStatsProvider.species_colors, report_path)
     # visualize_subject_comparison(df, species_order, colors, report_path)
     # visualize_species_correlation(df,SlideStatsProvider.species_order,SlideStatsProvider.colors,report_path)

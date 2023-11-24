@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Dict, List
 
 import cv2
@@ -109,18 +110,11 @@ def plot_he(ax: plt.Axes, he_array: np.ndarray):
     ax.imshow(he_array)
 
 
-if __name__ == "__main__":
+def plot_validation_for_all(report_path: Path, distance_df: pd.DataFrame):
     config = read_config(BASE_PATH / "configuration.ini")
-    report_path = config.reports_path / "supplementary_images"
-    report_path.mkdir(exist_ok=True, parents=True)
-    protein_order = ["CYP1A2", "CYP2D6", "CYP2E1", "CYP3A4", "GS", "HE"]
-    species_order = SlideStatsProvider.species_order
-    colors = SlideStatsProvider.species_colors
-    df = pd.read_csv(config.reports_path / "lobule_distances.csv", sep=",", index_col=False)
-    species_gb = df.groupby("species")
 
     slide_stats_dict = SlideStatsProvider.get_slide_stats()
-    for (subject, roi), subject_df in df.groupby(["subject", "roi"]):
+    for (subject, roi), subject_df in distance_df.groupby(["subject", "roi"]):
         fig, axes = plt.subplots(2, 4, figsize=(8.3, 8.3 * 1.1 / 4), dpi=300, height_ratios=[0.96, 0.04])
         plt.subplots_adjust(hspace=0, wspace=0)
         slide_stats = slide_stats_dict[str(subject)][str(roi)]
@@ -182,5 +176,14 @@ if __name__ == "__main__":
                      y=1.01)
 
         plt.savefig(report_path / f"distance_{subject}_{roi}.png", bbox_inches="tight")
-        plt.show()
         plt.close(fig)
+
+
+if __name__ == "__main__":
+    config = SlideStatsProvider.config
+    report_path = config.reports_path / "supplementary_images"
+    report_path.mkdir(exist_ok=True, parents=True)
+
+    df = pd.read_csv(config.reports_path / "lobule_distances.csv", sep=",", index_col=False)
+
+    plot_validation_for_all(report_path, df)
