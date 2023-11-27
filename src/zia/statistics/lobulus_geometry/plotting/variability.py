@@ -28,6 +28,9 @@ n = 1 / (0.1911**2/(1.96**2 * 0.324**2) + 1/664) ~ 10.8
 n = 1 / (0.2027**2/(1.96**2 * 0.3779**2) + 1/176) ~ 12.4
 
 """
+from collections import defaultdict
+from typing import Dict
+
 import numpy as np
 import pandas as pd
 from zia.console import console
@@ -158,87 +161,89 @@ def plot_n_gradient(df: pd.DataFrame):
     # Simple example:
     # mouse - GS - 12 bins pv_dist
     color = species_colors["mouse"]
-    protein_df = df[(df.species == "mouse") & (df.protein == "GS")]
-    lobule_count = len(protein_df.groupby(["subject", "roi", "lobule"]))
 
-    # binning
-    bins = np.histogram_bin_edges(protein_df["pv_dist"], range=(0, 1), bins=12)
-    binned, bins = pd.cut(protein_df["pv_dist"], bins=bins, retbins=True)
+    species_protein_df = df[(df.species == "mouse") & (df.protein == "GS")]
+    # analysis by individual subjects
 
-    x = []
-    y = []
-    medians = []
-    means = []
-    stds = []
-    ns = []
+    n_bins = 12
 
-    for i in range(len(bins) - 1):
-        df_bin = protein_df[(protein_df["pv_dist"] > bins[i]) & (protein_df["pv_dist"] <= bins[i + 1])]
-        x.append((bins[i] + bins[i + 1]) / 2)
-        y.append(df_bin["nintensity"])
-        medians.append(np.median(df_bin["nintensity"]))
-        mean = np.mean(df_bin["nintensity"])
-        means.append(mean)
-        std = np.std(df_bin["nintensity"])
-        stds.append(std)
+    x_all: Dict[str, np.ndarray] = {}
+    medians_all: Dict[str, np.ndarray] = {}
+    means_all: Dict[str, np.ndarray] = {}
+    stds_all: Dict[str, np.ndarray] = {}
+    ns_all: Dict[str, np.ndarray] = {}
 
-        # TODO: calculate this for the different slides
-        # calculation of the required n at 95% confidence and ME=0.1
-        d = 0.1
-        ns.append(
-            1 / ((mean * d) ** 2 / (1.96 ** 2 * std ** 2) + 1 / lobule_count)
+    for (subject, protein_df) in species_protein_df.groupby(["subject"]):
+
+        lobule_count = len(protein_df.groupby(["subject", "roi", "lobule"]))
+        console.print(f"{lobule_count=}")
+
+        # binning
+        bins = np.histogram_bin_edges(protein_df["pv_dist"], range=(0, 1), bins=n_bins)
+        binned, bins = pd.cut(protein_df["pv_dist"], bins=bins, retbins=True)
+
+        x = np.zeros(shape=(n_bins-1, ))
+        medians = np.zeros(shape=(n_bins-1, ))
+        means = np.zeros(shape=(n_bins-1, ))
+        stds = np.zeros(shape=(n_bins-1, ))
+        ns = np.zeros(shape=(n_bins-1, ))
+
+        for i in range(n_bins - 1):
+            df_bin = protein_df[(protein_df["pv_dist"] > bins[i]) & (protein_df["pv_dist"] <= bins[i + 1])]
+            x[i] = (bins[i] + bins[i + 1]) / 2
+            medians[i] = np.median(df_bin["nintensity"])
+            means[i] = np.mean(df_bin["nintensity"])
+            stds[i] = np.std(df_bin["nintensity"])
+
+            # TODO: calculate this for the different slides
+            # calculation of the required n at 95% confidence and ME=0.1
+            d = 0.1
+            ns[i] = 1 / ((means[i] * d) ** 2 / (1.96 ** 2 * stds[i] ** 2) + 1 / lobule_count)
+
+        x_all[subject] = x
+        medians_all[subject] = medians
+        means_all[subject] = means
+        stds_all[subject] = stds
+        ns_all[subject] = ns
+
+        # plot subject curves
+        ax1.plot(
+            x, medians,
+            marker="o",
+            markerfacecolor=color,
+            markeredgecolor="black",
+            linewidth=1,
+            markersize=4,
+            zorder=10,
+            color="black",
+            alpha=0.5
         )
 
-    d = (bins[1] - bins[0])
+        ax2.plot(x, ns,
+             marker="o",
+             markerfacecolor=color,
+             markeredgecolor="black",
+             linewidth=1,
+             markersize=4,
+             zorder=10,
+             color="black",
+             alpha=0.5,
+        )
 
-    # plot data
-    bp = ax1.boxplot(x=y, positions=x, widths=d, patch_artist=True, showfliers=False,
-                    whis=[5, 95])
+    # plot mean +- sd
 
-    ax1.plot(
-        x, medians,
-        marker="o",
-        markerfacecolor=color,
-        markeredgecolor="black",
-        linewidth=1,
-        markersize=4,
-        zorder=10,
-        color="black"
-    )
-
-    ax2.plot(x, ns,
-         marker="o",
-         markerfacecolor=color,
-         markeredgecolor="black",
-         linewidth=1,
-         markersize=4,
-         zorder=10,
-         color="black"
-    )
-
-    for box in bp["boxes"]:
-        box.set(facecolor=color, linewidth=0.5)
-    for box in bp["medians"]:
-        box.set(color="None", linewidth=0)
-    for box in bp["caps"]:
-        box.set(linewidth=0.5)
-    for box in bp["whiskers"]:
-        box.set(linewidth=0.5)
-
-    lobule_count = len(protein_df.groupby(["subject", "roi", "lobule"]))
 
     for ax in [ax1, ax2]:
-        ax.text(x=0.98, y=0.01, s=f"n={lobule_count}", fontsize=10, ha="right", va="bottom", transform=ax.transAxes)
+        # ax.text(x=0.98, y=0.01, s=f"n={lobule_count}", fontsize=10, ha="right", va="bottom", transform=ax.transAxes)
         ax.set_xticks([])
         ax.set_xlim(left=0, right=1)
 
     ax1.set_ylim(bottom=0, top=1.1)
     ax2.set_ylim(bottom=0)
 
-        # ax.set_xticklabels([])
-        # ax.set_yticklabels([])
+            # ax.set_xticklabels([])
+            # ax.set_yticklabels([])
 
-    # calculate the n for every bin from N=1571
 
 
     plt.show()
@@ -248,26 +253,24 @@ if __name__ == "__main__":
     # analysis_n_geometric()
 
     # analysis of the required n for determining the zonation
-
     # load data for the different regions
     csv_lobule_distances = "/home/mkoenig/Downloads/manuscript/distance-data/lobule_distances.csv"
     pkl_lobule_distances = "/home/mkoenig/Downloads/manuscript/distance-data/lobule_distances.pkl"
 
-    # df = pd.read_csv(csv_lobule_distances)
-    # df.to_pickle(pkl_lobule_distances)
+    read = False
+    if read:
+        df = pd.read_csv(csv_lobule_distances)
+        # normalization based on max intensity values of one roi
+        norm_dfs = []
+        for (subject, roi, protein), roi_df in df.groupby(["subject", "roi", "protein"]):
+            max_intensity = np.percentile(roi_df["intensity"], 99)
+            roi_df["nintensity"] = roi_df["intensity"] / max_intensity
+            norm_dfs.append(roi_df)
+        df = pd.concat(norm_dfs)
+        df.to_pickle(pkl_lobule_distances)
+
     df = pd.read_pickle(pkl_lobule_distances)
     console.print(df.columns)
-    console.print(df)
-
-    # normalize the data:
-    # normalization based on max intensity values of one roi
-    norm_dfs = []
-    for (subject, roi, protein), roi_df in df.groupby(["subject", "roi", "protein"]):
-        max_intensity = np.percentile(roi_df["intensity"], 99)
-        roi_df["nintensity"] = roi_df["intensity"] / max_intensity
-        norm_dfs.append(roi_df)
-
-    df = pd.concat(norm_dfs)
     console.print(df)
 
     # calculate and plot the n
