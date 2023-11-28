@@ -157,13 +157,14 @@ def plot_n_gradient(df: pd.DataFrame):
     species_order = SlideStatsProvider.species_order
     n_bins = 12
 
-    fig, axes = plt.subplots(nrows=2, ncols=len(protein_order), dpi=300, figsize=(2*len(protein_order), 2*2), layout="constrained")
+    fig, axes = plt.subplots(nrows=3, ncols=len(protein_order), dpi=300, figsize=(2*len(protein_order), 2*3), layout="constrained")
 
     for species in species_order:
         for col, protein in enumerate(protein_order):
             console.print(f"species={species}; protein={protein}")
             ax1: plt.Axes = axes[0, col]
             ax2: plt.Axes = axes[1, col]
+            ax3: plt.Axes = axes[2, col]
 
             color = species_colors[species]
             kwargs = {
@@ -183,6 +184,7 @@ def plot_n_gradient(df: pd.DataFrame):
             medians_all: Dict[str, np.ndarray] = {}
             means_all: Dict[str, np.ndarray] = {}
             stds_all: Dict[str, np.ndarray] = {}
+            cvs_all: Dict[str, np.ndarray] = {}
             ns_all: Dict[str, np.ndarray] = {}
 
             for (subject, protein_df) in species_protein_df.groupby(["subject"]):
@@ -196,10 +198,11 @@ def plot_n_gradient(df: pd.DataFrame):
                 binned, bins = pd.cut(protein_df["pv_dist"], bins=bins, retbins=True)
 
                 x = np.zeros(shape=(n_bins, ))
-                medians = np.zeros(shape=(n_bins, ))
-                means = np.zeros(shape=(n_bins, ))
-                stds = np.zeros(shape=(n_bins, ))
-                ns = np.zeros(shape=(n_bins, ))
+                medians = np.zeros_like(x)
+                means = np.zeros_like(x)
+                stds = np.zeros_like(x)
+                cvs = np.zeros_like(x)
+                ns = np.zeros_like(x)
 
                 # FIXME: ensure complete calculation
                 for i in range(n_bins):  # FIXME: bins
@@ -208,6 +211,7 @@ def plot_n_gradient(df: pd.DataFrame):
                     medians[i] = np.median(df_bin["nintensity"])
                     means[i] = np.mean(df_bin["nintensity"])
                     stds[i] = np.std(df_bin["nintensity"])
+                    cvs[i] = stds[i]/means[i]
 
                     # TODO: calculate this for the different slides
                     # calculation of the required n at 95% confidence and ME=0.1
@@ -218,29 +222,37 @@ def plot_n_gradient(df: pd.DataFrame):
                 medians_all[subject] = medians
                 means_all[subject] = means
                 stds_all[subject] = stds
+                cvs_all[subject] = stds
                 ns_all[subject] = ns
-
-                # plot subject curves
-                # ax1.plot(
-                #     x, means, #medians,
-                #     alpha=0.5,
-                #     **kwargs
-                # )
-                # ax2.plot(
-                #     x, ns,
-                #     alpha=0.5,
-                #     **kwargs
-                # )
 
             # plot mean +- sd
             intensity_means = np.mean(np.array([v for v in means_all.values()]), axis=0)
-            intensity_medians = np.median(np.array([v for v in medians_all.values()]), axis=0)
-            intensity_stds = np.std(np.array([v for v in medians_all.values()]), axis=0)
-            intensity_means_stds = np.mean(np.array([v for v in stds_all.values()]), axis=0)
+            intensity_stds = np.std(np.array([v for v in means_all.values()]), axis=0)
+
+            cvs_means = np.mean(np.array([v for v in cvs_all.values()]), axis=0)
+            cvs_stds = np.std(np.array([v for v in cvs_all.values()]), axis=0)
+
             ns_means = np.median(np.array([v for v in ns_all.values()]), axis=0)
             ns_stds = np.std(np.array([v for v in ns_all.values()]), axis=0)
 
+            # gradient (mean +- SD)
             ax1.errorbar(
+                x=x,
+                y=intensity_means,
+                yerr=intensity_stds,  # intensity_stds,
+                label=species,
+                **kwargs
+            )
+            # gradient CV
+            ax2.errorbar(
+                x=x,
+                y=cvs_means,
+                yerr=cvs_stds,
+                label=species,
+                **kwargs
+            )
+            # n lobuli
+            ax3.errorbar(
                 x=x,
                 y=ns_means,
                 yerr=ns_stds,
@@ -248,23 +260,19 @@ def plot_n_gradient(df: pd.DataFrame):
                 **kwargs
             )
 
-            ax2.errorbar(
-                x=x,
-                y=intensity_means,
-                yerr=intensity_means_stds,  # intensity_stds,
-                label=species,
-                **kwargs
-            )
-
-            for ax in [ax1, ax2]:
+            for ax in [ax1, ax2, ax3]:
                 ax.set_xticks([])
                 ax.set_xlim(left=0, right=1)
 
-            ax1.set_ylim(bottom=0, top=100)
-            ax2.set_ylim(bottom=0, top=1.1)
+            ax1.set_ylim(bottom=0, top=1.1)
+            ax2.set_ylim(bottom=0, top=0.3)
+            ax3.set_ylim(bottom=0, top=100)
 
-    axes[0, 0].set_ylabel("Number of lobuli [-]", fontsize=9, fontweight="bold")
-    axes[1, 0].set_ylabel("Normalized intensity [-]", fontsize=9, fontweight="bold")
+    axes[0, 0].set_ylabel("Intensity [-]", fontsize=9, fontweight="bold")
+    axes[1, 0].set_ylabel("Intensity CV [-]", fontsize=9, fontweight="bold")
+    axes[2, 0].set_ylabel("Number of lobuli [-]", fontsize=9, fontweight="bold")
+
+
     for ax in axes.flatten():
         ax.legend(prop={'size': 6})
     # axes[0, 0].legend(prop={'size': 6})
@@ -278,7 +286,7 @@ def plot_n_gradient(df: pd.DataFrame):
     for protein, ax in zip(protein_order, axes[0, :].flatten()):
         ax.set_title(protein, fontsize=14, fontweight="bold")
 
-    for ax in axes[1, :].flatten():
+    for ax in axes[-1, :].flatten():
         ax.xaxis.set_ticks([0, 1], labels=["PP", "PV"])
 
 
@@ -312,3 +320,5 @@ if __name__ == "__main__":
 
     # calculate and plot the n
     plot_n_gradient(df=df)
+
+
