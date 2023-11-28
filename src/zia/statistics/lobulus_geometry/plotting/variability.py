@@ -45,7 +45,8 @@ species_colors = {
     'pig': '#dddddd',
     'human': '#44bb99'
 }
-
+protein_order = ["HE", "GS", "CYP1A2", "CYP2D6", "CYP2E1", "CYP3A4"]
+species_order = SlideStatsProvider.species_order
 
 def plot_n_geometric(df: pd.DataFrame, distances) -> None:
     """Plot the n required for geometric calculation."""
@@ -153,8 +154,7 @@ def analysis_n_geometric():
 def plot_n_gradient(df: pd.DataFrame):
     plt.style.use("tableau-colorblind10")
 
-    protein_order = ["HE", "GS", "CYP1A2", "CYP2D6", "CYP2E1", "CYP3A4"]
-    species_order = SlideStatsProvider.species_order
+
     n_bins = 12
 
     fig, axes = plt.subplots(nrows=3, ncols=len(protein_order), dpi=300, figsize=(2*len(protein_order), 2*3), layout="constrained")
@@ -294,11 +294,156 @@ def plot_n_gradient(df: pd.DataFrame):
     fig.savefig("n_lobuli_gradient.png", bbox_inches="tight")
 
 
-if __name__ == "__main__":
-    analysis_n_geometric()
+def plot_n_area(df: pd.DataFrame):
+    plt.style.use("tableau-colorblind10")
 
-    # analysis of the required n for determining the zonation
-    # load data for the different regions
+    fig, axes = plt.subplots(nrows=2, ncols=len(protein_order), dpi=300, figsize=(2*len(protein_order), 2*2), layout="constrained")
+
+    for species in species_order:
+        for col, protein in enumerate(protein_order):
+            console.print(f"species={species}; protein={protein}")
+
+            color = species_colors[species]
+            kwargs = {
+                "marker": "o",
+                "markerfacecolor": color,
+                "markeredgecolor": "black",
+                "linewidth": 1,
+                "markersize": 4,
+                "zorder": 10,
+                "color": color,
+            }
+
+            species_protein_df = df[(df.species == species) & (df.protein == protein)]
+
+            # analysis by individual subjects
+            medians_all: Dict[str, float] = {}
+            means_all: Dict[str, float] = {}
+            stds_all: Dict[str, float] = {}
+            cvs_all: Dict[str, float] = {}
+            ns_all: Dict[str, float] = {}
+
+            cutoffs = {
+                ">50": [50, 100],
+                "0-20": [0, 20],
+                "20-40": [20, 40],
+                "40-60": [40, 60],
+                "60-80": [60, 80],
+                "80-100": [80, 100],
+            }
+            n_cutoffs = len(cutoffs)
+
+            for (subject, protein_df) in species_protein_df.groupby(["subject"]):
+                # TODO: perform by lobuli
+
+                lobule_count = len(protein_df.groupby(["subject", "roi", "lobule"]))
+                console.print(f"{lobule_count=}")
+
+                # calculate cutoff:
+                console.print("Calculate positive area")
+
+                bins = np.histogram_bin_edges(protein_df["pv_dist"], range=(0, 1), bins=n_bins)
+                binned, bins = pd.cut(protein_df["pv_dist"], bins=bins, retbins=True)
+
+                x = np.zeros(shape=(n_cutoffs, ))
+                means = np.zeros_like(x)
+                stds = np.zeros_like(x)
+                ns = np.zeros_like(x)
+
+                # FIXME: ensure complete calculation; calculate per lobulus?
+                for i, label in enumerate(cutoffs):
+                    x[i] = i
+                    cutoff = cutoffs[label]
+
+                    count_all = len(protein_df)
+                    cutoff_df = protein_df[(protein_df.intensity >= cutoff[0]) & (protein_df.intensity < cutoff[1])]
+                    # evaluate for every lobule !
+
+                    #
+                    means[i] = np.mean(df_bin["nintensity"])
+
+
+                    # TODO: calculate this for the different slides
+                    # calculation of the required n at 95% confidence and ME=0.1
+                    d = 0.1
+                    ns[i] = 1 / ((means[i] * d) ** 2 / (1.96 ** 2 * stds[i] ** 2) + 1 / lobule_count)
+
+                x_all[subject] = x
+                medians_all[subject] = medians
+                means_all[subject] = means
+                stds_all[subject] = stds
+                cvs_all[subject] = stds
+                ns_all[subject] = ns
+
+            # plot mean +- sd
+            intensity_means = np.mean(np.array([v for v in means_all.values()]), axis=0)
+            intensity_stds = np.std(np.array([v for v in means_all.values()]), axis=0)
+
+            cvs_means = np.mean(np.array([v for v in cvs_all.values()]), axis=0)
+            cvs_stds = np.std(np.array([v for v in cvs_all.values()]), axis=0)
+
+            ns_means = np.median(np.array([v for v in ns_all.values()]), axis=0)
+            ns_stds = np.std(np.array([v for v in ns_all.values()]), axis=0)
+
+            # plot
+            ax1: plt.Axes = axes[0, col]
+            ax2: plt.Axes = axes[1, col]
+
+            # plot data
+            ax1.errorbar(
+                x=x,
+                y=intensity_means,
+                yerr=intensity_stds,  # intensity_stds,
+                label=species,
+                **kwargs
+            )
+            # gradient CV
+            ax2.errorbar(
+                x=x,
+                y=cvs_means,
+                yerr=cvs_stds,
+                label=species,
+                **kwargs
+            )
+
+            for ax in [ax1, ax2]:
+                ax.set_xticks([])
+                ax.set_xlim(left=0, right=1)
+
+            # ax1.set_ylim(bottom=0, top=1.1)
+            # ax2.set_ylim(bottom=0, top=0.3)
+            # ax3.set_ylim(bottom=0, top=100)
+
+    axes[0, 0].set_ylabel("Intensity [-]", fontsize=9, fontweight="bold")
+    axes[1, 0].set_ylabel("Intensity CV [-]", fontsize=9, fontweight="bold")
+    axes[2, 0].set_ylabel("Number of lobuli [-]", fontsize=9, fontweight="bold")
+
+
+    for ax in axes.flatten():
+        ax.legend(prop={'size': 6})
+    # axes[0, 0].legend(prop={'size': 6})
+    # axes[1, 0].legend(prop={'size': 6})
+
+    for ax in axes[:-1, :].flatten():
+        ax.set_xticklabels([])
+    for ax in axes[:, 1:].flatten():
+        ax.set_yticklabels([])
+
+    for protein, ax in zip(protein_order, axes[0, :].flatten()):
+        ax.set_title(protein, fontsize=14, fontweight="bold")
+
+    for ax in axes[-1, :].flatten():
+        ax.xaxis.set_ticks([0, 1], labels=["PP", "PV"])
+
+
+    plt.show()
+    fig.savefig("n_lobuli_area.png", bbox_inches="tight")
+
+
+if __name__ == "__main__":
+
+
+    # number of lobuli required for the zonation
     csv_lobule_distances = "/home/mkoenig/Downloads/manuscript/distance-data/lobule_distances.csv"
     pkl_lobule_distances = "/home/mkoenig/Downloads/manuscript/distance-data/lobule_distances.pkl"
 
@@ -318,7 +463,14 @@ if __name__ == "__main__":
     console.print(df.columns)
     console.print(df)
 
-    # calculate and plot the n
-    plot_n_gradient(df=df)
+    # Number of lobuli for geometric parameters
+    # analysis_n_geometric()
+
+    # calculate and plot the n for the gradient
+    # plot_n_gradient(df=df)
+
+    # calculate and plot the n for the area
+    plot_n_area(df=df)
+
 
 
