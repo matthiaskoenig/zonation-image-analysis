@@ -8,8 +8,11 @@ from rich.logging import RichHandler
 
 from zia.console import console
 
+
 def create_message(image_id: str, msg: str):
     return f"[{image_id}]\t{msg}"
+
+
 def get_logger(name: str, level: int = logging.INFO) -> logging.Logger:
     """Get new custom logger for name."""
     formatter = logging.Formatter(

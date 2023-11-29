@@ -149,10 +149,10 @@ class ImageMetadata:
 
 
 def filter_factory(
-    subject: Optional[str] = None,
-    species: Optional[str] = None,
-    protein: Optional[str] = None,
-    negative: bool = False
+        subject: Optional[str] = None,
+        species: Optional[str] = None,
+        protein: Optional[str] = None,
+        negative: bool = False
 ):
     """Create filter functions"""
 

@@ -20,7 +20,7 @@ import pandas as pd
 import shapely
 import shapely.ops
 from matplotlib import pyplot as plt
-from shapely import Polygon, MultiPolygon, GeometryCollection, minimum_bounding_radius, Geometry
+from shapely import Polygon, MultiPolygon, GeometryCollection, minimum_bounding_radius, Geometry, symmetric_difference_all
 from shapely.geometry import shape
 
 
@@ -262,7 +262,7 @@ class LobuleStatistics:
         return lobule_statistics
 
     def get_area(self) -> float:
-        return self.polygon.area
+        return Polygon(self.polygon.exterior).area
 
     def has_central_vessel(self) -> bool:
         return len(self.vessels_central) != 0
@@ -283,18 +283,10 @@ class LobuleStatistics:
             return sum([g.area for g in self.vessels_portal])
 
     def get_poly_area_without_vessel_area(self) -> float:
-        intersection_area = 0.0
-        for vp in self.vessels_portal + self.vessels_central + self.unclassified:
-            if self.polygon.contains(vp):
-                intersection_area += vp.area
-            else:
-                intersection = self.polygon.intersection(vp)
-                intersection_area += intersection.area
-
-        return self.get_area() - intersection_area
+        return self.polygon.area
 
     def get_perimeter(self) -> float:
-        return self.polygon.length
+        return Polygon(self.polygon.exterior).length
 
     def get_compactness(self) -> float:
         """isoperimetric quotient -> ratio of the area of the shape to the area of a circle with the same perimeter"""
@@ -317,13 +309,3 @@ class LobuleStatistics:
     @classmethod
     def to_dataframe(cls, statistics: List[LobuleStatistics]) -> pd.DataFrame:
         pass
-
-
-if __name__ == "__main__":
-    # TODO: make this work for a single polygon
-    # TODO: make this work for all polygons from a single slide
-    # TODO: make this work multiple slides from different classes (species)
-    result_dir = Path(__file__).parent
-    slide_stats = SlideStats.load_from_file_system(result_dir, "NOR_021")
-
-pass

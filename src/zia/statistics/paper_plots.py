@@ -1,15 +1,37 @@
+import shutil
+from pathlib import Path
+from typing import Dict
+
+import pandas as pd
+
 from zia.log import get_logger
 from zia.statistics.expression_profile.expression_profile_gradient import generate_distance_df
 from zia.statistics.expression_profile.gradient import plot_gradient
 from zia.statistics.expression_profile.validation_for_paper import plot_overview_for_paper
 from zia.statistics.expression_profile.validation_images import plot_validation_for_all
-from zia.statistics.lobulus_geometry.correlation_matrix import plot_correlation_matrix
+from zia.statistics.lobulus_geometry.correlation import plot_correlation
 from zia.statistics.lobulus_geometry.descriptive_stats import generate_descriptive_stats
 from zia.statistics.lobulus_geometry.mouse_lobe_comparison import plot_mouse_lobe_comparison
 from zia.statistics.lobulus_geometry.species_comparison import plot_species_comparison
 from zia.statistics.lobulus_geometry.subject_comparison import plot_subject_comparison
 from zia.statistics.lobulus_geometry.testing import run_all_tests
 from zia.statistics.utils.data_provider import SlideStatsProvider
+
+
+def map_dict(subject, roi, species, mouse_lobe_dict):
+    if species != "mouse":
+        return roi
+    return mouse_lobe_dict[f"{subject}_{roi}"]
+
+
+def save_slide_statistics(mouse_lobule_dict: Dict[str, str],
+                          slide_stats: pd.DataFrame,
+                          report_path: Path):
+    to_save = slide_stats.copy()
+
+    to_save['roi'] = to_save[['subject', 'roi', 'species']].apply(lambda x: map_dict(x[0], x[1], x[2], mouse_lobule_dict), axis=1)
+    to_save.to_excel(report_path / "slide-stats.xlsx")
+
 
 if __name__ == "__main__":
 
@@ -22,10 +44,11 @@ if __name__ == "__main__":
     report_path_descriptive_stats = report_path_base / "descriptive-stats"
     report_path_distance_df = report_path_base / "distance-data"
     report_path_valdiation_all = report_path_base / "overview-for-all"
+    report_path_slide_statistics = report_path_base / "slide-statistics"
 
-    for p in [report_path_stats_test, report_path_paper_plots, report_path_descriptive_stats, report_path_distance_df, report_path_valdiation_all]:
+    for p in [report_path_stats_test, report_path_paper_plots, report_path_descriptive_stats, report_path_distance_df, report_path_valdiation_all,
+              report_path_slide_statistics]:
         p.mkdir(exist_ok=True, parents=True)
-
 
     mouse_lobe_dict = {
         "MNT-021_0": "LLL",
@@ -57,6 +80,10 @@ if __name__ == "__main__":
     labels = ["perimeter", "area", "compactness", "min bounding radius"]
     logs = [True, True, False, True]
 
+    # write slide stats df
+    log.info("Writing slide statistics dataframe")
+    save_slide_statistics(mouse_lobe_dict, df, report_path_slide_statistics)
+
     # run the statistical tests
     log.info("Running statistical test")
     run_all_tests(df, report_path_stats_test, attributes, logs, mouse_lobe_dict)
@@ -66,12 +93,12 @@ if __name__ == "__main__":
     plot_species_comparison(df, report_path_paper_plots, attributes, labels, logs, report_path_stats_test)
     plot_subject_comparison(df, report_path_paper_plots, attributes, labels, logs, report_path_stats_test)
     plot_mouse_lobe_comparison(df, report_path_paper_plots, attributes, labels, logs, report_path_stats_test, mouse_lobe_dict)
-    plot_correlation_matrix(df, report_path_paper_plots, attributes[0:-1], labels[0:-1], logs[0:-1], binned=True)
-    plot_correlation_matrix(df, report_path_paper_plots, attributes[0:-1], labels[0:-1], logs[0:-1], binned=False)
+    plot_correlation(df, report_path_paper_plots, attributes[0:-1], labels[0:-1], logs[0:-1], binned=True)
+    plot_correlation(df, report_path_paper_plots, attributes[0:-1], labels[0:-1], logs[0:-1], binned=False)
 
     # descriptive stats
     log.info("Generating descriptive statistics data frame")
-    generate_descriptive_stats(df, report_path_descriptive_stats, attributes, logs, mouse_lobe_dict)
+    generate_descriptive_stats(df, report_path_descriptive_stats, attributes, mouse_lobe_dict)
 
     # generate the distance dataframe
     log.info("Generating distance intensity data frame")
@@ -86,4 +113,7 @@ if __name__ == "__main__":
     log.info("Creating overview plots for each subject and ROI")
     plot_validation_for_all(report_path_valdiation_all, distance_df)
 
+    # copy README file
+    shutil.copy("README.md", report_path_base / "README.md")
 
+    shutil.make_archive(SlideStatsProvider.config.reports_path / "manuscript", 'zip', str(report_path_base))

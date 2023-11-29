@@ -31,11 +31,8 @@ if __name__ == "__main__":
 
             annotation_dict[geom_tyep].append(image_info.metadata.image_id)
 
-
     if "LineString" in annotation_dict.keys():
         image_ids = "\n".join(k for k in annotation_dict["LineString"])
         logger.error(f"Line String in artifacts annotations:\n{image_ids}")
     else:
         logger.info("Annotations are fine")
-
-

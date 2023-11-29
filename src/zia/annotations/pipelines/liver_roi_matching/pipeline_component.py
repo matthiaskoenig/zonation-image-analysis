@@ -89,9 +89,9 @@ class RoiFinderComponent(IPipelineComponent):
 
     @staticmethod
     def _draw_rois(
-        liver_rois: List[Roi],
-        image_path: Path,
-        data_store: DataStore,
+            liver_rois: List[Roi],
+            image_path: Path,
+            data_store: DataStore,
     ) -> None:
         """Draw rois."""
         region = read_full_image_from_slide(data_store.image, 7)

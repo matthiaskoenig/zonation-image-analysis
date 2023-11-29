@@ -69,8 +69,8 @@ def scatter_plot_correlation(df: pd.DataFrame,
                   extent=limits_x + limits_y
                   )
     x_unit, y_unit = units
-    ax.set_xlabel(f"{x_label} ({x_unit})")
-    ax.set_ylabel(f"{y_label} ({y_unit})")
+    ax.set_xlabel(f"{x_label.title()} ({x_unit})")
+    ax.set_ylabel(f"{y_label.title()} ({y_unit})")
 
     spearman_corr = spearmanr(x, y).statistic
 
