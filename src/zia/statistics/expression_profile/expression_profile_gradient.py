@@ -48,13 +48,15 @@ def create_lobule_df(height: np.ndarray, width: np.ndarray, d_portal: np.ndarray
     ).explode(["width", "height", "d_portal", "d_central", "intensity"])
 
 
-def analyse_protein_expression_for_lobule(protein_array: np.ndarray, lobule_stats: LobuleStatistics, idx: int, meta: Dict, sum_array: np.ndarray) -> \
+def analyse_protein_expression_for_lobule(protein_array: np.ndarray, foreground_mask: np.ndarray, lobule_stats: LobuleStatistics, idx: int,
+                                          meta: Dict, sum_array: np.ndarray) -> \
         Optional[pd.DataFrame]:
     poly_boundary: Polygon = swap_xy(lobule_stats.polygon)
     minx, miny, maxx, maxy = (max(0, int(x)) for x in poly_boundary.bounds)
 
     lobule_array = protein_array[miny:maxy, minx:maxx]
     lobule_sum = sum_array[miny:maxy, minx:maxx]
+    lobule_foreground = foreground_mask[miny:maxy, minx:maxx]
 
     mask_lobule = np.zeros_like(lobule_array, dtype=np.uint8)
     mask_portal = np.zeros_like(lobule_array, dtype=np.uint8)
@@ -99,8 +101,9 @@ def analyse_protein_expression_for_lobule(protein_array: np.ndarray, lobule_stat
     area = mask.sum()
 
     pixels = lobule_array[mask]
+    foreground = lobule_foreground[mask]
 
-    empty_pixels = pixels[pixels == 0]
+    empty_pixels = foreground[foreground == False]
     if empty_pixels.size / area > 0.2:
         # print("empty lobule on slide")
         return None
@@ -132,8 +135,9 @@ def analyse_protein_expression_for_lobule(protein_array: np.ndarray, lobule_stat
     return create_lobule_df(height, width, d_portal, d_central, pv_dist, intensity, idx)
 
 
-def analyse_protein_expression(protein_array: np.ndarray, slide_stats: SlideStats, sum_array: np.ndarray) -> pd.DataFrame:
-    dfs = [analyse_protein_expression_for_lobule(protein_array, ls, idx, slide_stats.meta_data, sum_array) for idx, ls in
+def analyse_protein_expression(protein_array: np.ndarray, fore_ground_mask: np.ndarray, slide_stats: SlideStats,
+                               sum_array: np.ndarray) -> pd.DataFrame:
+    dfs = [analyse_protein_expression_for_lobule(protein_array, fore_ground_mask, ls, idx, slide_stats.meta_data, sum_array) for idx, ls in
            enumerate(slide_stats.lobule_stats)]
     dfs = list(filter(lambda x: x is not None, dfs))
     return pd.concat(dfs)
@@ -151,14 +155,36 @@ def create_sum_array(protein_arrays) -> np.ndarray:
     return 1 / len(normalized_arrays) * np.sum(normalized_arrays, axis=0)
 
 
-def analyse_lobuli(slide_stats: SlideStats, protein_arrays: Dict[str, np.ndarray]) -> pd.DataFrame:
+def analyse_lobuli(slide_stats: SlideStats, protein_arrays: Dict[str, np.ndarray], foreground_masks: Dict[str, np.ndarray]) -> pd.DataFrame:
     protein_dfs = []
     sum_array = create_sum_array(protein_arrays)
     for protein, protein_array in protein_arrays.items():
-        df = analyse_protein_expression(protein_array, slide_stats, sum_array)
+        df = analyse_protein_expression(protein_array, foreground_masks[protein], slide_stats, sum_array)
         df["protein"] = protein
         protein_dfs.append(df)
     return pd.concat(protein_dfs)
+
+
+def normalize_arrays(protein_arrays: Dict[str, np.ndarray]) -> Dict[str, np.ndarray]:
+    normalized = {}
+
+    gs = protein_arrays.get("GS")
+    if gs is not None:
+        bg = np.percentile(gs[gs > 0], 20)
+    else:
+        cyp3a4 = protein_arrays["CYP3A4"]
+        bg = np.percentile(cyp3a4[cyp3a4 > 0], 10)
+
+    for key, arr in protein_arrays.items():
+        max_i = np.percentile(arr[arr > 0], 99)
+        norm = (arr - bg) / (max_i - bg)
+        norm[norm < 0] = 0
+        normalized[key] = norm
+    return normalized
+
+
+def get_foreground_mask(protein_arrays: Dict[str, np.ndarray]):
+    return {key: arr > 0 for key, arr in protein_arrays.items()}
 
 
 def generate_distance_df(report_path: Path, overwrite=True) -> pd.DataFrame:
@@ -182,7 +208,9 @@ def generate_distance_df(report_path: Path, overwrite=True) -> pd.DataFrame:
                 level=slide_stats.meta_data["level"],
                 excluded=excluded if excluded is not None else []
             )
-            df = analyse_lobuli(slide_stats, protein_arrays)
+            foreground_masks = get_foreground_mask(protein_arrays)
+            normalized_arrays = normalize_arrays(protein_arrays)
+            df = analyse_lobuli(slide_stats, normalized_arrays, foreground_masks)
             df["roi"] = roi
             roi_dfs.append(df)
 
@@ -194,6 +222,11 @@ def generate_distance_df(report_path: Path, overwrite=True) -> pd.DataFrame:
 
     final_df = pd.concat(subject_dfs)
     final_df["roi"] = pd.to_numeric(final_df["roi"])
+
+    final_df = final_df.round({"d_portal": 3,
+                               "d_central": 3,
+                               "pv_dist": 3,
+                               "intensity": 3})
 
     final_df.to_csv(report_path / "lobule_distances.csv", sep=",", index=False)
 

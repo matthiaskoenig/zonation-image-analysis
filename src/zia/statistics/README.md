@@ -15,7 +15,6 @@ The following list specifies the column name and description.
 | nominal_var | column by which dataframe was grouped              |
 | group       | group name                                         |
 | attr        | variable of statistical analysis                   |
-| log         | if True, analysis was done on log transformed data |
 | unit        | variable unit                                      |
 | mean        | mean                                               |
 | std         | standard deviation                                 |

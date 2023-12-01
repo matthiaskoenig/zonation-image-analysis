@@ -30,19 +30,6 @@ def plot_gradient(report_path: Path, distance_df: pd.DataFrame):
             ax: plt.Axes = axes[row, col]
             protein_df = protein_gb.get_group(protein)
 
-            # normalization based on max intensity values of one slide
-            norm_dfs = []
-            for (subject, roi), subject_df in protein_df.groupby(["subject", "roi"]):
-                max_intensity = np.percentile(subject_df["intensity"], 99)
-
-                subject_df["intensity"] = subject_df["intensity"] / max_intensity
-                norm_dfs.append(subject_df)
-
-            protein_df = pd.concat(norm_dfs)
-
-            # protein_df = protein_df[protein_df["d_central"] <= x_limits[species]]
-
-            # bins = int(np.ceil(x_limits[species] / bin_size))
             bins = np.histogram_bin_edges(protein_df["pv_dist"], range=(0, 1), bins=12)
             binned, bins = pd.cut(protein_df["pv_dist"], bins=bins, retbins=True)
 
@@ -60,7 +47,7 @@ def plot_gradient(report_path: Path, distance_df: pd.DataFrame):
             d = (bins[1] - bins[0])
 
             bp = ax.boxplot(x=y, positions=x, widths=d, patch_artist=True, showfliers=False,
-                            whis=[5, 95])
+                            whis=(5, 95))
 
             ax.plot(x, medians,
                     marker="o",
@@ -82,7 +69,7 @@ def plot_gradient(report_path: Path, distance_df: pd.DataFrame):
 
             lobule_count = len(protein_df.groupby(["subject", "roi", "lobule"]))
 
-            ax.text(x=0.98, y=0.01, s=f"n={lobule_count}", fontsize=10, ha="right", va="bottom", transform=ax.transAxes)
+            ax.text(x=0.02, y=0.98, s=f"n={lobule_count}", fontsize=10, ha="left", va="top", transform=ax.transAxes)
 
             ax.set_xticks([])
 
@@ -112,7 +99,7 @@ def plot_gradient(report_path: Path, distance_df: pd.DataFrame):
             ax.set_xlim(left=0, right=1)
 
     for ax in axes.flatten():
-        ax.set_ylim(top=1.2, bottom=0)
+        ax.set_ylim(top=1.2, bottom=-0.05)
 
     for ax in axes[:-1, 1:].flatten():
         ax.set_xticklabels([])

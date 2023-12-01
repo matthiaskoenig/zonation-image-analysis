@@ -95,11 +95,9 @@ if __name__ == "__main__":
     plot_mouse_lobe_comparison(df, report_path_paper_plots, attributes, labels, logs, report_path_stats_test, mouse_lobe_dict)
     plot_correlation(df, report_path_paper_plots, attributes[0:-1], labels[0:-1], logs[0:-1], binned=True)
     plot_correlation(df, report_path_paper_plots, attributes[0:-1], labels[0:-1], logs[0:-1], binned=False)
-
     # descriptive stats
     log.info("Generating descriptive statistics data frame")
     generate_descriptive_stats(df, report_path_descriptive_stats, attributes, mouse_lobe_dict)
-
     # generate the distance dataframe
     log.info("Generating distance intensity data frame")
     distance_df = generate_distance_df(report_path_distance_df, overwrite=False)
