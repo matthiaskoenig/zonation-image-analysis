@@ -91,6 +91,8 @@ def plot_n_geometric(df: pd.DataFrame, distances) -> None:
                 linestyle="-", marker="o",
                 markeredgecolor="black"
             )
+            console.print(f"{attr}, {species}")
+            console.print(f"{means[1]:.1f} ± {stds[1]:.1f}")
 
         ax.legend()
 
@@ -191,9 +193,9 @@ def plot_n_gradient(df: pd.DataFrame):
 
             for (subject, protein_df) in species_protein_df.groupby(["subject"]):
 
-                # FIXME: do analysis via roi;
+
                 lobule_count = len(protein_df.groupby(["subject", "roi", "lobule"]))
-                console.print(f"{lobule_count=}")
+                # console.print(f"{lobule_count=}")
 
                 # binning
                 bins = np.histogram_bin_edges(protein_df["pv_dist"], range=(0, 1), bins=n_bins)
@@ -332,7 +334,7 @@ def plot_n_area(df: pd.DataFrame):
             for (subject, protein_df) in species_protein_df.groupby(["subject"]):
 
                 lobule_count = len(protein_df.groupby(["subject", "roi", "lobule"]))
-                console.print(f"{lobule_count=}")
+                # console.print(f"{lobule_count=}")
 
                 means = np.zeros(shape=(1, ))
                 stds = np.zeros_like(means)
@@ -365,6 +367,9 @@ def plot_n_area(df: pd.DataFrame):
             x = [kspecies + 0.5] * len(means_all)
             y1 = np.asarray(list(means_all.values())) * 100
             y2 = np.asarray(list(ns_all.values()))
+
+            console.print(f"{protein}, {species}")
+            console.print(f"{np.mean(y2):.1f} ± {np.std(y2):.1f}")
 
             # plot boxplots
             bp = ax1.boxplot(x=y1, positions=[kspecies+0.5], widths=[0.8], patch_artist=True,
@@ -445,7 +450,6 @@ def plot_n_area(df: pd.DataFrame):
 
 if __name__ == "__main__":
 
-
     # number of lobuli required for the zonation
     csv_lobule_distances = "/home/mkoenig/Downloads/manuscript/distance-data/lobule_distances.csv"
     pkl_lobule_distances = "/home/mkoenig/Downloads/manuscript/distance-data/lobule_distances.pkl"
@@ -467,8 +471,8 @@ if __name__ == "__main__":
     console.print(df)
 
     # Number of lobuli for geometric parameters
-    # xlsx_path = "/home/mkoenig/Downloads/manuscript/descriptive-stats/descriptive-stats.xlsx"
-    # analysis_n_geometric(xlsx_path=xlsx_path)
+    xlsx_path = Path("/home/mkoenig/Downloads/manuscript/descriptive-stats/descriptive-stats.xlsx")
+    analysis_n_geometric(xlsx_path=xlsx_path)
 
     # calculate and plot the n for the gradient
     # plot_n_gradient(df=df)
