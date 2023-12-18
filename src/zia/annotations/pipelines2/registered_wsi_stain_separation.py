@@ -276,12 +276,15 @@ def create_pyramid_group(store: zarr.DirectoryStore,
         if new_chunk_h * new_chunk_w < 1e6:
             new_chunk_h, new_chunk_w = chunk_h, chunk_w
 
-        arr: zarr.Array = protein_group.empty(
+        arr: zarr.Array = protein_group.create(
             str(i),
             shape=(new_h, new_w) + ((shape[2],) if len(shape) == 3 else ()),
             chunks=(new_chunk_w, new_chunk_h) + ((shape[2],) if len(shape) == 3 else ()),
             dtype=dtype,
-            overwrite=True
+            overwrite=True,
+            write_empty_chunks=False,
+            fill_value=255,
+            compressor=Jpeg2k(level=75)
         )
 
         pyramid_dict[i] = arr.path

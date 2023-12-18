@@ -112,6 +112,8 @@ if __name__ == "__main__":
     plot_validation_for_all(report_path_valdiation_all, distance_df)
 
     # copy README file
+    log.info("Copying README file")
     shutil.copy("README.md", report_path_base / "README.md")
 
+    log.info("Creating zip archive")
     shutil.make_archive(SlideStatsProvider.config.reports_path / "manuscript", 'zip', str(report_path_base))

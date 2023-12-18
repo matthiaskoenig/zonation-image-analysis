@@ -2,8 +2,10 @@ from pathlib import Path
 from typing import List, Dict, Optional, Tuple, Generator, Iterator
 
 import numpy as np
+import shapely
 import zarr
 from PIL import ImageDraw, ImageFont
+from shapely import Polygon
 from tifffile import TiffWriter
 
 from zia import BASE_PATH
@@ -16,6 +18,10 @@ from zia.io.wsi_openslide import read_full_image_from_slide
 from zia.io.wsi_tifffile import read_ndpi
 from zia.path_utils import FileManager, filter_factory
 import cv2
+from zia.log import get_logger
+from zia.statistics.expression_profile.geometry_utils.polygon_drawing import GeometryDraw
+
+log = get_logger(__file__)
 
 
 def create_contour(roi_no_data_store: Tuple[int, DataStore],
@@ -74,10 +80,10 @@ def get_mapping_from_distances(distances: np.ndarray):
 
 
 def _draw_rois(
-    liver_rois: List[Roi],
-    mapping: Optional[Dict[int, int]],
-    image_path: Path,
-    data_store: DataStore,
+        liver_rois: List[Roi],
+        mapping: Optional[Dict[int, int]],
+        image_path: Path,
+        data_store: DataStore,
 ) -> None:
     """Draw rois."""
     region = read_full_image_from_slide(data_store.image, 7)
@@ -101,15 +107,39 @@ class TileGenerator:
     def __init__(self, slices: List[Tuple[slice, slice]],
                  array: zarr.Array,
                  roi_shape: Tuple[int, int, int],
-                 tile_size: int):
+                 tile_size: int,
+                 roi_polygon: Polygon):
         self.slices = slices
         self.array = array
         self.tile_size = tile_size
         self.roi_shape = roi_shape
+        self.roi_polygon = roi_polygon
 
     def get_tiles(self) -> Iterator[np.ndarray]:
         for rs, cs in self.slices:
-            yield self.array[rs, cs]
+            yield self._prepare_tile(rs, cs)
+
+    def _prepare_tile(self, rs: slice, cs: slice):
+        arr = self.array[rs, cs]
+        mask = self._create_foreground_mask(rs, cs)
+        arr[~mask] = [255, 255, 255]
+
+        return arr
+
+    def _create_foreground_mask(self, rs: slice, cs: slice) -> np.ndarray:
+        # tile shape -> don't change to tile size, because tiles at the edges of the roi are not squares but rectangles
+        tile_shape = (rs.stop - rs.start, cs.stop - cs.start)
+
+        # transient mask for tile
+        base_mask = np.zeros(shape=tile_shape, dtype=np.uint8)
+
+        tile_polygon = shapely.geometry.box(cs.start, rs.start, cs.stop, rs.stop)
+
+        intersection = self.roi_polygon.intersection(tile_polygon)
+
+        GeometryDraw.draw_geometry(mask=base_mask, geometry=intersection, offset=(cs.start, rs.start), color=True)
+
+        return base_mask.astype(bool)
 
 
 def write_rois_to_ome_tiff(path: Path,
@@ -161,7 +191,14 @@ def write_rois_to_ome_tiff(path: Path,
         # tif.write(thumbnail, metadata={'Name': 'thumbnail'})
 
 
+def file_exists(subject_result_dir: Path, protein: str, k: str):
+    if not (subject_result_dir / f"{k}").exists():
+        return False
+    return any((protein.lower() in f.stem.lower()) for f in (subject_result_dir / f"{k}").iterdir())
+
+
 if __name__ == "__main__":
+    overwrite = False
 
     file_manager = FileManager(
         configuration=read_config(BASE_PATH / "configuration.ini"),
@@ -174,6 +211,8 @@ if __name__ == "__main__":
     image_info_by_subject = file_manager.image_info_grouped_by_subject()
 
     for subject, image_infos in image_info_by_subject.items():
+
+        subject_result_dir = file_manager.image_data_path / "rois_wsi" / subject
 
         print(subject)
         protein_data_store_dict: Dict[str, DataStore] = {
@@ -195,12 +234,26 @@ if __name__ == "__main__":
                 protein_mappings[protein] = get_mapping_from_distances(distances)
 
         for protein, data_store in protein_data_store_dict.items():
-            print(protein)
+            exists = False
+
+            if overwrite:
+                rois_to_do = {k: roi for k, roi in enumerate(data_store.rois)}
+            else:
+                rois_to_do = {}
+                for k, roi in enumerate(data_store.rois):
+                    if (file_exists(subject_result_dir, protein, k)):
+                        log.info(f"ROI image exists for protein: {protein}, ROI: {k}")
+                    else:
+                        rois_to_do[k] = roi
+                        continue
+
+            if len(rois_to_do) == 0:
+                continue
+
             _draw_rois(data_store.rois, protein_mappings.get(protein),
                        report_path / f"{data_store.image_info.metadata.image_id}.png",
                        data_store)
 
-        for protein, data_store in protein_data_store_dict.items():
             arrays = read_ndpi(data_store.image_info.path)
             zero_array = arrays[0]
             tile_size_log = 12
@@ -213,9 +266,10 @@ if __name__ == "__main__":
                 pyramidal_level = PyramidalLevel.get_by_numeric_level(int(level))
                 tile_size = 2 ** (tile_size_log - pyramidal_level)
 
-                for k, roi in enumerate(data_store.rois):
+                for k, roi in rois_to_do.items():
                     roi: Roi
                     roi_cs, roi_rs = roi.get_bound(pyramidal_level)
+                    roi_polygon = roi.get_polygon_for_level(pyramidal_level)
                     roi_h, roi_w = roi_rs.stop - roi_rs.start, roi_cs.stop - roi_cs.start
 
                     # initialize slices
@@ -229,14 +283,15 @@ if __name__ == "__main__":
                         slices=final_slices,
                         array=array,
                         roi_shape=(roi_h, roi_w, 3),
-                        tile_size=tile_size)
+                        tile_size=tile_size,
+                        roi_polygon=roi_polygon)
                     print(k, pyramidal_level, tile_size, (roi_h, roi_w),
                           (roi_rs, roi_cs))
 
             for i, generator_dict in roi_generator_dict.items():
                 roi_no = protein_mappings[protein].get(i) if len(
                     protein_mappings) > 0 else i
-                directory = file_manager.image_data_path / "rois_wsi" / subject / str(
+                directory = subject_result_dir / str(
                     roi_no)
                 directory.mkdir(exist_ok=True, parents=True)
                 tiff_path = directory / f"{data_store.image_info.metadata.image_id}.ome.tiff"

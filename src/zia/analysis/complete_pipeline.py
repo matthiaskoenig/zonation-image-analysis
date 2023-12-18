@@ -29,7 +29,7 @@ if __name__ == "__main__":
     pipeline = Pipeline(
         components=[
             # finds ROI of liver tissue
-            RoiFinderComponent(overwrite=True, draw=True),
+            RoiFinderComponent(overwrite=False, draw=True),
             # creates masks
             # MaskCreationComponent(overwrite=False, draw=False),
             # stain separation

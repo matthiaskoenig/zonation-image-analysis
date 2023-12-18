@@ -9,6 +9,7 @@ from zia.annotations.annotation.util import PyramidalLevel
 from zia.data_store import ZarrGroups
 
 
+
 def create_pyramid(template: np.ndarray) -> List[np.ndarray]:
     image_pyramid = [template]
 
@@ -37,8 +38,6 @@ def write_slice_to_zarr_location(slice_image: np.ndarray,
         # print(zarr_store_address, image_pyramid[i])
         zarr_array = zarr.convenience.open_array(store=zarr_store_address,
                                                  path=image_pyramid[i],
-                                                 write_empty_chunks=False,
-                                                 fill_value=255,
                                                  synchronizer=synchronizer)
         factor = 2 ** i
 
