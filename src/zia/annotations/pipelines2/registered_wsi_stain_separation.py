@@ -9,6 +9,7 @@ from imagecodecs.numcodecs import Jpeg2k
 import cv2
 import numpy as np
 import zarr
+from numcodecs import Blosc
 from threadpoolctl import threadpool_limits
 
 from zia.annotations.annotation.slicing import get_tile_slices
@@ -284,7 +285,7 @@ def create_pyramid_group(store: zarr.DirectoryStore,
             overwrite=True,
             write_empty_chunks=False,
             fill_value=255,
-            compressor=Jpeg2k(level=75)
+            compressor=Blosc(cname="zstd", clevel=10)
         )
 
         pyramid_dict[i] = arr.path

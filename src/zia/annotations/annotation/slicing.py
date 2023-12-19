@@ -3,10 +3,11 @@ from typing import List, Tuple
 import numpy as np
 
 
-def get_tile_slices(shape: Tuple[int, int], tile_size=2**13, col_first=True) -> List[Tuple[slice, slice]]:
+def get_tile_slices(shape: Tuple[int, int], tile_size=(2**13, 2**13), col_first=True) -> List[Tuple[slice, slice]]:
     r, c = shape
-    num_col = int(np.ceil(c / tile_size))
-    num_row = int(np.ceil(r / tile_size))
+    tile_size_r, tile_size_c = tile_size
+    num_col = int(np.ceil(c / tile_size_c))
+    num_row = int(np.ceil(r / tile_size_r))
     slices = []
     if col_first:
         for col_i in range(num_col):
@@ -18,13 +19,14 @@ def get_tile_slices(shape: Tuple[int, int], tile_size=2**13, col_first=True) -> 
                 slices.append(get_tile_slice(col_i, row_i, shape, tile_size))
     return slices
 
-def get_tile_slice(col_i: int, row_i: int, shape: Tuple[int, int], tile_size=2**13) -> Tuple[slice, slice]:
+def get_tile_slice(col_i: int, row_i: int, shape: Tuple[int, int], tile_size=(2**13, 2**13)) -> Tuple[slice, slice]:
     r, c = shape
-    col_end = min(c, (col_i + 1) * tile_size)
-    cs = slice(col_i * tile_size, col_end)
+    tile_size_r, tile_size_c = tile_size
+    col_end = min(c, (col_i + 1) * tile_size_c)
+    cs = slice(col_i * tile_size_c, col_end)
 
-    row_end = min(r, (row_i + 1) * tile_size)
-    rs = slice(row_i * tile_size, row_end)
+    row_end = min(r, (row_i + 1) * tile_size_r)
+    rs = slice(row_i * tile_size_r, row_end)
     return rs, cs
 
 

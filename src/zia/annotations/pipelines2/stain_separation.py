@@ -1,9 +1,11 @@
+import multiprocessing
 import traceback
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from pathlib import Path
 import faulthandler
 
 from zia import BASE_PATH
-from zia.annotations.pipelines2.registered_wsi_stain_separation import separate_stains
+from zia.annotations.pipelines2.wsi_stain_separation import separate_stains
 from zia.config import read_config
 from zia.log import get_logger
 
@@ -33,15 +35,16 @@ if __name__ == "__main__":
     out_path.mkdir(parents=True, exist_ok=True)
 
     subject_dirs = sorted([f for f in data_dir_registered.iterdir() if f.is_dir()])
-    for subject_dir in subject_dirs:
-        subject = subject_dir.name
-        roi_dirs = sorted([f for f in subject_dir.iterdir() if f.is_dir()])
-        for roi_dir in roi_dirs:
-            roi = roi_dir.name
-            images = sorted([f for f in roi_dir.iterdir() if f.is_file()])
-            for image in images:
-                try:
-                    separate_stains(image, subject, roi, get_protein(image), out_path, overwrite=False)
-                except Exception as e:
-                    traceback.print_exc()
-                    continue
+    with ThreadPoolExecutor() as executor:
+        for subject_dir in subject_dirs:
+            subject = subject_dir.name
+            roi_dirs = sorted([f for f in subject_dir.iterdir() if f.is_dir()])
+            for roi_dir in roi_dirs:
+                roi = roi_dir.name
+                images = sorted([f for f in roi_dir.iterdir() if f.is_file()])
+                for image in images:
+                    try:
+                        separate_stains(image, subject, roi, get_protein(image), out_path, executor=executor, overwrite=False)
+                    except Exception as e:
+                        traceback.print_exc()
+                        continue
