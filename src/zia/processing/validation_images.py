@@ -7,10 +7,11 @@ import zarr
 from zia import BASE_PATH
 from zia.config import read_config
 from zia.processing.lobulus_statistics import SlideStats
-from imagecodecs.numcodecs import Jpeg2k
+from imagecodecs.numcodecs import Jpeg2k, Jpeg
 import numcodecs
 
 numcodecs.register_codec(Jpeg2k)
+numcodecs.register_codec(Jpeg)
 
 
 def find_cyp2e1_image(roi_image_path: Path):
@@ -32,6 +33,8 @@ if __name__ == "__main__":
     for subject_dir in subject_dirs:
         subject = subject_dir.stem
         roi_dict = {}
+        if subject != "NOR-023":
+            continue
         # print(subject)
 
         roi_dirs = sorted([f for f in subject_dir.iterdir() if f.is_dir()])

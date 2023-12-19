@@ -1,4 +1,5 @@
 import multiprocessing
+import os
 import traceback
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from pathlib import Path
@@ -35,7 +36,7 @@ if __name__ == "__main__":
     out_path.mkdir(parents=True, exist_ok=True)
 
     subject_dirs = sorted([f for f in data_dir_registered.iterdir() if f.is_dir()])
-    with ThreadPoolExecutor() as executor:
+    with ThreadPoolExecutor(os.cpu_count()) as executor:
         for subject_dir in subject_dirs:
             subject = subject_dir.name
             roi_dirs = sorted([f for f in subject_dir.iterdir() if f.is_dir()])

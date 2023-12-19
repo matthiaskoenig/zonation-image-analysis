@@ -1,16 +1,22 @@
+import concurrent.futures
 import multiprocessing
 import time
-from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, as_completed, Future
 from functools import partial
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Tuple, Dict, Type
+from typing import Tuple, Dict, Type, List, Iterable
+from imagecodecs.numcodecs import Jpeg
+
+import progressbar
 from imagecodecs.numcodecs import Jpeg2k
 import cv2
 import numpy as np
 import zarr
 from numcodecs import Blosc
+from progressbar import ProgressBar
 from threadpoolctl import threadpool_limits
+from tqdm import tqdm
 
 from zia.annotations.annotation.slicing import get_tile_slices
 from zia.annotations.annotation.util import PyramidalLevel
@@ -25,6 +31,7 @@ import numcodecs
 
 logger = get_logger(__name__)
 numcodecs.register_codec(Jpeg2k)
+numcodecs.register_codec(Jpeg)
 
 
 def get_toplevel_array(image_path: Path) -> zarr.Array:
@@ -34,7 +41,7 @@ def get_toplevel_array(image_path: Path) -> zarr.Array:
     return full_image_array
 
 
-def roll_back(zarr_store: zarr.DirectoryStore) -> None:
+def roll_back(zarr_store: zarr.DirectoryStore, write_h_stain: bool) -> None:
     """
     function to clean up the directory to prevent invalid data
     @param data_store:
@@ -43,7 +50,8 @@ def roll_back(zarr_store: zarr.DirectoryStore) -> None:
 
     logger.info(f"Rollback zarrstore: {zarr_store.path}")
 
-    del zarr_store[ZarrGroups.STAIN_0.value]
+    if write_h_stain:
+        del zarr_store[ZarrGroups.STAIN_0.value]
     del zarr_store[ZarrGroups.STAIN_1.value]
 
 
@@ -88,6 +96,7 @@ def deconvolve(final_slices: Tuple[slice, slice],
                max_c: np.ndarray,
                mmep_array: zarr.Array,
                mask_array: zarr.Array,
+               write_h_stain: bool
                ) -> list[np.ndarray]:
     rs, cs = final_slices
     image_tile = mmep_array[rs, cs]
@@ -101,6 +110,8 @@ def deconvolve(final_slices: Tuple[slice, slice],
     deconvolved = []
 
     for k, c in enumerate(np.vsplit(conc, 2)):
+        if not write_h_stain and k == 0:
+            continue
         stain = create_single_channel_pixels(c.reshape(-1))
         template = np.ones(shape=image_tile.shape[:2]).astype(np.uint8) * 255
         template[idx] = stain
@@ -115,14 +126,15 @@ def separate_stains(path: Path,
                     protein: str,
                     out_path: Path,
                     executor: ThreadPoolExecutor,
-                    p=0.001,
-                    overwrite=False) -> None:
+                    p: float = 0.001,
+                    overwrite: bool = False,
+                    write_h_stain: bool = False) -> None:
     with zarr.storage.TempStore() as temp_store:
 
         out = out_path / f"{subject}.zarr"
         zarr_store = zarr.DirectoryStore(str(out))
 
-        if Path(f"{zarr_store.path}/{ZarrGroups.STAIN_0.value}/{roi_no}/{protein}").exists() and not overwrite:
+        if Path(f"{zarr_store.path}/{ZarrGroups.STAIN_1.value}/{roi_no}/{protein}").exists() and not overwrite:
             print("separated images already exist.")
             return
 
@@ -134,10 +146,18 @@ def separate_stains(path: Path,
                                  protein,
                                  executor,
                                  temp_store,
-                                 p)
+                                 p,
+                                 write_h_stain)
         except BaseException as e:
-            roll_back(zarr_store)
+            roll_back(zarr_store, write_h_stain)
             raise e
+
+
+def get_stains(write_h_stain: bool) -> List[ZarrGroups]:
+    zarr_groups = [ZarrGroups.STAIN_1]
+    if write_h_stain:
+        zarr_groups.append(ZarrGroups.STAIN_0)
+    return zarr_groups
 
 
 def run_stain_separation(path: Path,
@@ -147,11 +167,10 @@ def run_stain_separation(path: Path,
                          protein: str,
                          executor: ThreadPoolExecutor,
                          temp_store: zarr.TempStore,
-                         p: float) -> None:
+                         p: float,
+                         write_h_stain: bool) -> None:
     logger.info(
         f"Start stain separation for Subject {subject}, ROI {roi_no}, protein: {protein}")
-
-    registered_pyramid = read_ndpi(path)
 
     t_s = time.time()
 
@@ -169,7 +188,7 @@ def run_stain_separation(path: Path,
                                                 (roi_h, roi_w),
                                                 tile_size,
                                                 np.uint8) for zg in
-                           [ZarrGroups.STAIN_0, ZarrGroups.STAIN_1])
+                           get_stains(write_h_stain))
 
     # initialize slices
     slices = get_tile_slices(shape=(roi_h, roi_w), tile_size=tile_size,
@@ -226,28 +245,37 @@ def run_stain_separation(path: Path,
     logger.info(f"Calculated stain matrix {stain_matrix} and max concentrations {max_c} in {t_final:.2f} min.")
 
     t_s = time.time()
-    ## create a generator of the deconvolved tiles
+
+    # create a generator of the deconvolved tiles
     deconvolved_tiles = (deconvolve(slice_tuple,
                                     stain_matrix=stain_matrix,
                                     max_c=max_c,
                                     mmep_array=mem_mapped_array,
-                                    mask_array=mem_mapped_mask)
+                                    mask_array=mem_mapped_mask,
+                                    write_h_stain=write_h_stain)
                          for slice_tuple in slices)
 
-    futures = executor.map(partial(save,
-                                   image_pyramids=image_pyramids,
-                                   zarr_store_address=zarr_store.path,
-                                   synchronizer=zarr.sync.ThreadSynchronizer()
-                                   ),
-                           zip(deconvolved_tiles, slices))
+    with ProgressBar(max_value=len(slices)) as pb:
+        futures = list(tqdm(executor.map(partial(save,
+                                           image_pyramids=image_pyramids,
+                                           zarr_store_address=zarr_store.path,
+                                           synchronizer=zarr.sync.ThreadSynchronizer()
+                                           ),
+                                         zip(deconvolved_tiles, slices)
+                                         )))
 
-    # access results to get possible exceptions
-    for _ in futures:
-        pass
+        # access results to get possible exceptions
+        display_progress(futures, pb)
 
     t_e = time.time()
     t_final = (t_e - t_s) / 60
     logger.info(f"Deconvoluted and saved image in {t_final:.2f} min.")
+
+
+def display_progress(futures: Iterable[Future], pb: ProgressBar):
+    for future in concurrent.futures.as_completed(futures):
+        future.add_done_callback(lambda _: pb.update(pb.value + 1))
+        future.result()
 
 
 def save(deconvolved_slices: Tuple[list[np.ndarray], Tuple[slice, slice]],
@@ -271,7 +299,7 @@ def create_pyramid_group(store: zarr.DirectoryStore,
                          chunksize: Tuple[int, int],
                          dtype: Type) -> Dict[int, str]:
     """Creates a zarr group for a roi to save an image pyramid
-    @param zarr_group: the enum to sepcify the zarr subdirectory
+    @param zarr_group: the enum to specify the zarr subdirectory
     @param roi_no: the number of the ROI
     @param shape: the shape of the array to create
     @param chunksize: the size of the level zero chunk
@@ -293,18 +321,13 @@ def create_pyramid_group(store: zarr.DirectoryStore,
         new_h, new_w = int(np.ceil(h / factor)), int(np.ceil(w / factor))
         new_chunk_h, new_chunk_w = int(np.ceil(chunk_h / factor)), int(np.ceil(chunk_w / factor))
 
-        if new_chunk_h * new_chunk_w < 1e6:
-            new_chunk_h, new_chunk_w = chunk_h, chunk_w
-
         arr: zarr.Array = protein_group.create(
             str(i),
             shape=(new_h, new_w) + ((shape[2],) if len(shape) == 3 else ()),
             chunks=(new_chunk_w, new_chunk_h) + ((shape[2],) if len(shape) == 3 else ()),
             dtype=dtype,
             overwrite=True,
-            write_empty_chunks=False,
-            fill_value=255,
-            compressor=Blosc(cname="zstd", clevel=8)
+            compressor=Jpeg(colorspace_data="GRAY", colorspace_jpeg="GRAY", level=75, lossless=False)
         )
 
         pyramid_dict[i] = arr.path

@@ -4,6 +4,7 @@ Handles the metadata correctly and better handling of store
 https://github.com/AstraZeneca/napari-wsi
 
 """
+import os
 from pathlib import Path
 from typing import List
 
@@ -17,7 +18,7 @@ def read_ndpi(image_path: Path, chunkshape=(2 ** 11, 2 ** 11, 3)) -> List[zarr.A
     """Read image with tifffile library."""
     check_image_path(image_path)
     # read in zarr store
-    store: tifffile.ZarrTiffStore = tifffile.imread(image_path, aszarr=True)
+    store: tifffile.ZarrTiffStore = tifffile.imread(image_path, aszarr=True, maxworkers=os.cpu_count() - 1)
     group = zarr.open(store, mode="r")  # zarr.core.Group or Array
     # FIXME: read metadata
     datasets = group.attrs["multiscales"][0]["datasets"]
