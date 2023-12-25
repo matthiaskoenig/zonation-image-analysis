@@ -100,7 +100,7 @@ if __name__ == "__main__":
     generate_descriptive_stats(df, report_path_descriptive_stats, attributes, mouse_lobe_dict)
     # generate the distance dataframe
     log.info("Generating distance intensity data frame")
-    distance_df = generate_distance_df(report_path_distance_df, overwrite=False)
+    distance_df = generate_distance_df(report_path_distance_df, overwrite=True)
 
     # plot distance related plots
     log.info("Creating gradient plots")

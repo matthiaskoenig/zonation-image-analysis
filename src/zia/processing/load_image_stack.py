@@ -8,6 +8,10 @@ import zarr
 from zia.annotations.annotation.util import PyramidalLevel
 from zia.log import get_logger
 
+from imagecodecs.numcodecs import Jpeg
+from numcodecs import register_codec
+
+register_codec(Jpeg)
 log = get_logger(__file__)
 
 

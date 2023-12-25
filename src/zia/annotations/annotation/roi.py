@@ -15,11 +15,12 @@ from zia.annotations.annotation.util import PyramidalLevel
 
 class Roi:
     def __init__(
-            self, polygon: Polygon, image_size: Optional[Tuple[int, int]], level: PyramidalLevel, annotation_type: AnnotationType
+            self, polygon: Polygon, image_size: Optional[Tuple[int, int]], level: PyramidalLevel, annotation_type: AnnotationType, lobe: str
     ):
         self._geometry = Roi.normalize_coords(polygon, image_size) if image_size is not None else polygon
         self._level = level
         self.annotation_type = annotation_type
+        self.lobe = lobe
 
     def get_polygon_for_level(self, level: PyramidalLevel, offset=(0, 0)) -> Polygon:
         factor = 2 ** (self._level - level)
@@ -30,7 +31,8 @@ class Roi:
         geojson_dict = self._geometry.__geo_interface__
         polygon = gj.Polygon(coordinates=geojson_dict["coordinates"])
         properties = {"level": self._level,
-                      "annotationType": self.annotation_type
+                      "annotationType": self.annotation_type,
+                      "lobe": self.lobe
                       }
 
         return gj.Feature(geometry=polygon, properties=properties)

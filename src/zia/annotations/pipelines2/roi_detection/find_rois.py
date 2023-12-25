@@ -21,14 +21,13 @@ logger = get_logger(__name__)
 
 
 class RoiSegmentation:
-    visuals = []
 
     @classmethod
     def find_rois(
-        cls,
-        data_store: DataStore,
-        annotations: Optional[List[Annotation]],
-        annotation_type: AnnotationType,
+            cls,
+            data_store: DataStore,
+            annotations: List[Annotation],
+            lobe_annotations: List[Annotation]
     ) -> List[Roi]:
         image_id = data_store.image_info.metadata.image_id
 
@@ -68,22 +67,10 @@ class RoiSegmentation:
         kept = []
         remaining = shapes[1:]  # removing image bounding box
         RoiSegmentation.reduce_shapes(kept, remaining)
-        # load
-
-        liver_annotations = AnnotationParser.get_annotation_by_type(
-            annotations, annotation_type
-        )
-
-        lobe_annotations = AnnotationParser.get_annotation_by_types(annotations, [])
-
-        if len(liver_annotations) == 0:
-            logger.warning(f"[{image_id}]\tNo annotations of type 'Liver' where found",
-                           extra={"image_id": image_id})
-            return []
 
         # find the contour the organ shape that contains the annotation geometry
 
-        contour_shapes = RoiSegmentation._extract_organ_shapes(kept, liver_annotations)
+        contour_shapes = RoiSegmentation._extract_organ_shapes(kept, annotations)
 
         if len(contour_shapes) == 0:
             logger.warning(
@@ -115,22 +102,18 @@ class RoiSegmentation:
 
             reduced_polys.append(reduced_polygon)
 
-        for poly in reduced_polys:
-            print(poly.bounds)
+        lobe_roi_dict = RoiSegmentation._map_rois(contour_shapes, lobe_annotations)
 
         liver_rois = [
-            Roi(poly, cv2image.shape[:2], PyramidalLevel.SEVEN, AnnotationType.LIVER)
-            for poly in reduced_polys
+            Roi(poly, cv2image.shape[:2], PyramidalLevel.SEVEN, AnnotationType.LIVER, lobe_id)
+            for lobe_id, poly in lobe_roi_dict.items()
         ]
-
-        for roi in liver_rois:
-            print(roi.get_bound(PyramidalLevel.SEVEN))
 
         return liver_rois
 
     @classmethod
     def _extract_organ_shapes(
-        cls, shapes: List[Polygon], organ_annotations: List[Annotation]
+            cls, shapes: List[Polygon], organ_annotations: List[Annotation]
     ) -> List[Polygon]:
         extracted = []
         for shape in shapes:
@@ -149,7 +132,8 @@ class RoiSegmentation:
 
     @classmethod
     def reduce_shapes(
-        cls, kept_shapes: List[Polygon], remaining_shapes: List[Polygon]
+            cls, kept_shapes:
+            List[Polygon], remaining_shapes: List[Polygon]
     ) -> None:
         not_in_bigger_shape = []
         big_shape = remaining_shapes.pop(0)
@@ -164,3 +148,23 @@ class RoiSegmentation:
             return
         else:
             RoiSegmentation.reduce_shapes(kept_shapes, not_in_bigger_shape)
+
+    @classmethod
+    def _map_rois(cls, contour_shapes: List[Polygon], lobe_annotations: List[Annotation]):
+        if len(lobe_annotations) == 0 and len(contour_shapes) == 1:
+            return {"0": contour_shapes[0]}
+
+        if len(lobe_annotations) != len(contour_shapes):
+            logger.warning(
+                f"The number of tissue ROIs ({len(contour_shapes)}) does not match the number of lobule annotations ({len(lobe_annotations)}).")
+
+        lobe_roi_dict = {}
+        for shape in contour_shapes:
+            for anno in lobe_annotations:
+                if shape.contains(anno.get_resized_geometry(PyramidalLevel.SEVEN)):
+                    lobe_roi_dict[anno.annotation_class.split("_")[1]] = shape
+
+        if len(contour_shapes) != len(lobe_roi_dict):
+            logger.warning("Not all ROIs were matched with a lobe annotation")
+
+        return lobe_roi_dict

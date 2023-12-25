@@ -1,9 +1,7 @@
-import multiprocessing
 import os
 import traceback
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-import faulthandler
 
 from zia import BASE_PATH
 from zia.annotations.pipelines2.wsi_stain_separation import separate_stains
@@ -45,7 +43,7 @@ if __name__ == "__main__":
                 images = sorted([f for f in roi_dir.iterdir() if f.is_file()])
                 for image in images:
                     try:
-                        separate_stains(image, subject, roi, get_protein(image), out_path, executor=executor, overwrite=False)
+                        separate_stains(image, subject, roi, get_protein(image), out_path, executor=executor, overwrite=False, write_h_stain=False)
                     except Exception as e:
                         traceback.print_exc()
                         continue

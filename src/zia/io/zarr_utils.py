@@ -39,6 +39,7 @@ def write_slice_to_zarr_location(slice_image: np.ndarray,
         zarr_array = zarr.convenience.open_array(store=zarr_store_address,
                                                  path=image_pyramid[i],
                                                  synchronizer=synchronizer)
+
         factor = 2 ** i
 
         # resize the slice for level

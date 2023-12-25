@@ -36,9 +36,17 @@ class AnnotationType(str, Enum):
     SHADOW = "shadow"
     OTHER = "other"
     TEAR = "tear"
-    BLUR = "blur"
+    BLUR = "blur",
+    LOBE_0 = "lobe_0",
+    LOBE_1 = "lobe_1",
+    LOBE_2 = "lobe_2",
+    LOBE_3 = "lobe_3"
 
     UNKNOWN = "-"
+
+    @classmethod
+    def get_lobe_annnotations(cls) -> List[AnnotationType]:
+        return [cls.LOBE_0, cls.LOBE_1, cls.LOBE_2, cls.LOBE_3]
 
     @classmethod
     def get_by_string(cls, string: str):
@@ -145,7 +153,7 @@ class AnnotationParser:
     def get_annotation_by_types(
         cls,
         features: List[Union[Polygon | MultiPolygon | LineString]],
-        annotation_types: Set[AnnotationType],
+        annotation_types: List[AnnotationType],
     ) -> List[Annotation]:
         nested_list = [
             AnnotationParser.get_annotation_by_type(features, anno_type)

@@ -16,7 +16,9 @@ from zia.data_store import ZarrGroups
 from zia.processing.lobulus_statistics import SlideStats, LobuleStatistics
 from zia.statistics.expression_profile.geometry_utils.polygon_drawing import GeometryDraw
 from zia.statistics.utils.data_provider import SlideStatsProvider, get_species_from_name
-
+from imagecodecs.numcodecs import Jpeg
+from numcodecs import register_codec
+register_codec(Jpeg)
 
 @np.vectorize
 def dist(d_p: float, d_c: float) -> float:

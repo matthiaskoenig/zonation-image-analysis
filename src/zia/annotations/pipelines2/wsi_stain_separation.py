@@ -1,21 +1,16 @@
 import concurrent.futures
-import multiprocessing
 import time
-from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, as_completed, Future
+from concurrent.futures import ThreadPoolExecutor, Future, as_completed
 from functools import partial
 from pathlib import Path
-from tempfile import TemporaryDirectory
 from typing import Tuple, Dict, Type, List, Iterable
-from imagecodecs.numcodecs import Jpeg
 
-import progressbar
-from imagecodecs.numcodecs import Jpeg2k
 import cv2
+import numcodecs
 import numpy as np
 import zarr
-from numcodecs import Blosc
-from progressbar import ProgressBar
-from threadpoolctl import threadpool_limits
+from imagecodecs.numcodecs import Jpeg
+from imagecodecs.numcodecs import Jpeg2k
 from tqdm import tqdm
 
 from zia.annotations.annotation.slicing import get_tile_slices
@@ -27,7 +22,6 @@ from zia.data_store import ZarrGroups
 from zia.io.wsi_tifffile import read_ndpi
 from zia.io.zarr_utils import write_slice_to_zarr_location
 from zia.log import get_logger
-import numcodecs
 
 logger = get_logger(__name__)
 numcodecs.register_codec(Jpeg2k)
@@ -129,28 +123,32 @@ def separate_stains(path: Path,
                     p: float = 0.001,
                     overwrite: bool = False,
                     write_h_stain: bool = False) -> None:
-    with zarr.storage.TempStore() as temp_store:
+    out = out_path / f"{subject}.zarr"
+    zarr_store = zarr.DirectoryStore(str(out))
 
-        out = out_path / f"{subject}.zarr"
-        zarr_store = zarr.DirectoryStore(str(out))
+    if Path(f"{zarr_store.path}/{ZarrGroups.STAIN_1.value}/{roi_no}/{protein}").exists() and not overwrite:
+        print("separated images already exist.")
+        return
 
-        if Path(f"{zarr_store.path}/{ZarrGroups.STAIN_1.value}/{roi_no}/{protein}").exists() and not overwrite:
-            print("separated images already exist.")
-            return
+    temp_store = zarr.TempStore()
+    try:
+        run_stain_separation(path,
+                             zarr_store,
+                             subject,
+                             roi_no,
+                             protein,
+                             executor,
+                             temp_store,
+                             p,
+                             write_h_stain)
+    except BaseException as e:
+        roll_back(zarr_store, write_h_stain)
+        raise e
 
-        try:
-            run_stain_separation(path,
-                                 zarr_store,
-                                 subject,
-                                 roi_no,
-                                 protein,
-                                 executor,
-                                 temp_store,
-                                 p,
-                                 write_h_stain)
-        except BaseException as e:
-            roll_back(zarr_store, write_h_stain)
-            raise e
+    finally:
+        logger.info(f"Clearing temporary zarr store.")
+        temp_store.clear()
+        temp_store.close()  # this is not implemented for this kind of zarr store
 
 
 def get_stains(write_h_stain: bool) -> List[ZarrGroups]:
@@ -195,21 +193,26 @@ def run_stain_separation(path: Path,
                              col_first=False)
 
     # create uncompressed memory mapped array
+    array_synchronizer = zarr.ThreadSynchronizer()
     mem_mapped_array = zarr.open(store=temp_store,
                                  mode="w",
                                  path="uncrompressed",
                                  shape=registered_image.shape,
                                  dtype=registered_image.dtype,
                                  compressor=None,
-                                 chunks=registered_image.chunks)
+                                 chunks=registered_image.chunks,
+                                 synchronizer=array_synchronizer
+                                 )
 
+    mask_synchronizer = zarr.ThreadSynchronizer()
     mem_mapped_mask = zarr.open(store=temp_store,
                                 mode="w",
                                 path="mask",
                                 compressor=None,
                                 shape=registered_image.shape[:2],
                                 dtype=bool,
-                                chunks=registered_image.chunks[:2])
+                                chunks=registered_image.chunks[:2],
+                                synchronizer=mask_synchronizer)
 
     # assign image array uncompressed to memory map
 
@@ -225,7 +228,7 @@ def run_stain_separation(path: Path,
     t_e = time.time()
     t_final = (t_e - t_s) / 60
 
-    logger.info(f"Decompressed image and calulated threshold {th} in {t_final:.2f} min.")
+    logger.info(f"Decompressed image and calculated threshold {th} in {t_final:.2f} min.")
 
     t_s = time.time()
 
@@ -255,33 +258,31 @@ def run_stain_separation(path: Path,
                                     write_h_stain=write_h_stain)
                          for slice_tuple in slices)
 
-    with ProgressBar(max_value=len(slices)) as pb:
-        futures = list(tqdm(executor.map(partial(save,
+    synchronizer = zarr.ThreadSynchronizer()
+    with tqdm(total=len(slices), miniters=1) as pbar:
+        futures = [executor.submit(partial(save,
+                                           tup,
                                            image_pyramids=image_pyramids,
                                            zarr_store_address=zarr_store.path,
-                                           synchronizer=zarr.sync.ThreadSynchronizer()
-                                           ),
-                                         zip(deconvolved_tiles, slices)
-                                         )))
+                                           synchronizer=synchronizer
+                                           ))
+                   for tup in zip(deconvolved_tiles, slices)]
 
-        # access results to get possible exceptions
-        display_progress(futures, pb)
+        for future in futures:
+            future.add_done_callback(lambda _: pbar.update())
+
+        for _ in as_completed(futures):
+            pass
 
     t_e = time.time()
     t_final = (t_e - t_s) / 60
     logger.info(f"Deconvoluted and saved image in {t_final:.2f} min.")
 
 
-def display_progress(futures: Iterable[Future], pb: ProgressBar):
-    for future in concurrent.futures.as_completed(futures):
-        future.add_done_callback(lambda _: pb.update(pb.value + 1))
-        future.result()
-
-
 def save(deconvolved_slices: Tuple[list[np.ndarray], Tuple[slice, slice]],
          image_pyramids: Tuple[Dict[int, str], Dict[int, str]],
          zarr_store_address: str,
-         synchronizer: zarr.sync.ThreadSynchronizer):
+         synchronizer: zarr.sync.ThreadSynchronizer) -> None:
     deconvolved, tile_slices = deconvolved_slices
     for k, image in enumerate(deconvolved):
         write_slice_to_zarr_location(slice_image=image,
@@ -315,16 +316,26 @@ def create_pyramid_group(store: zarr.DirectoryStore,
     h, w = shape[:2]
 
     for i in range(8):
-        chunk_h, chunk_w = chunksize  # taking the slice size aligns chunks, so that multiprocessing only alway acesses one chunk
+        chunk_h, chunk_w = chunksize  # taking the slice size aligns chunks, so that multiprocessing only always acessess one chunk
         factor = 2 ** i
 
         new_h, new_w = int(np.ceil(h / factor)), int(np.ceil(w / factor))
-        new_chunk_h, new_chunk_w = int(np.ceil(chunk_h / factor)), int(np.ceil(chunk_w / factor))
+
+        # if the height, width of the down sampled images is smaller than the chunk size, the height or width is assigned
+        if new_h <= chunk_h:
+            new_chunk_h = new_h
+        else:
+            new_chunk_h = chunk_h
+
+        if new_w <= chunk_w:
+            new_chunk_w = new_w
+        else:
+            new_chunk_w = chunk_w
 
         arr: zarr.Array = protein_group.create(
             str(i),
             shape=(new_h, new_w) + ((shape[2],) if len(shape) == 3 else ()),
-            chunks=(new_chunk_w, new_chunk_h) + ((shape[2],) if len(shape) == 3 else ()),
+            chunks=(new_chunk_h, new_chunk_w) + ((shape[2],) if len(shape) == 3 else ()),
             dtype=dtype,
             overwrite=True,
             compressor=Jpeg(colorspace_data="GRAY", colorspace_jpeg="GRAY", level=75, lossless=False)

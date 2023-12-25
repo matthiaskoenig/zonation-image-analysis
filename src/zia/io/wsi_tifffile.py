@@ -14,11 +14,11 @@ from tifffile import tifffile, TiffPage
 from zia.io.utils import check_image_path
 
 
-def read_ndpi(image_path: Path, chunkshape=(2 ** 11, 2 ** 11, 3)) -> List[zarr.Array]:
+def read_ndpi(image_path: Path, max_workers=os.cpu_count()-1) -> List[zarr.Array]:
     """Read image with tifffile library."""
     check_image_path(image_path)
     # read in zarr store
-    store: tifffile.ZarrTiffStore = tifffile.imread(image_path, aszarr=True, maxworkers=os.cpu_count() - 1)
+    store: tifffile.ZarrTiffStore = tifffile.imread(image_path, aszarr=True, maxworkers=max_workers)
     group = zarr.open(store, mode="r")  # zarr.core.Group or Array
     # FIXME: read metadata
     datasets = group.attrs["multiscales"][0]["datasets"]

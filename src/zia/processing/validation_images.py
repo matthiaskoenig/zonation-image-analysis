@@ -33,8 +33,7 @@ if __name__ == "__main__":
     for subject_dir in subject_dirs:
         subject = subject_dir.stem
         roi_dict = {}
-        if subject != "NOR-023":
-            continue
+
         # print(subject)
 
         roi_dirs = sorted([f for f in subject_dir.iterdir() if f.is_dir()])

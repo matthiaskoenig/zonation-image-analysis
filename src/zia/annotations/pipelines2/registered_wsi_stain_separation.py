@@ -268,7 +268,7 @@ def create_pyramid_group(store: zarr.DirectoryStore,
     h, w = shape[:2]
 
     for i in range(8):
-        chunk_w, chunk_h = chunksize, chunksize  # taking the slice size aligns chunks, so that multiprocessing only alway acesses one chunk
+        chunk_w, chunk_h = chunksize, chunksize  # taking the slice size aligns chunks, so that multiprocessing only always acesses one chunk
         factor = 2 ** i
 
         new_h, new_w = int(np.ceil(h / factor)), int(np.ceil(w / factor))
