@@ -17,7 +17,7 @@ from zia import BASE_PATH
 from zia.config import read_config
 from zia.data_store import ZarrGroups
 from zia.io.wsi_tifffile import read_ndpi
-from zia.processing.lobulus_statistics import SlideStats
+from zia.pipeline.pipeline_components.algorithm.segementation.lobulus_statistics import SlideStats
 from zia.statistics.expression_profile.expression_profile_gradient import open_protein_arrays
 from zia.statistics.utils.data_provider import SlideStatsProvider
 

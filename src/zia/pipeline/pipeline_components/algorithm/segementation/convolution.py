@@ -1,21 +1,19 @@
-from typing import Union, List, Dict
+from typing import List
 
-import matplotlib
-import matplotlib.pyplot as plt
 import numpy as np
 import zarr
 from shapely import Polygon
 
 from zia import BASE_PATH
-from zia.annotations.annotation.util import PyramidalLevel
-from zia.annotations.workflow_visualizations.util.image_plotting import plot_pic, plot_rgb
+from zia.pipeline.annotation import PyramidalLevel
+from zia.annotations.workflow_visualizations.util.image_plotting import plot_pic
 from zia.config import read_config
 from zia.data_store import ZarrGroups
-from imagecodecs.numcodecs import Jpegxl, Jpeg2k
+from imagecodecs.numcodecs import Jpeg2k
 import numcodecs
 from sklearn.cluster import KMeans
 
-from zia.processing.filtering import invert_image, filter_img
+from zia.pipeline.pipeline_components.algorithm.segementation.filtering import invert_image, filter_img
 
 numcodecs.register_codec(Jpeg2k)
 import cv2

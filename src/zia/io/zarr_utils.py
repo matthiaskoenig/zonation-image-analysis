@@ -5,10 +5,6 @@ import numpy as np
 import zarr.hierarchy
 from zarr import Array
 
-from zia.annotations.annotation.util import PyramidalLevel
-from zia.data_store import ZarrGroups
-
-
 
 def create_pyramid(template: np.ndarray) -> List[np.ndarray]:
     image_pyramid = [template]
@@ -29,14 +25,14 @@ def create_pyramid(template: np.ndarray) -> List[np.ndarray]:
 def write_slice_to_zarr_location(slice_image: np.ndarray,
                                  image_pyramid: Dict[int, str],
                                  tile_slices: Tuple[slice, slice],
-                                 zarr_store_address: str,
+                                 zarr_store_path: str,
                                  synchronizer: zarr.sync.ThreadSynchronizer):
     rs, cs = tile_slices
     slice_pyramid = create_pyramid(slice_image)
     # persist tile pyramidacally
     for i, tile_image in enumerate(slice_pyramid):
         # print(zarr_store_address, image_pyramid[i])
-        zarr_array = zarr.convenience.open_array(store=zarr_store_address,
+        zarr_array = zarr.convenience.open_array(store=zarr_store_path,
                                                  path=image_pyramid[i],
                                                  synchronizer=synchronizer)
 

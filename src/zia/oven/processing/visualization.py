@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from zia.processing.lobulus_statistics import SlideStats
+from zia.pipeline.pipeline_components.algorithm.segementation.lobulus_statistics import SlideStats
 
 
 def visualize_slide_stats(df: pd.DataFrame):

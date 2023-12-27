@@ -6,9 +6,9 @@ from typing import List
 
 from PIL.ImageDraw import ImageDraw
 
-from zia.annotations.annotation.annotations import AnnotationParser, AnnotationType
-from zia.annotations.annotation.roi import Roi
-from zia.annotations.annotation.util import PyramidalLevel
+from zia.pipeline.annotation import AnnotationParser, AnnotationType
+from zia.pipeline.annotation import Roi
+from zia.pipeline.annotation import PyramidalLevel
 from zia.annotations.pipelines.liver_roi_detection.image_analysis import RoiSegmentation
 from zia.annotations.pipelines.pipeline import IPipelineComponent
 from zia.data_store import DataStore

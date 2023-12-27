@@ -1,5 +1,3 @@
-from typing import Dict
-
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
@@ -7,7 +5,7 @@ import pandas as pd
 
 from zia import BASE_PATH
 from zia.config import read_config
-from zia.processing.lobulus_statistics import SlideStats
+from zia.pipeline.pipeline_components.algorithm.segementation.lobulus_statistics import SlideStats
 from zia.statistics.utils.data_provider import SlideStatsProvider
 
 

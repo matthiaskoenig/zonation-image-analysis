@@ -14,9 +14,8 @@ import geojson as gj
 from shapely import LineString, MultiPolygon, Polygon
 from shapely.geometry import shape
 
-from zia.annotations.annotation.geometry_utils import rescale_coords
-from zia.annotations.annotation.util import PyramidalLevel
-
+from zia.pipeline.common.geometry_utils import rescale_coords
+from zia.pipeline.common.resolution_levels import PyramidalLevel
 
 logger = logging.getLogger(__name__)
 
@@ -73,7 +72,7 @@ class Annotation:
     annotation_class: AnnotationType
 
     """
-    downsizes the geometry of the annotation by the level. The level should
+    downsizes the geometry of the common by the level. The level should
     correspond to the level of the pyramidal image.
     """
 
@@ -100,7 +99,7 @@ class Annotation:
 
 """
 Parses a geojson file and returns a list of Annotations, which contains
-a shapely geometry and the annotation type (annotation class assigned in QuPath)
+a shapely geometry and the common type (common class assigned in QuPath)
 """
 
 

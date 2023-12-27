@@ -5,9 +5,9 @@ from typing import List, Tuple, Union
 import shapely
 from shapely import LineString, GeometryCollection, Polygon, make_valid, polygonize_full, affinity, Geometry
 
-from zia.annotations.annotation.util import PyramidalLevel
-from zia.processing.get_segments import LineSegmentsFinder
-from zia.processing.lobulus_statistics import LobuleStatistics, SlideStats
+from zia.pipeline.annotation import PyramidalLevel
+from zia.pipeline.pipeline_components.algorithm.segementation.get_segments import LineSegmentsFinder
+from zia.pipeline.pipeline_components.algorithm.segementation.lobulus_statistics import LobuleStatistics, SlideStats
 
 
 def get_polys(geometry: Union[GeometryCollection | Geometry], polygon_list: list):

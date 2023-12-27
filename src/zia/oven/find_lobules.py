@@ -5,15 +5,15 @@ import cv2
 import zarr
 
 from zia import BASE_PATH
-from zia.annotations.annotation.util import PyramidalLevel
+from zia.pipeline.annotation import PyramidalLevel
 from zia.config import read_config
 from zia.data_store import ZarrGroups
 from zia.log import get_logger
-from zia.processing.clustering import run_skeletize_image
-from zia.processing.filtering import Filter
-from zia.processing.get_segments import segment_thinned_image
-from zia.processing.load_image_stack import load_image_stack_from_zarr
-from zia.processing.process_segment import process_line_segments
+from zia.pipeline.pipeline_components.algorithm.segementation.clustering import run_skeletize_image
+from zia.pipeline.pipeline_components.algorithm.segementation.filtering import Filter
+from zia.pipeline.pipeline_components.algorithm.segementation.get_segments import segment_thinned_image
+from zia.pipeline.pipeline_components.algorithm.segementation.load_image_stack import load_image_stack_from_zarr
+from zia.pipeline.pipeline_components.algorithm.segementation.process_segment import process_line_segments
 
 logger = get_logger(__file__)
 

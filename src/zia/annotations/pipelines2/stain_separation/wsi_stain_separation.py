@@ -1,9 +1,8 @@
-import concurrent.futures
 import time
-from concurrent.futures import ThreadPoolExecutor, Future, as_completed
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import partial
 from pathlib import Path
-from typing import Tuple, Dict, Type, List, Iterable
+from typing import Tuple, Dict, Type, List
 
 import cv2
 import numcodecs
@@ -13,9 +12,9 @@ from imagecodecs.numcodecs import Jpeg
 from imagecodecs.numcodecs import Jpeg2k
 from tqdm import tqdm
 
-from zia.annotations.annotation.slicing import get_tile_slices
-from zia.annotations.annotation.util import PyramidalLevel
-from zia.annotations.pipelines.stain_separation.macenko import \
+from zia.pipeline.annotation import get_tile_slices
+from zia.pipeline.annotation import PyramidalLevel
+from zia.pipeline.pipeline_components.algorithm.stain_separation.macenko import \
     calculate_stain_matrix, \
     deconvolve_image, find_max_c, create_single_channel_pixels
 from zia.data_store import ZarrGroups

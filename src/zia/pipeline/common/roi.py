@@ -8,9 +8,9 @@ import geojson as gj
 from shapely import Polygon
 from shapely.geometry import shape
 
-from zia.annotations.annotation.annotations import AnnotationType
-from zia.annotations.annotation.geometry_utils import rescale_coords
-from zia.annotations.annotation.util import PyramidalLevel
+from zia.pipeline.common.annotations import AnnotationType
+from zia.pipeline.common.geometry_utils import rescale_coords
+from zia.pipeline.common.resolution_levels import PyramidalLevel
 
 
 class Roi:
@@ -68,12 +68,17 @@ class Roi:
             raise KeyError(
                 "The geojson object must contain a the element 'properties.level'"
             )
+        if "lobe" not in properties.keys():
+            raise KeyError(
+                "The geojson object must contain the lobe id at the element 'properties.lobe"
+            )
 
         geometry = shape(feature.get("geometry"))
         level = PyramidalLevel.get_by_numeric_level(properties.get("level"))
         annotation_type = AnnotationType.get_by_string(properties.get("annotationType"))
+        lobe_id = properties.get("lobe")
 
-        return Roi(geometry, None, level, annotation_type)
+        return Roi(geometry, None, level, annotation_type, lobe_id)
 
     def get_bound(self, level: PyramidalLevel) -> Tuple[slice, slice]:
         """

@@ -12,9 +12,9 @@ import zarr
 from numcodecs import Blosc
 from threadpoolctl import threadpool_limits
 
-from zia.annotations.annotation.slicing import get_tile_slices
-from zia.annotations.annotation.util import PyramidalLevel
-from zia.annotations.pipelines.stain_separation.macenko import \
+from zia.pipeline.annotation import get_tile_slices
+from zia.pipeline.annotation import PyramidalLevel
+from zia.pipeline.pipeline_components.algorithm.stain_separation.macenko import \
     calculate_stain_matrix, \
     deconvolve_image, find_max_c, create_single_channel_pixels
 from zia.data_store import ZarrGroups

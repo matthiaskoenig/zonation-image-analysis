@@ -5,7 +5,7 @@ from zia import BASE_PATH
 from zia.data_store import DataStore, ZarrGroups
 from zia.path_utils import FileManager, ResultsDirectories, filter_factory
 
-from zia.annotations.annotation.util import PyramidalLevel
+from zia.pipeline.annotation import PyramidalLevel
 from zia.annotations.workflow_visualizations.util.image_plotting import plot_rgb
 
 if __name__ == "__main__":

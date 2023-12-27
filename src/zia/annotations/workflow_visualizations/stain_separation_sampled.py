@@ -2,11 +2,10 @@ import cv2
 import numpy as np
 from matplotlib import pyplot as plt
 
-from zia.annotations.annotation.util import PyramidalLevel
-from zia.annotations.pipelines.stain_separation.macenko import calculate_stain_matrix, \
+from zia.pipeline.annotation import PyramidalLevel
+from zia.pipeline.pipeline_components.algorithm.stain_separation.macenko import calculate_stain_matrix, \
     deconvolve_image
-from zia.annotations.workflow_visualizations.util.image_plotting import plot_pic, \
-    plot_rgb
+from zia.annotations.workflow_visualizations.util.image_plotting import plot_pic
 from zia.config import read_config
 from zia.data_store import DataStore, ZarrGroups
 from zia.path_utils import FileManager

@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from zia.annotations.annotation.annotations import AnnotationParser, AnnotationType
-from zia.annotations.annotation.util import PyramidalLevel
+from zia.pipeline.annotation import AnnotationParser, AnnotationType
+from zia.pipeline.annotation import PyramidalLevel
 from zia.annotations.workflow_visualizations.util.image_plotting import plot_pic
 from zia.data_store import DataStore, ZarrGroups
 

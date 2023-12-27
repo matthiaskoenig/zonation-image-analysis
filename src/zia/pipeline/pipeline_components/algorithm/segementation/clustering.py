@@ -3,19 +3,11 @@ from typing import List, Tuple
 
 import numcodecs
 import numpy as np
-import zarr
 from imagecodecs.numcodecs import Jpeg2k
 from shapely import Polygon
 from sklearn.cluster import KMeans
 
-from zia import BASE_PATH
-from zia.annotations.annotation.util import PyramidalLevel
-from zia.annotations.workflow_visualizations.util.image_plotting import plot_pic
-from zia.config import read_config
-from zia.data_store import ZarrGroups
 from zia.log import get_logger
-from zia.processing.filtering import Filter
-from zia.processing.load_image_stack import load_image_stack_from_zarr
 
 numcodecs.register_codec(Jpeg2k)
 import cv2
@@ -31,7 +23,7 @@ def check_if_poly_is_in_any_of_the_lists(poly_to_check: Polygon, lists: List[Lis
     return len(lists)
 
 
-def get_and_classify_background_polys(binary: np.ndarray, labels: np.ndarray, sorted_label_idx: np.ndarray, n_clusters: int, plot=False):
+def get_and_classify_background_polys(binary: np.ndarray, labels: np.ndarray, sorted_label_idx: np.ndarray, n_clusters: int):
     contours, hierarchy = cv2.findContours(binary.reshape(binary.shape[0], binary.shape[1], 1).astype(np.uint8), cv2.RETR_TREE,
                                            cv2.CHAIN_APPROX_SIMPLE)
 
@@ -96,16 +88,6 @@ def get_and_classify_background_polys(binary: np.ndarray, labels: np.ndarray, so
         sorted_idx = np.argsort(np.sum(kmeans.cluster_centers_[:, :2], axis=1))
         classes = [sorted_idx[label] for label in kmeans.labels_]
 
-        if plot:
-            to_plot = np.zeros_like(binary, dtype=np.uint8)
-
-            for i, cnt in enumerate(classified_contours):
-                class_ = classes[i]
-                c = 255 if class_ == 0 else 175
-                cv2.drawContours(to_plot, [cnt], -1, c, 2)
-
-            plot_pic(to_plot)
-
     elif len(count_vectors) == 1:
         logger.warning("Only one vessel found. Vessel could not be classified by ")
 
@@ -133,7 +115,7 @@ def pad_image(image_stack: np.ndarray, pad: int) -> np.ndarray:
     return np.pad(image_stack, pad_width, mode="constant", constant_values=0)
 
 
-def run_skeletize_image(image_stack: np.ndarray, n_clusters=5, write=False, plot=False, pad=10, report_path: Path = None) -> Tuple[
+def run_skeletize_image(image_stack: np.ndarray, n_clusters=5, pad=10, report_path: Path = None) -> Tuple[
     np.ndarray, Tuple[List[int], list]]:
     image_stack = pad_image(image_stack, pad)
 
@@ -147,11 +129,6 @@ def run_skeletize_image(image_stack: np.ndarray, n_clusters=5, write=False, plot
     num_labels = superpixelslic.getNumberOfSuperpixels()
 
     if report_path is not None:
-        """out_template = np.zeros(shape=(image_stack.shape[0], image_stack.shape[1], 3)).astype(np.uint8)
-        for i in range(num_labels):
-            out_template[labels == i] = np.random.randint(255, size=(3,))
-        out_template[(superpixel_mask == 255)] = [255, 255, 0]"""
-
         cv2.imwrite(str(report_path / "superpixels.png"), superpixel_mask)
 
     merged = image_stack.astype(float)
@@ -226,16 +203,11 @@ def run_skeletize_image(image_stack: np.ndarray, n_clusters=5, write=False, plot
 
         cv2.imwrite(str(report_path / "foreground_clustered.png"), out_template)
 
-    if plot:
-        plot_pic(background_template)
 
     classes, filtered_contours, tissue_boundary = get_and_classify_background_polys(background_template,
                                                                                     foreground_clustered,
                                                                                     sorted_label_idx,
-                                                                                    n_clusters,
-                                                                                    plot=plot)
-
-    logger.info("Save vessel contours with classes")
+                                                                                    n_clusters)
 
     # shades of gray, n clusters + 2 for background
     template = np.zeros_like(merged[:, :, 0]).astype(np.uint8)
@@ -253,8 +225,8 @@ def run_skeletize_image(image_stack: np.ndarray, n_clusters=5, write=False, plot
 
     template = cv2.medianBlur(template, 5)
 
-    if write:
-        cv2.imwrite("grayscale.png", template)
+    if report_path is not None:
+        cv2.imwrite(str(report_path / "grayscale.png"), template)
 
     tissue_mask = np.zeros_like(template, dtype=np.uint8)
     cv2.drawContours(tissue_mask, [tissue_boundary], -1, 255, thickness=cv2.FILLED)
@@ -276,14 +248,10 @@ def run_skeletize_image(image_stack: np.ndarray, n_clusters=5, write=False, plot
         cv2.imwrite(str(report_path / f"classified_vessels.png"), out_template)
         cv2.imwrite(str(report_path / f"final_clustered_map.png"), template)
 
-    if plot:
-        plot_pic(template)
 
     logger.info("Run thinning algorithm.")
     thinned = cv2.ximgproc.thinning(template.reshape(template.shape[0], template.shape[1], 1).astype(np.uint8))
 
-    if plot:
-        plot_pic(thinned)
 
     ## drawing the vessels on the mask and thinn again to prevent pixel accumulations, the segmentation can't hanlde
 
@@ -295,36 +263,8 @@ def run_skeletize_image(image_stack: np.ndarray, n_clusters=5, write=False, plot
 
     thinned = cv2.ximgproc.thinning(thinned.reshape(template.shape[0], template.shape[1], 1).astype(np.uint8))
 
-    if plot:
-        plot_pic(thinned)
     if report_path is not None:
         cv2.imwrite(str(report_path / "thinned.png"), thinned)
 
     return thinned, (classes, filtered_contours)
 
-
-if __name__ == "__main__":
-    subject = "UKJ-19-049_Human"
-    roi = "0"
-    level = PyramidalLevel.FIVE
-    pixel_width = 0.22724690376093626  # µm
-    n_clusters = 3
-    config = read_config(BASE_PATH / "configuration.ini")
-    config.image_data_path / "stain_separated" / f"{subject}.zarr"
-
-    zarr_path = config.image_data_path / "stain_separated" / f"{subject}.zarr"
-    zarr_group = zarr.open(store=str(zarr_path), path=f"{ZarrGroups.STAIN_1.value}/{roi}")
-
-    merged = load_image_stack_from_zarr(zarr_group, level=level)
-
-    logger.info(f"Load images for subject {subject}, size: {merged.shape}")
-    # remove non overlapping pixels
-
-    # apply filters
-
-    logger.info("Apply image filters.")
-    filter = Filter(merged, level)
-    final_level, filtered = filter.prepare_image()
-
-    logger.info("Run superpixel algorithm.")
-    run_skeletize_image(filtered, n_clusters=n_clusters, write=True, plot=True, pad=10)

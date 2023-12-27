@@ -2,11 +2,9 @@ import cv2
 import numpy as np
 from matplotlib import pyplot as plt
 
-from zia.annotations.annotation.util import PyramidalLevel
-from zia.annotations.pipelines.stain_separation.macenko import calculate_stain_matrix, \
+from zia.pipeline.annotation import PyramidalLevel
+from zia.pipeline.pipeline_components.algorithm.stain_separation.macenko import calculate_stain_matrix, \
     deconvolve_image
-from zia.annotations.workflow_visualizations.util.image_plotting import plot_pic, \
-    plot_rgb
 from zia.config import read_config
 from zia.data_store import DataStore, ZarrGroups
 from zia.path_utils import FileManager
@@ -68,7 +66,7 @@ if __name__ == "__main__":
 
     data_store = DataStore(image_info)
 
-    for level in [PyramidalLevel.SEVEN, PyramidalLevel.SIX, PyramidalLevel.FIVE, PyramidalLevel.FOUR, PyramidalLevel.THREE, PyramidalLevel.TWO]:
+    for level in [PyramidalLevel.SEVEN, PyramidalLevel.SIX, PyramidalLevel.FIVE, PyramidalLevel.FOUR, PyramidalLevel.THREE, PyramidalLevel.ONE]:
         print(80*"-")
         print(level)
         mask = data_store.get_array(ZarrGroups.LIVER_MASK, roi_no=roi_no, level=level)

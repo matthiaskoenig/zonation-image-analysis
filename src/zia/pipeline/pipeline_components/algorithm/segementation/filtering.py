@@ -7,10 +7,10 @@ import zarr
 from imagecodecs.numcodecs import Jpeg2k
 
 from zia import BASE_PATH
-from zia.annotations.annotation.util import PyramidalLevel
+from zia.pipeline.annotation import PyramidalLevel
 from zia.config import read_config
 from zia.data_store import ZarrGroups
-from zia.processing.load_image_stack import load_image_stack_from_zarr
+from zia.pipeline.pipeline_components.algorithm.segementation.load_image_stack import load_image_stack_from_zarr
 
 numcodecs.register_codec(Jpeg2k)
 import cv2

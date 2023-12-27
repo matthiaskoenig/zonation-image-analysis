@@ -5,10 +5,10 @@ import cv2
 import numpy as np
 from shapely.geometry import Polygon
 
-from src.zia.annotations.annotation.annotations import AnnotationParser, AnnotationType
-from src.zia.annotations.annotation.roi import Roi
+from zia.pipeline.annotation import AnnotationParser, AnnotationType
+from zia.pipeline.annotation import Roi
 from zia.annotations import OPENSLIDE_PATH
-from zia.annotations.annotation.util import PyramidalLevel
+from zia.pipeline.annotation import PyramidalLevel
 from zia.annotations.workflow_visualizations.util.image_plotting import (
     plot_pic,
     plot_polygons,
@@ -120,7 +120,7 @@ if __name__ == "__main__":
         annotations, annotation_type=AnnotationType.LIVER
     )
 
-    # find the contour the organ shape that contains the annotation geometry
+    # find the contour the organ shape that contains the common geometry
 
     liver_shapes = [
         shape

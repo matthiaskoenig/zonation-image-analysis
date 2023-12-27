@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List, Dict, Optional, Tuple, Generator, Iterator
+from typing import List, Dict, Optional, Tuple, Iterator
 
 import numpy as np
 import shapely
@@ -9,9 +9,9 @@ from shapely import Polygon
 from tifffile import TiffWriter
 
 from zia import BASE_PATH
-from zia.annotations.annotation.roi import Roi
-from zia.annotations.annotation.slicing import get_tile_slices, get_final_slices
-from zia.annotations.annotation.util import PyramidalLevel
+from zia.pipeline.annotation import Roi
+from zia.pipeline.annotation import get_tile_slices, get_final_slices
+from zia.pipeline.annotation import PyramidalLevel
 from zia.config import read_config
 from zia.data_store import DataStore
 from zia.io.wsi_openslide import read_full_image_from_slide

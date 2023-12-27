@@ -4,7 +4,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from zia import BASE_PATH
-from zia.annotations.pipelines2.wsi_stain_separation import separate_stains
+from zia.annotations.pipelines2.stain_separation.wsi_stain_separation import separate_stains
 from zia.config import read_config
 from zia.log import get_logger
 

@@ -4,10 +4,9 @@ import numpy as np
 
 from zia import DATA_PATH, RESULTS_PATH
 from zia.annotations import OPENSLIDE_PATH
-from zia.annotations.annotation.roi import Roi
-from zia.annotations.annotation.util import PyramidalLevel
+from zia.pipeline.annotation import Roi
+from zia.pipeline.annotation import PyramidalLevel
 from zia.annotations.workflow_visualizations.util.image_plotting import (
-    plot_pic,
     plot_rgb,
 )
 

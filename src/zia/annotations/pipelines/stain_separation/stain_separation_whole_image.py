@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 
-from zia.annotations.pipelines.stain_separation.macenko import calculate_stain_matrix, \
+from zia.pipeline.pipeline_components.algorithm.stain_separation.macenko import calculate_stain_matrix, \
     deconvolve_image, find_max_c, create_single_channel_pixels
 
 

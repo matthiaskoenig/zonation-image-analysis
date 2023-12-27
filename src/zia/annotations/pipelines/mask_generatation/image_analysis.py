@@ -7,10 +7,10 @@ import shapely
 from shapely import GeometryCollection, LineString, MultiPolygon, Polygon
 from shapely.validation import make_valid
 
-from zia.annotations.annotation.annotations import Annotation
-from zia.annotations.annotation.geometry_utils import rescale_coords
-from zia.annotations.annotation.slicing import get_tile_slices
-from zia.annotations.annotation.util import PyramidalLevel
+from zia.pipeline.annotation import Annotation
+from zia.pipeline.annotation import rescale_coords
+from zia.pipeline.annotation import get_tile_slices
+from zia.pipeline.annotation import PyramidalLevel
 from zia.data_store import DataStore, ZarrGroups
 from zia.log import create_message
 

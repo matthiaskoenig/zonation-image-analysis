@@ -9,11 +9,11 @@ import zarr
 from shapely import Geometry
 
 from zia import BASE_PATH
-from zia.annotations.annotation.util import PyramidalLevel
+from zia.pipeline.annotation import PyramidalLevel
 from zia.annotations.pipelines.mask_generatation.image_analysis import MaskGenerator
 from zia.config import read_config
 from zia.data_store import ZarrGroups
-from zia.processing.lobulus_statistics import SlideStats, LobuleStatistics
+from zia.pipeline.pipeline_components.algorithm.segementation.lobulus_statistics import SlideStats, LobuleStatistics
 from zia.statistics.utils.data_provider import SlideStatsProvider, get_species_from_name
 
 

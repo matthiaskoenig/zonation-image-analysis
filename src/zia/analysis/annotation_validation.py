@@ -1,5 +1,5 @@
 from zia import BASE_PATH
-from zia.annotations.annotation.annotations import AnnotationParser, AnnotationType
+from zia.pipeline.annotation import AnnotationParser, AnnotationType
 from zia.data_store import DataStore
 from zia.log import get_logger
 from zia.path_utils import FileManager

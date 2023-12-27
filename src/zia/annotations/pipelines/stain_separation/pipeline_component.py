@@ -1,6 +1,5 @@
 from pathlib import Path
 
-from zia.annotations.annotation.annotations import AnnotationParser, AnnotationType
 from zia.data_store import DataStore, ZarrGroups
 from zia.log import get_logger, create_message
 from zia.path_utils import FileManager

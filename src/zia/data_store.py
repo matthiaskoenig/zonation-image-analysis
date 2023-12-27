@@ -7,10 +7,10 @@ import numpy as np
 import zarr
 from PIL.Image import Image
 
-from zia.annotations.annotation.roi import Roi
-from zia.annotations.annotation.util import PyramidalLevel
 from zia.io.wsi_openslide import read_wsi
 from zia.path_utils import ImageInfo
+from zia.pipeline.annotation.roi import Roi
+from zia.pipeline.annotation.util import PyramidalLevel
 
 
 class ZarrGroups(str, Enum):

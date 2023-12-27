@@ -6,7 +6,7 @@ import zarr
 
 from zia import BASE_PATH
 from zia.config import read_config
-from zia.processing.lobulus_statistics import SlideStats
+from zia.pipeline.pipeline_components.algorithm.segementation.lobulus_statistics import SlideStats
 from imagecodecs.numcodecs import Jpeg2k, Jpeg
 import numcodecs
 

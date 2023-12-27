@@ -1,19 +1,17 @@
-import logging
 from typing import List, Optional
 
 import cv2
 import numpy as np
 from shapely import Polygon, make_valid
 
-from zia.annotations.annotation.annotations import (
+from zia.pipeline.annotation import (
     Annotation,
     AnnotationParser,
     AnnotationType,
 )
-from zia.annotations.annotation.roi import Roi
-from zia.annotations.annotation.util import PyramidalLevel
+from zia.pipeline.annotation import Roi
+from zia.pipeline.annotation import PyramidalLevel
 from zia.data_store import DataStore
-from zia.console import console
 from zia.io.wsi_openslide import read_full_image_from_slide
 from zia.log import get_logger
 
@@ -75,7 +73,7 @@ class RoiSegmentation:
                            extra={"image_id": image_id})
             return []
 
-        # find the contour the organ shape that contains the annotation geometry
+        # find the contour the organ shape that contains the common geometry
 
         contour_shapes = RoiSegmentation._extract_organ_shapes(kept, liver_annotations)
 

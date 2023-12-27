@@ -87,7 +87,7 @@ class FileManager:
         return roi_path / f"{image.stem}.geojson"
 
     def get_geojson_path(self, image: Path) -> Path:
-        """Get geojson annotation path for image."""
+        """Get geojson common path for image."""
         # resolve relative path
         directory = self.annotation_path / image.relative_to(
             self.data_path).parent.parent / "objectsjson"
