@@ -22,4 +22,4 @@ def get_subject_from_path(image_id: str, species: str) -> str:
     if match == None:
         raise Exception(f"No matching subject found for this {image_id}.")
 
-    return match.string
+    return match.group()

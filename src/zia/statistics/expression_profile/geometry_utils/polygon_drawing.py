@@ -66,8 +66,9 @@ class GeometryDraw:
     def _draw_point(cls, point: Point, mask: np.ndarray, color: bool) -> None:
         if point.is_empty:
             return
-
-        mask[round(point.y), round(point.x)] = 1 if color else 0
+        
+        h, w = mask.shape[:2]
+        mask[min(round(point.y), h-1), min(round(point.x), w-1)] = 1 if color else 0
 
     @classmethod
     def _draw_multipart_recursively(cls, geometry: BaseMultipartGeometry, mask: np.ndarray, offset: Tuple[int, int], color: bool):

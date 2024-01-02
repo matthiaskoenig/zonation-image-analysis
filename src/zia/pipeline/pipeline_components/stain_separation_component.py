@@ -4,7 +4,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from enum import IntEnum
 from functools import partial
 from pathlib import Path
-from typing import Tuple, Dict, Type, List, Set
+from typing import Tuple, Dict, Type, List, Set, Optional
 
 import cv2
 import numcodecs
@@ -13,29 +13,28 @@ import zarr
 from imagecodecs.numcodecs import Jpeg
 from imagecodecs.numcodecs import Jpeg2k
 
-from zia.pipeline.common.slicing import get_tile_slices
+from zia.config import Configuration
+from zia.io.wsi_tifffile import read_ndpi
+from zia.io.zarr_utils import write_slice_to_zarr_location
+from zia.log import get_logger
 from zia.pipeline.common.resolution_levels import PyramidalLevel
+from zia.pipeline.common.slicing import get_tile_slices
 from zia.pipeline.file_management.file_management import Slide, SlideFileManager
 from zia.pipeline.pipeline_components.algorithm.stain_separation.macenko import \
     calculate_stain_matrix, \
     deconvolve_image, find_max_c, create_single_channel_pixels
 from zia.pipeline.pipeline_components.pipeline import IPipelineComponent
 from zia.pipeline.pipeline_components.roi_registration_component import SlideRegistrationComponent
-from zia.config import Configuration
-from zia.data_store import ZarrGroups
-from zia.io.wsi_tifffile import read_ndpi
-from zia.io.zarr_utils import write_slice_to_zarr_location
-from zia.log import get_logger
 
 logger = get_logger(__name__)
 numcodecs.register_codec(Jpeg2k)
 numcodecs.register_codec(Jpeg)
 
 
-def get_registered_slide(lobe_dir: Path, slide: Slide):
+def get_registered_slide(lobe_dir: Path, slide: Slide) -> Optional[Path]:
     ome_tiff_file = next(lobe_dir.glob(f"{slide.name}.ome.tiff"), None)
     if ome_tiff_file is None:
-        raise FileNotFoundError(f"No registered ROI image found for {slide.subject}, {slide.species}.")
+        return None
 
     return ome_tiff_file
 
@@ -56,6 +55,7 @@ class StainSeparationComponent(IPipelineComponent):
     def __init__(self, project_config: Configuration, file_manager: SlideFileManager, stains: List[Stain], overwrite: bool = False):
         super().__init__(project_config, file_manager, StainSeparationComponent.dir_name, overwrite)
         self.stain_path_dict = self.init_stain_paths(stains)
+        logger.info(f"Initialized StainSeparationComponent with stain {stains}.")
 
     def init_stain_paths(self, stains: List[Stain]):
         stain_path_dict = {}
@@ -82,7 +82,6 @@ class StainSeparationComponent(IPipelineComponent):
             if any(zarr_path.iterdir()):
                 logger.info(f"stain separation for subject: {slide.subject}, protein: {slide.protein}, "
                             f"lobe: {lobe_id} already exists.")
-                continue
             else:
                 filtered[stain] = zarr_path
         return filtered
@@ -104,10 +103,19 @@ class StainSeparationComponent(IPipelineComponent):
             for subject, slides in self.file_manager.group_by_subject().items():
                 for lobe_id, lobe_dir in self.get_roi_dir(subject).items():
                     for slide in slides:
+
                         registered_slide = get_registered_slide(lobe_dir, slide)
+
+                        if registered_slide is None:
+                            logger.warning(f"No registered ROI image found for {slide.subject}, {slide.species}.")
+                            continue
+
                         zarr_dirs = self.get_separation_path_zarr_path(slide, lobe_id)
 
                         zarr_dirs = self.filter_existing(zarr_dirs, slide, lobe_id)
+
+                        if len(zarr_dirs) == 0:
+                            continue
 
                         logger.info(f"Start stain separation for Subject {subject}, ROI {lobe_id}, protein: {slide.protein}")
 
@@ -117,7 +125,7 @@ class StainSeparationComponent(IPipelineComponent):
 def separate_stains(zarr_paths: Dict[Stain, Path],
                     registered_slide: Path,
                     executor: ThreadPoolExecutor,
-                    p: float = 0.001) -> None:
+                    p: float = 0.01) -> None:
     zarr_stores = {stain: zarr.DirectoryStore(str(zarr_path)) for stain, zarr_path in zarr_paths.items()}
     temp_store = zarr.TempStore()
 
@@ -205,19 +213,12 @@ def deconvolve(final_slices: Tuple[slice, slice],
     deconvolved = {}
     for stain in stains:
         c = conc_split[stain]
-        stain = create_single_channel_pixels(c.reshape(-1))
+        stain_c = create_single_channel_pixels(c.reshape(-1))
         template = np.ones(shape=image_tile.shape[:2]).astype(np.uint8) * 255
-        template[idx] = stain
+        template[idx] = stain_c
         deconvolved[stain] = template
 
     return deconvolved
-
-
-def get_stains(write_h_stain: bool) -> List[ZarrGroups]:
-    zarr_groups = [ZarrGroups.STAIN_1]
-    if write_h_stain:
-        zarr_groups.append(ZarrGroups.STAIN_0)
-    return zarr_groups
 
 
 def run_stain_separation(zarr_stores: Dict[Stain, zarr.DirectoryStore],

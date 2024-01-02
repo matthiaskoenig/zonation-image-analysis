@@ -28,12 +28,12 @@ logger = get_logger(__name__)
 
 def register(roi_dir: Path, registration_path: Path, registration_result_path: Path) -> None:
     # Create a Valis object and use it to register the slides in slide_src_dir
-    registrar = registration.Valis(str(roi_dir), str(registration_path))
+    registrar = registration.Valis(str(roi_dir), str(registration_result_path))
     rigid_registrar, non_rigid_registrar, error_df = registrar.register()
 
     # Save all registered slides as ome.tiff
     registrar.warp_and_save_slides(
-        str(registration_result_path),
+        str(registration_path),
         crop="reference",
         level=0,
         compression="jpeg",
@@ -73,21 +73,27 @@ class SlideRegistrationComponent(IPipelineComponent):
 
     def check_exists(self, registration_path: Path) -> bool:
         if any(registration_path.iterdir()) and not self.overwrite:
-            return False
-        return True
+            logger.info("Registered slide already exist.")
+            return True
+        return False
 
     def run(self):
         try:
             for subject, slides in self.file_manager.group_by_subject().items():
                 roi_dirs = self.get_roi_dir(subject)
                 for roi_dir in roi_dirs:
-                    lobe_id = roi_dir.name
-                    registration_path = self.get_registration_path(subject, lobe_id)
-                    registration_result_path = self.get_registration_results_path(subject, lobe_id)
-                    if self.check_exists(registration_path):
-                        continue
+                    try:
+                        lobe_id = roi_dir.name
+                        registration_path = self.get_registration_path(subject, lobe_id)
+                        registration_result_path = self.get_registration_results_path(subject, lobe_id)
+                        if self.check_exists(registration_path):
+                            continue
+                        logger.info(f"Started slide registration for subject {subject}, roi {lobe_id}.")
+                        register(roi_dir, registration_path, registration_result_path)
+                    except Exception as e:
+                        logger.critical(e,  exc_info=e)
+                        raise e
 
-                    register(roi_dir, registration_path, registration_result_path)
         finally:
             registration.kill_jvm()
 
