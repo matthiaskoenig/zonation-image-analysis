@@ -5,6 +5,7 @@ from typing import Dict
 import pandas as pd
 
 from zia.log import get_logger
+from zia.pipeline.common.project_config import get_project_config
 from zia.statistics.expression_profile.expression_profile_gradient import generate_distance_df
 from zia.statistics.expression_profile.gradient import plot_gradient
 from zia.statistics.expression_profile.validation_for_paper import plot_overview_for_paper
@@ -33,10 +34,19 @@ def save_slide_statistics(mouse_lobule_dict: Dict[str, str],
     to_save.to_excel(report_path / "slide-stats.xlsx")
 
 
+
 if __name__ == "__main__":
 
+    exclusion_dict = {
+        "UKJ-19-010_Human": ["CYP2D6", "GS"]
+    }
+
     log = get_logger(__file__)
-    df = SlideStatsProvider.get_slide_stats_df()
+
+    project_config = get_project_config("control")
+    slide_stats_provider = SlideStatsProvider(project_config, exclusion_dict)
+
+    df = slide_stats_provider.get_slide_stats_df()
 
     report_path_base = SlideStatsProvider.create_report_path("manuscript")
     report_path_stats_test = report_path_base / "statistical-test"
@@ -100,7 +110,7 @@ if __name__ == "__main__":
     generate_descriptive_stats(df, report_path_descriptive_stats, attributes, mouse_lobe_dict)
     # generate the distance dataframe
     log.info("Generating distance intensity data frame")
-    distance_df = generate_distance_df(report_path_distance_df, overwrite=True)
+    distance_df = generate_distance_df(report_path_distance_df, overwrite=False)
 
     # plot distance related plots
     log.info("Creating gradient plots")
@@ -116,4 +126,4 @@ if __name__ == "__main__":
     shutil.copy("README.md", report_path_base / "README.md")
 
     log.info("Creating zip archive")
-    shutil.make_archive(SlideStatsProvider.config.reports_path / "manuscript", 'zip', str(report_path_base))
+    shutil.make_archive(str(slide_stats_provider.config.reports_path / "manuscript"), 'zip', str(report_path_base))

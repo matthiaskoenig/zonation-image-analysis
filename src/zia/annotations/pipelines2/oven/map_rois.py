@@ -19,7 +19,7 @@ from zia.io.wsi_tifffile import read_ndpi
 from zia.path_utils import FileManager, filter_factory
 import cv2
 from zia.log import get_logger
-from zia.statistics.expression_profile.geometry_utils.polygon_drawing import GeometryDraw
+from zia.pipeline.common.geometry_utils import GeometryDraw
 
 log = get_logger(__file__)
 

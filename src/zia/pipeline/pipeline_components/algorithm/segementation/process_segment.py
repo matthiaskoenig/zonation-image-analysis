@@ -5,7 +5,8 @@ from typing import List, Tuple, Union
 import shapely
 from shapely import LineString, GeometryCollection, Polygon, make_valid, polygonize_full, affinity, Geometry
 
-from zia.pipeline.annotation import PyramidalLevel
+from zia.pipeline.common.resolution_levels import PyramidalLevel
+from zia.pipeline.file_management.file_management import Slide
 from zia.pipeline.pipeline_components.algorithm.segementation.get_segments import LineSegmentsFinder
 from zia.pipeline.pipeline_components.algorithm.segementation.lobulus_statistics import LobuleStatistics, SlideStats
 
@@ -100,20 +101,3 @@ def process_line_segments(line_segments: List[List[Tuple[int, int]]],
     return SlideStats(stats, class_0, class_1, unclassified, meta_data)
 
 
-if __name__ == "__main__":
-    results_path = Path(__file__).parent
-    with open("segmenter.pickle", "rb") as f:
-        segmenter: LineSegmentsFinder = pickle.load(f)
-
-    with open("vessels.pickle", "rb") as f:
-        classes, contours = pickle.load(f)
-
-    slide_stats = process_line_segments(segmenter.segments_finished,
-                                        classes,
-                                        contours,
-                                        5,
-                                        0)  # Not important for testing here
-
-    # slide_stats.to_geojson(results_path, "NOR_021")
-
-    slide_stats.plot()

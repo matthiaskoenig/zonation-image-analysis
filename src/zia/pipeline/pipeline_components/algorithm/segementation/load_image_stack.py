@@ -5,7 +5,7 @@ import cv2
 import numpy as np
 import zarr
 
-from zia.pipeline.annotation import PyramidalLevel
+from zia.pipeline.common.resolution_levels import PyramidalLevel
 from zia.log import get_logger
 
 from imagecodecs.numcodecs import Jpeg

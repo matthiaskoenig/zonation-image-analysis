@@ -19,28 +19,29 @@ from zia.pipeline.pipeline_components.algorithm.segementation.process_segment im
 logger = get_logger(__file__)
 
 
-class SegementationComponent(IPipelineComponent):
+class SegmentationComponent(IPipelineComponent):
     """Pipeline step for lobuli segmentation."""
     dir_name = "LobuliSegmentation"
 
     def __init__(self, project_config: Configuration, file_manager: SlideFileManager, overwrite: bool = False, report: bool = False):
-        super().__init__(project_config, file_manager, SegementationComponent.dir_name, overwrite)
+        super().__init__(project_config, file_manager, SegmentationComponent.dir_name, overwrite)
         self.report = report
 
-    def get_lobe_paths(self, subject: str) -> Generator[Tuple[str, Path]]:
+    def get_lobe_paths(self, subject: str) -> Generator[Tuple[str, Path], None, None]:
         subject_path = self.project_config.image_data_path / StainSeparationComponent.dir_name / f"{Stain.ONE.value}" / subject
         if not subject_path.exists():
             raise FileNotFoundError(f"The stain separation directory for the {Stain.ONE.value} for subject {subject} does not exist.")
         return ((p.name, p) for p in subject_path.iterdir())
 
-    def get_protein_slide_path(self, lobe_path, slide) -> Path:
-        p = lobe_path / f"{slide.protein}.zarr"
-        if not p.exists():
-            raise FileNotFoundError(f"The stain separated image {p} does not exist.")
-        return p
-
     def get_zarr_paths(self, lobe_path: Path, slides: List[Slide]) -> Dict[str, Path]:
-        return {slide.protein: self.get_protein_slide_path(lobe_path, slide) for slide in slides}
+        protein_slide_paths = {}
+        for slide in slides:
+            p = lobe_path / f"{slide.protein}.zarr"
+            if not p.exists():
+                logger.warning(f"The stain separated image {p} does not exist.")
+            else:
+                protein_slide_paths[slide.protein] = p
+        return protein_slide_paths
 
     def create_result_path(self, subject: str, lobe_id: str) -> Path:
         p = self.image_data_path / subject / lobe_id
@@ -53,13 +54,13 @@ class SegementationComponent(IPipelineComponent):
         return p
 
     def check_exists(self, result_path: Path, subject: str, lobe_id: str) -> bool:
-        if self.overwrite and any(result_path.iterdir()):
+        if not self.overwrite and any(result_path.iterdir()):
             logger.info(f"SlideStats for subject {subject} and lobe {lobe_id} already exist. Run with overwrite=True to overwrite")
             return True
         return False
 
     def run(self) -> None:
-        for subject, slides in self.file_manager.group_by_subject():
+        for subject, slides in self.file_manager.group_by_subject().items():
             for lobe_id, lobe_path in self.get_lobe_paths(subject):
                 report_path = self.create_report_path(subject, lobe_id)
                 result_path = self.create_result_path(subject, lobe_id)
@@ -68,7 +69,10 @@ class SegementationComponent(IPipelineComponent):
                     continue
 
                 protein_slide_paths = self.get_zarr_paths(lobe_path, slides)
+
+                logger.info(f"Started segmentation for {subject}.")
                 slide_stats = self.find_lobules_for_subject(protein_slide_paths, report_path)
+                slide_stats.meta_data.update(dict(subject=subject, lobe_id=lobe_id))
                 slide_stats.to_geojson(result_path)
 
     def find_lobules_for_subject(self, protein_slide_paths: Dict[str, Path],
@@ -104,9 +108,8 @@ class SegementationComponent(IPipelineComponent):
                                             vessel_contours,
                                             final_level,
                                             pad)
+
         if self.report:
             slide_stats.plot(report_path=report_path)
 
         return slide_stats
-
-

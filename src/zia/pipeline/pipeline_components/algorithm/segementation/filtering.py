@@ -1,19 +1,10 @@
 from typing import Callable, Tuple
 
-import matplotlib.pyplot as plt
-import numcodecs
 import numpy as np
-import zarr
-from imagecodecs.numcodecs import Jpeg2k
-
-from zia import BASE_PATH
-from zia.pipeline.annotation import PyramidalLevel
-from zia.config import read_config
-from zia.data_store import ZarrGroups
-from zia.pipeline.pipeline_components.algorithm.segementation.load_image_stack import load_image_stack_from_zarr
-
-numcodecs.register_codec(Jpeg2k)
 import cv2
+from zia.pipeline.common.resolution_levels import PyramidalLevel
+
+
 
 
 class Filter:
@@ -69,43 +60,3 @@ class Filter:
         self._set_missing_to_zero()
         self._apply_filter(self._filter_img)
         return self._get_level_diff(), self.image
-
-
-if __name__ == "__main__":
-    # subject = "SSES2021 9"
-    roi = "0"
-    subject = "UKJ-19-041_Human"
-    config = read_config(BASE_PATH / "configuration.ini")
-
-    zarr_store = zarr.open(store=config.image_data_path / "stain_separated" / f"{subject}.zarr")
-    group = zarr_store.get(f"{ZarrGroups.STAIN_1.value}/{roi}")
-
-    loaded_level, image = load_image_stack_from_zarr(group, max_size=2.5e7)
-    print(loaded_level)
-    filter = Filter(image, loaded_level)
-
-    final_level, filtered_image = filter.prepare_image()
-    print(final_level)
-
-    fig, axes = plt.subplots(2, 2, figsize=(12, 6), dpi=600)
-    fig1, axes1 = plt.subplots(2, 2, figsize=(12, 6), dpi=600)
-
-    for i, (key, ax, ax1) in enumerate(zip(group.keys(), axes.flatten(), axes1.flatten())):
-        arr = filtered_image[:, :, i]
-        hist = arr[arr > 0]
-
-        p = 0.05
-
-        """ lower = np.percentile(hist, p)
-        upper = np.percentile(hist, (1 - p) * 100)
-        print(lower, upper)
-        hist = arr[(arr > lower) & (arr < upper)]"""
-
-        # arr[(arr < lower) & (arr > upper)] = 0
-        ax.hist(hist, bins="sqrt")
-        ax1.imshow(arr, cmap="binary_r")
-        ax: plt.Axes
-        ax.set_title(key)
-        ax1.set_title(key)
-
-    plt.show()

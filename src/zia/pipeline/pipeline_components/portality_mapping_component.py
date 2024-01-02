@@ -1,24 +1,94 @@
 from pathlib import Path
-from typing import Dict, Optional, List
+from typing import Dict, List, Optional
 
 import cv2
 import numpy as np
 import pandas as pd
-import shapely
-import shapely.ops
 import zarr
 from shapely import Geometry, Polygon
+from shapely.ops import transform
 
-from zia import BASE_PATH
-from zia.pipeline.common.resolution_levels import PyramidalLevel
-from zia.config import read_config
-from zia.data_store import ZarrGroups
-from zia.pipeline.pipeline_components.algorithm.segementation.lobulus_statistics import SlideStats, LobuleStatistics
+from zia.log import get_logger
 from zia.pipeline.common.geometry_utils import GeometryDraw
-from zia.statistics.utils.data_provider import SlideStatsProvider, get_species_from_name
-from imagecodecs.numcodecs import Jpeg
-from numcodecs import register_codec
-register_codec(Jpeg)
+from zia.pipeline.common.project_config import Configuration
+from zia.pipeline.common.resolution_levels import PyramidalLevel
+from zia.pipeline.file_management.file_management import SlideFileManager
+from zia.pipeline.pipeline_components.algorithm.segementation.lobulus_statistics import SlideStats, LobuleStatistics
+from zia.pipeline.pipeline_components.pipeline import IPipelineComponent
+from zia.pipeline.pipeline_components.segementation_component import SegmentationComponent
+from zia.pipeline.pipeline_components.stain_separation_component import StainSeparationComponent, Stain
+
+log = get_logger(__file__)
+
+
+class PortalityMappingComponent(IPipelineComponent):
+    """Pipeline step for lobuli segmentation."""
+    dir_name = "PortalityMap"
+
+    def __init__(self, project_config: Configuration, file_manager: SlideFileManager, exclusion_dict=None,
+                 overwrite: bool = False):
+        super().__init__(project_config, file_manager, PortalityMappingComponent.dir_name, overwrite)
+        if exclusion_dict is None:
+            exclusion_dict = {}
+        self.exclusion_dict = exclusion_dict
+
+    def run(self) -> None:
+        if not self.overwrite and (self.image_data_path / "lobule_distances.csv").exists():
+            log.info("SlideStatistics data frame already exists.")
+
+        slide_stats_df = self.generate_distance_df()
+
+        slide_stats_df.to_csv(self.image_data_path / "lobule_distances.csv")
+
+    def get_roi_dirs(self, subject: str) -> Dict[str, Path]:
+        subject_path = self.project_config.image_data_path / SegmentationComponent.dir_name / subject
+        if not subject_path.exists():
+            raise FileNotFoundError(f"Segmentation result path not found for subject {subject}.")
+        return {p.stem: p for p in subject_path.iterdir()}
+
+    def generate_distance_df(self) -> pd.DataFrame:
+
+        subject_dfs = []
+        for subject, _ in self.file_manager.group_by_subject().items():
+            roi_dfs = []
+
+            excluded = self.exclusion_dict.get(subject)
+            for roi, slide_stats_path in self.get_roi_dirs(subject).items():
+                slide_stats = SlideStats.load_from_file_system(slide_stats_path)
+                zarr_paths = self.get_zarr_path(subject, roi)
+                protein_arrays = open_protein_arrays(
+                    zarr_paths,
+                    level=slide_stats.meta_data["level"],
+                    excluded=excluded if excluded is not None else []
+                )
+                foreground_masks = get_foreground_mask(protein_arrays)
+                normalized_arrays = normalize_arrays(protein_arrays)
+                df = analyse_lobuli(slide_stats, normalized_arrays, foreground_masks)
+                df["roi"] = roi
+                df["species"] = slide_stats.meta_data["subject"]
+                roi_dfs.append(df)
+
+            subject_df = pd.concat(roi_dfs)
+            subject_df["subject"] = subject
+            subject_dfs.append(subject_df)
+
+        final_df = pd.concat(subject_dfs)
+        final_df["roi"] = pd.to_numeric(final_df["roi"])
+
+        final_df = final_df.round({"d_portal": 3,
+                                   "d_central": 3,
+                                   "pv_dist": 3,
+                                   "intensity": 3})
+
+        return final_df
+
+    def get_zarr_path(self, subject: str, lobe_id: str) -> Dict[str, Path]:
+        base_path = self.project_config.image_data_path / StainSeparationComponent.dir_name / f"{Stain.ONE.value}" / subject / lobe_id
+        if not base_path.exists():
+            raise FileNotFoundError(f"No stain separation directory exists for subject {subject} and lobe {lobe_id}.")
+
+        return {p.stem: p for p in base_path.iterdir()}
+
 
 @np.vectorize
 def dist(d_p: float, d_c: float) -> float:
@@ -27,13 +97,14 @@ def dist(d_p: float, d_c: float) -> float:
     return 1 - d_c / (d_p + d_c)
 
 
-def open_protein_arrays(address: Path, path: str, level: PyramidalLevel, excluded: List[str]) -> Dict[str, np.ndarray]:
-    group = zarr.open(store=address, path=path)
-    return {key: 255 - np.array(val.get(f"{level}")) for key, val in group.items() if not key in excluded}
+def open_protein_arrays(zarr_path: Dict[str, Path], level: PyramidalLevel, excluded: List[str]) -> Dict[str, np.ndarray]:
+    return {protein: 255 - np.array(zarr.open_array(store=path, path=f"{level}"))
+            for protein, path in zarr_path.items()
+            if protein not in excluded}
 
 
 def swap_xy(geometry: Geometry):
-    return shapely.ops.transform(lambda x, y: (y, x), geometry)
+    return transform(lambda x, y: (y, x), geometry)
 
 
 def create_lobule_df(height: np.ndarray, width: np.ndarray, d_portal: np.ndarray, d_central: np.ndarray, pv_dist: np.ndarray, intensity: np.ndarray,
@@ -51,8 +122,7 @@ def create_lobule_df(height: np.ndarray, width: np.ndarray, d_portal: np.ndarray
 
 
 def analyse_protein_expression_for_lobule(protein_array: np.ndarray, foreground_mask: np.ndarray, lobule_stats: LobuleStatistics, idx: int,
-                                          meta: Dict, sum_array: np.ndarray) -> \
-        Optional[pd.DataFrame]:
+                                          meta: Dict, sum_array: np.ndarray) -> Optional[pd.DataFrame]:
     poly_boundary: Polygon = swap_xy(lobule_stats.polygon)
     minx, miny, maxx, maxy = (max(0, int(x)) for x in poly_boundary.bounds)
 
@@ -106,6 +176,7 @@ def analyse_protein_expression_for_lobule(protein_array: np.ndarray, foreground_
     foreground = lobule_foreground[mask]
 
     empty_pixels = foreground[foreground == False]
+
     if empty_pixels.size / area > 0.2:
         # print("empty lobule on slide")
         return None
@@ -170,11 +241,11 @@ def analyse_lobuli(slide_stats: SlideStats, protein_arrays: Dict[str, np.ndarray
 def normalize_arrays(protein_arrays: Dict[str, np.ndarray]) -> Dict[str, np.ndarray]:
     normalized = {}
 
-    gs = protein_arrays.get("GS")
+    gs = protein_arrays.get("gs")
     if gs is not None:
         bg = np.percentile(gs[gs > 0], 20)
     else:
-        cyp3a4 = protein_arrays["CYP3A4"]
+        cyp3a4 = protein_arrays["cyp3a4"]
         bg = np.percentile(cyp3a4[cyp3a4 > 0], 10)
 
     for key, arr in protein_arrays.items():
@@ -187,57 +258,3 @@ def normalize_arrays(protein_arrays: Dict[str, np.ndarray]) -> Dict[str, np.ndar
 
 def get_foreground_mask(protein_arrays: Dict[str, np.ndarray]):
     return {key: arr > 0 for key, arr in protein_arrays.items()}
-
-
-def generate_distance_df(report_path: Path, overwrite=True) -> pd.DataFrame:
-    if overwrite == False and (report_path / "lobule_distances.csv").exists():
-        return pd.read_csv(report_path / "lobule_distances.csv", index_col=False)
-
-    config = read_config(BASE_PATH / "configuration.ini")
-
-    slide_stats_dict = SlideStatsProvider.get_slide_stats()
-
-    subject_dfs = []
-
-    for subject, roi_dict in slide_stats_dict.items():
-        roi_dfs = []
-
-        excluded = SlideStatsProvider.exclusion_dict.get(subject)
-        for roi, slide_stats in roi_dict.items():
-            protein_arrays = open_protein_arrays(
-                address=config.image_data_path / "stain_separated" / f"{subject}.zarr",
-                path=f"{ZarrGroups.STAIN_1.value}/{roi}",
-                level=slide_stats.meta_data["level"],
-                excluded=excluded if excluded is not None else []
-            )
-            foreground_masks = get_foreground_mask(protein_arrays)
-            normalized_arrays = normalize_arrays(protein_arrays)
-            df = analyse_lobuli(slide_stats, normalized_arrays, foreground_masks)
-            df["roi"] = roi
-            roi_dfs.append(df)
-
-        subject_df = pd.concat(roi_dfs)
-        subject_df["subject"] = subject
-        species = get_species_from_name(subject)
-        subject_df["species"] = species
-        subject_dfs.append(subject_df)
-
-    final_df = pd.concat(subject_dfs)
-    final_df["roi"] = pd.to_numeric(final_df["roi"])
-
-    final_df = final_df.round({"d_portal": 3,
-                               "d_central": 3,
-                               "pv_dist": 3,
-                               "intensity": 3})
-
-    final_df.to_csv(report_path / "lobule_distances.csv", sep=",", index=False)
-
-    return final_df
-
-
-if __name__ == "__main__":
-    config = SlideStatsProvider.config
-
-    report_path = config.reports_path
-
-    generate_distance_df(report_path=report_path)

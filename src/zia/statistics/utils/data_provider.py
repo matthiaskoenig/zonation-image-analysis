@@ -13,24 +13,8 @@ def capitalize(s: str) -> str:
     return s[0].upper() + s[1:]
 
 
-def get_species_from_name(subject) -> Optional[str]:
-    """Metadata for image"""
-    rat_pattern = re.compile("NOR-\d+")
-    pig_pattern = re.compile("SSES2021 \d+")
-    mouse_pattern = re.compile("MNT-\d+")
-    human_pattern = re.compile("UKJ-19-\d+_Human")
-    if re.search(pig_pattern, subject):
-        return "pig"
-    if re.search(mouse_pattern, subject):
-        return "mouse"
-    if re.search(rat_pattern, subject):
-        return "rat"
-    if re.search(human_pattern, subject):
-        return "human"
 
-    return None
-
-
+"""
 def _merge_to_one_df(slide_stats: Dict[str, Dict[str, SlideStats]]) -> pd.DataFrame:
     dfs = []
     for subject, rois in slide_stats.items():
@@ -45,17 +29,14 @@ def _merge_to_one_df(slide_stats: Dict[str, Dict[str, SlideStats]]) -> pd.DataFr
             dfs.append(slide_stat_df)
 
     return pd.concat(dfs, ignore_index=True)
-
+"""
 
 class SlideStatsProvider:
-    config = read_config(BASE_PATH / "configuration.ini")
     species_order = ["mouse", "rat", "pig", "human"]
     protein_order = ["HE", "GS", "CYP1A2", "CYP2D6", "CYP2E1", "CYP3A4"]
     species_colors = ["#77AADD", "#EE8866", "#DDDDDD", "#44BB99"]
 
-    exclusion_dict = {
-        "UKJ-19-010_Human": ["CYP2D6", "GS"]
-    }
+
 
     @classmethod
     def get_species_colors_as_rgb(cls) -> List[Tuple[float]]:
