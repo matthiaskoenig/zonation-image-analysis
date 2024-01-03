@@ -36,8 +36,10 @@ class PortalityMappingComponent(IPipelineComponent):
         if not self.overwrite and (self.image_data_path / "lobule_distances.csv").exists():
             log.info("SlideStatistics data frame already exists.")
 
+        log.info("Started generating portality map data frame.")
         slide_stats_df = self.generate_distance_df()
 
+        log.info("Saving data frame.")
         slide_stats_df.to_csv(self.image_data_path / "lobule_distances.csv")
 
     def get_roi_dirs(self, subject: str) -> Dict[str, Path]:
