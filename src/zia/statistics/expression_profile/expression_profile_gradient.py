@@ -12,7 +12,7 @@ from shapely import Geometry, Polygon
 from zia import BASE_PATH
 from zia.pipeline.common.resolution_levels import PyramidalLevel
 from zia.config import read_config
-from zia.data_store import ZarrGroups
+from zia.oven.data_store import ZarrGroups
 from zia.pipeline.pipeline_components.algorithm.segementation.lobulus_statistics import SlideStats, LobuleStatistics
 from zia.pipeline.common.geometry_utils import GeometryDraw
 from zia.statistics.utils.data_provider import SlideStatsProvider, get_species_from_name
@@ -195,7 +195,7 @@ def generate_distance_df(report_path: Path, overwrite=True) -> pd.DataFrame:
 
     config = read_config(BASE_PATH / "configuration.ini")
 
-    slide_stats_dict = SlideStatsProvider.get_slide_stats()
+    slide_stats_dict = get_slide_stats()
 
     subject_dfs = []
 

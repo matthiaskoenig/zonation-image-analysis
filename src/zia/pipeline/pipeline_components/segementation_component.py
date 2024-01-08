@@ -72,7 +72,7 @@ class SegmentationComponent(IPipelineComponent):
 
                 logger.info(f"Started segmentation for {subject}.")
                 slide_stats = self.find_lobules_for_subject(protein_slide_paths, report_path)
-                slide_stats.meta_data.update(dict(subject=subject, lobe_id=lobe_id))
+                slide_stats.meta_data.update(dict(subject=subject, lobe_id=lobe_id, species=slides[0].species))
                 slide_stats.to_geojson(result_path)
 
     def find_lobules_for_subject(self, protein_slide_paths: Dict[str, Path],

@@ -5,7 +5,7 @@ import pandas as pd
 
 from zia import BASE_PATH
 from zia.config import read_config
-from zia.data_store import ZarrGroups
+from zia.oven.data_store import ZarrGroups
 from zia.statistics.expression_profile.expression_profile_gradient import open_protein_arrays
 from zia.statistics.utils.data_provider import SlideStatsProvider
 
@@ -18,7 +18,7 @@ def plot_dab_stains(report_path: Path, overwrite=True) -> pd.DataFrame:
     report_path = config.reports_path / "dab-stains"
     report_path.mkdir(exist_ok=True)
 
-    slide_stats_dict = SlideStatsProvider.get_slide_stats()
+    slide_stats_dict = get_slide_stats()
 
     for subject, roi_dict in slide_stats_dict.items():
 

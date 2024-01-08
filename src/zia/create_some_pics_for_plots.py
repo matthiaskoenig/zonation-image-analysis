@@ -1,21 +1,13 @@
 import cv2
-import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
-import zarr
-from matplotlib import cm
-from matplotlib.colors import to_rgb, to_rgba
-from matplotlib.lines import Line2D
-from matplotlib.patches import Patch
 
 from zia import BASE_PATH
 from zia.config import read_config
-from zia.data_store import ZarrGroups
-from zia.io.wsi_openslide import read_wsi, openslide
+from zia.oven.data_store import ZarrGroups
 from zia.io.wsi_tifffile import read_ndpi
 from zia.statistics.expression_profile.expression_profile_gradient import open_protein_arrays
-from zia.statistics.expression_profile.validation_images import plot_mixed_channel, plot_boundaries, plot_distances, get_level_seven_array, plot_he
-from zia.statistics.utils.data_provider import SlideStatsProvider, capitalize
+from zia.statistics.expression_profile.validation_images import get_level_seven_array
+from zia.statistics.utils.data_provider import SlideStatsProvider
 
 if __name__ == "__main__":
     subject = "UKJ-19-026_Human"
@@ -32,7 +24,7 @@ if __name__ == "__main__":
 
     slide_path = None
 
-    slide_stats_dict = SlideStatsProvider.get_slide_stats()
+    slide_stats_dict = get_slide_stats()
 
     protein = "CYP3A4"
     slide_dir = config.image_data_path / "rois_registered" / f"{subject}" / f"{roi}"

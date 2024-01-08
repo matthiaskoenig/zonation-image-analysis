@@ -1,8 +1,4 @@
-from typing import Tuple
-
 import numpy as np
-
-from zia.annotations.workflow_visualizations.util.image_plotting import plot_pic
 
 
 # copied from https://github.com/schaugf/HEnorm_python/blob/master/normalizeStaining.py

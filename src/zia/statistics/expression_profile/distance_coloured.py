@@ -81,7 +81,7 @@ if __name__ == "__main__":
     df = pd.read_csv(config.reports_path / "lobule_distances.csv", sep=",", index_col=False)
     species_gb = df.groupby("species")
 
-    slide_stats_dict = SlideStatsProvider.get_slide_stats()
+    slide_stats_dict = get_slide_stats()
     for (subject, roi), subject_df in df.groupby(["subject", "roi"]):
 
         arrays = []

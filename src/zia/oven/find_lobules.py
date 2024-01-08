@@ -7,7 +7,7 @@ import zarr
 from zia import BASE_PATH
 from zia.pipeline.annotation import PyramidalLevel
 from zia.config import read_config
-from zia.data_store import ZarrGroups
+from zia.oven.data_store import ZarrGroups
 from zia.log import get_logger
 from zia.pipeline.pipeline_components.algorithm.segementation.clustering import run_skeletize_image
 from zia.pipeline.pipeline_components.algorithm.segementation.filtering import Filter

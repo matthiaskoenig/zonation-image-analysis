@@ -16,8 +16,8 @@ from zia.pipeline.annotation import PyramidalLevel
 from zia.pipeline.pipeline_components.algorithm.stain_separation.macenko import calculate_stain_matrix, \
     deconvolve_image
 from zia.config import read_config
-from zia.data_store import DataStore, ZarrGroups
-from zia.path_utils import FileManager, ImageInfo
+from zia.oven.data_store import DataStore, ZarrGroups
+from zia.oven.path_utils import FileManager, ImageInfo
 from zia.console import console
 
 

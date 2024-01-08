@@ -5,8 +5,9 @@ from typing import Dict
 import pandas as pd
 
 from zia.log import get_logger
-from zia.pipeline.common.project_config import get_project_config
-from zia.statistics.expression_profile.expression_profile_gradient import generate_distance_df
+from zia.pipeline.common.project_config import get_project_config, Configuration
+from zia.pipeline.pipeline_components.portality_mapping_component import PortalityMappingComponent
+from zia.pipeline.pipeline_components.segementation_component import SegmentationComponent
 from zia.statistics.expression_profile.gradient import plot_gradient
 from zia.statistics.expression_profile.validation_for_paper import plot_overview_for_paper
 from zia.statistics.expression_profile.validation_images import plot_validation_for_all
@@ -34,6 +35,13 @@ def save_slide_statistics(mouse_lobule_dict: Dict[str, str],
     to_save.to_excel(report_path / "slide-stats.xlsx")
 
 
+def load_distance_df(project_config: Configuration) -> pd.DataFrame:
+    p = project_config.image_data_path / PortalityMappingComponent.dir_name / "lobule_distances.csv"
+    if not p.exists():
+        raise FileNotFoundError("The Lobule Portality data frame does not exist.")
+
+    return pd.read_csv(p, index_col=False)
+
 
 if __name__ == "__main__":
 
@@ -44,11 +52,12 @@ if __name__ == "__main__":
     log = get_logger(__file__)
 
     project_config = get_project_config("control")
-    slide_stats_provider = SlideStatsProvider(project_config, exclusion_dict)
 
-    df = slide_stats_provider.get_slide_stats_df()
+    slide_stat_provider = SlideStatsProvider(project_config.image_data_path / SegmentationComponent.dir_name)
 
-    report_path_base = SlideStatsProvider.create_report_path("manuscript")
+    df = slide_stat_provider.get_slide_stats_df()
+
+    report_path_base = project_config.reports_path / "plots" / "manuscript"
     report_path_stats_test = report_path_base / "statistical-test"
     report_path_paper_plots = report_path_base / "paper-plots"
     report_path_descriptive_stats = report_path_base / "descriptive-stats"
@@ -56,7 +65,8 @@ if __name__ == "__main__":
     report_path_valdiation_all = report_path_base / "overview-for-all"
     report_path_slide_statistics = report_path_base / "slide-statistics"
 
-    for p in [report_path_stats_test, report_path_paper_plots, report_path_descriptive_stats, report_path_distance_df, report_path_valdiation_all,
+    for p in [report_path_base, report_path_stats_test, report_path_paper_plots, report_path_descriptive_stats, report_path_distance_df,
+              report_path_valdiation_all,
               report_path_slide_statistics]:
         p.mkdir(exist_ok=True, parents=True)
 
@@ -110,12 +120,12 @@ if __name__ == "__main__":
     generate_descriptive_stats(df, report_path_descriptive_stats, attributes, mouse_lobe_dict)
     # generate the distance dataframe
     log.info("Generating distance intensity data frame")
-    distance_df = generate_distance_df(report_path_distance_df, overwrite=False)
+    distance_df = load_distance_df(project_config)
 
     # plot distance related plots
     log.info("Creating gradient plots")
     plot_gradient(report_path_paper_plots, distance_df)
-    plot_overview_for_paper(report_path_paper_plots, distance_df)
+    plot_overview_for_paper(report_path_paper_plots, project_config, slide_stat_provider.slide_stats_dict, distance_df)
 
     # validation plot for every subject and roi
     log.info("Creating overview plots for each subject and ROI")
@@ -126,4 +136,4 @@ if __name__ == "__main__":
     shutil.copy("README.md", report_path_base / "README.md")
 
     log.info("Creating zip archive")
-    shutil.make_archive(str(slide_stats_provider.config.reports_path / "manuscript"), 'zip', str(report_path_base))
+    shutil.make_archive(str(report_path_base / "manuscript"), 'zip', str(report_path_base))

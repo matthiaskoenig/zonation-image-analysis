@@ -10,9 +10,9 @@ from shapely import Geometry
 
 from zia import BASE_PATH
 from zia.pipeline.annotation import PyramidalLevel
-from zia.annotations.pipelines.mask_generatation.image_analysis import MaskGenerator
+from zia.oven.annotations.pipelines.mask_generatation.image_analysis import MaskGenerator
 from zia.config import read_config
-from zia.data_store import ZarrGroups
+from zia.oven.data_store import ZarrGroups
 from zia.pipeline.pipeline_components.algorithm.segementation.lobulus_statistics import SlideStats, LobuleStatistics
 from zia.statistics.utils.data_provider import SlideStatsProvider, get_species_from_name
 
@@ -92,7 +92,7 @@ def analyse_lobuli(slide_stats: SlideStats, protein_arrays: Dict[str, np.ndarray
 if __name__ == "__main__":
     config = read_config(BASE_PATH / "configuration.ini")
 
-    slide_stats_dict = SlideStatsProvider.get_slide_stats()
+    slide_stats_dict = get_slide_stats()
 
     subject_dfs = []
     for subject, roi_dict in slide_stats_dict.items():

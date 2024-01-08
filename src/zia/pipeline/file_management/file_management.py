@@ -16,6 +16,7 @@ class Slide:
 class SlideFileManager:
     def __init__(self, slide_dir: Path, extension: str = "ndpi"):
         self.slides = SlideFileManager._from_slide_dir(slide_dir, extension)
+        self._subject_species_dict = None
 
     def group_by_subject(self) -> Dict[str, List[Slide]]:
         subject_slides_dict = {}
@@ -26,6 +27,11 @@ class SlideFileManager:
             subject_slides_dict[slide.subject].append(slide)
 
         return subject_slides_dict
+
+    def get_species_by_subject(self, species: str) -> str:
+        if self._subject_species_dict is None:
+            self.init_subject_species_dict()
+        return self._subject_species_dict[species]
 
     @classmethod
     def _from_slide_dir(cls, slide_dir: Path, extension: str) -> List[Slide]:
@@ -39,3 +45,10 @@ class SlideFileManager:
         subject = get_subject_from_path(image_id, species)
 
         return Slide(image_id, protein, subject, species)
+
+    def init_subject_species_dict(self):
+
+        self._subject_species_dict = {}
+        for slide in self.slides:
+            if slide.subject not in self._subject_species_dict:
+                self._subject_species_dict[slide.subject] = slide.species

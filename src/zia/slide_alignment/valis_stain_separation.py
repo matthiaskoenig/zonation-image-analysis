@@ -3,7 +3,7 @@ from typing import List, Dict
 import numpy as np
 from matplotlib import pyplot as plt
 
-from zia.annotations.pipelines.stain_separation.stain_separation_whole_image import separate_raw_image
+from zia.oven.annotations.pipelines.stain_separation.stain_separation_whole_image import separate_raw_image
 from zia.console import console
 from zia.io.wsi_tifffile import read_ndpi
 

@@ -30,7 +30,7 @@ if __name__ == "__main__":
             # stain separation
             # StainSeparationComponent(config, file_manager, stains=[Stain.ZERO, Stain.ONE], overwrite=False)
             # lobule segmentation
-            # SegmentationComponent(config, file_manager, overwrite=False, report=True),
+            # SegmentationComponent(config, file_manager, overwrite=True, report=False),
             PortalityMappingComponent(config, file_manager, overwrite=True)
         ]
     )

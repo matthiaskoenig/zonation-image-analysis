@@ -77,7 +77,7 @@ def process_line_segments(line_segments: List[List[Tuple[int, int]]],
     class_0 = [translate_polygon(p, pad) for p in class_0]
     unclassified = [translate_polygon(p, pad) for p in unclassified]
 
-    for lobulus_poly in lobuli:
+    for k, lobulus_poly in enumerate(lobuli):
         c0, c1, uc = [], [], []
         c0_idx, c1_idx, uc_idx = [], [], []
         for i, p in enumerate(class_0):
@@ -95,7 +95,7 @@ def process_line_segments(line_segments: List[List[Tuple[int, int]]],
                 uc.append(p)
                 uc_idx.append(i)
 
-        stats.append(LobuleStatistics.from_polygon(lobulus_poly, c0, c1, uc, c0_idx, c1_idx, uc_idx))
+        stats.append(LobuleStatistics.from_polygon(k, lobulus_poly, c0, c1, uc, c0_idx, c1_idx, uc_idx))
 
     meta_data = dict(level=final_level, pixel_size=0.22724690376093626)
     return SlideStats(stats, class_0, class_1, unclassified, meta_data)

@@ -1,5 +1,4 @@
 import cv2
-import matplotlib.pyplot as plt
 import numcodecs
 import numpy as np
 import pandas as pd
@@ -7,7 +6,6 @@ import zarr
 from imagecodecs.numcodecs import Jpeg2k
 
 from zia import BASE_PATH
-from zia.annotations.workflow_visualizations.util.image_plotting import plot_pic
 from zia.config import read_config
 from zia.statistics.utils.data_provider import SlideStatsProvider
 
@@ -40,7 +38,7 @@ if __name__ == "__main__":
     df = pd.read_csv(config.reports_path / "lobule_distances.csv", sep=",", index_col=False)
     species_gb = df.groupby("species")
 
-    slide_stats_dict = SlideStatsProvider.get_slide_stats()
+    slide_stats_dict = get_slide_stats()
     for (subject, roi), subject_df in df.groupby(["subject", "roi"]):
         arrays = []
         mins = []

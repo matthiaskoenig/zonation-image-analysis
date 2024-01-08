@@ -36,7 +36,7 @@ class Filter:
         img = self._convolute_median(img, ksize=7)
         img = self._adaptive_hist_norm(img, ksize=(8, 8))
         img = self._convolute_median(img, ksize=3)
-        img = (img / np.max(img)) * 255
+        img = (img / np.percentile(img, 99)) * 255
         return img.astype(np.uint8)
 
     @classmethod

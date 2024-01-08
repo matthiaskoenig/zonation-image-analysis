@@ -14,15 +14,21 @@ from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
 
 from zia import BASE_PATH
-from zia.config import read_config
-from zia.data_store import ZarrGroups
+from zia.config import read_config, Configuration
 from zia.io.wsi_tifffile import read_ndpi
 from zia.pipeline.pipeline_components.algorithm.segementation.lobulus_statistics import SlideStats
-from zia.statistics.expression_profile.expression_profile_gradient import open_protein_arrays
+from zia.pipeline.pipeline_components.portality_mapping_component import open_protein_arrays
+from zia.pipeline.pipeline_components.stain_separation_component import StainSeparationComponent, Stain
 from zia.statistics.utils.data_provider import SlideStatsProvider
 
 numcodecs.register_codec(Jpeg2k)
 
+def get_zarr_path(project_config: Configuration, subject: str, lobe_id: str) -> Dict[str, Path]:
+    base_path = project_config.image_data_path / StainSeparationComponent.dir_name / f"{Stain.ONE.value}" / subject / lobe_id
+    if not base_path.exists():
+        raise FileNotFoundError(f"No stain separation directory exists for subject {subject} and lobe {lobe_id}.")
+
+    return {p.stem: p for p in base_path.iterdir()}
 
 def plot_distances(ax: plt.Axes,
                    subject_df: pd.DataFrame,
@@ -110,17 +116,15 @@ def plot_he(ax: plt.Axes, he_array: np.ndarray):
     ax.imshow(he_array)
 
 
-def plot_validation_for_all(report_path: Path, distance_df: pd.DataFrame):
+def plot_validation_for_all(project_config: Configuration, report_path: Path, slide_stats_dict: Dict[str, Dict[str, SlideStats]], distance_df: pd.DataFrame):
     config = read_config(BASE_PATH / "configuration.ini")
 
-    slide_stats_dict = SlideStatsProvider.get_slide_stats()
     for (subject, roi), subject_df in distance_df.groupby(["subject", "roi"]):
         fig, axes = plt.subplots(2, 4, figsize=(8.3, 8.3 * 1.1 / 4), dpi=300, height_ratios=[0.96, 0.04])
         plt.subplots_adjust(hspace=0, wspace=0)
         slide_stats = slide_stats_dict[str(subject)][str(roi)]
         protein_arrays = open_protein_arrays(
-            address=config.image_data_path / "stain_separated" / f"{subject}.zarr",
-            path=f"{ZarrGroups.STAIN_1.value}/{roi}",
+            zarr_path=get_zarr_path(project_config, subject, roi),
             level=slide_stats.meta_data["level"],
             excluded=[]
         )

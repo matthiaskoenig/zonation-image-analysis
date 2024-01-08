@@ -6,9 +6,9 @@ from shapely import Polygon
 
 from zia import BASE_PATH
 from zia.pipeline.annotation import PyramidalLevel
-from zia.annotations.workflow_visualizations.util.image_plotting import plot_pic
+from zia.oven.annotations.workflow_visualizations.util.image_plotting import plot_pic
 from zia.config import read_config
-from zia.data_store import ZarrGroups
+from zia.oven.data_store import ZarrGroups
 from imagecodecs.numcodecs import Jpeg2k
 import numcodecs
 from sklearn.cluster import KMeans

@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Dict
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -9,21 +10,23 @@ from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
 
 from zia import BASE_PATH
-from zia.config import read_config
-from zia.data_store import ZarrGroups
+from zia.config import read_config, Configuration
 from zia.io.wsi_tifffile import read_ndpi
-from zia.statistics.expression_profile.expression_profile_gradient import open_protein_arrays
-from zia.statistics.expression_profile.validation_images import plot_mixed_channel, plot_boundaries, plot_distances, get_level_seven_array, plot_he
+from zia.pipeline.pipeline_components.algorithm.segementation.lobulus_statistics import SlideStats
+from zia.pipeline.pipeline_components.portality_mapping_component import open_protein_arrays
+from zia.statistics.expression_profile.validation_images import plot_mixed_channel, plot_boundaries, plot_distances, get_level_seven_array, plot_he, \
+    get_zarr_path
 from zia.statistics.utils.data_provider import SlideStatsProvider, capitalize
 
 
 def plot_overview_for_paper(report_path: Path,
+                            project_config: Configuration,
+                            slide_stats_dict: Dict[str, Dict[str, SlideStats]],
                             distance_df: pd.DataFrame):
     subjects = ["MNT-023", "NOR-021", "SSES2021 10", "UKJ-19-026_Human"]
-    rois = [0,0,0,0]
+    rois = [0, 0, 0, 0]
     config = read_config(BASE_PATH / "configuration.ini")
 
-    slide_stats_dict = SlideStatsProvider.get_slide_stats()
     distance_gb = distance_df.groupby(["subject", "roi"])
 
     slide_paths = []
@@ -38,8 +41,7 @@ def plot_overview_for_paper(report_path: Path,
 
     he_arrays = [get_level_seven_array(slides) for slides in slide_arrays]
 
-    protein_arrays = [open_protein_arrays(address=config.image_data_path / "stain_separated" / f"{subject}.zarr",
-                                          path=f"{ZarrGroups.STAIN_1.value}/{roi}",
+    protein_arrays = [open_protein_arrays(zarr_path=get_zarr_path(project_config, subject, roi),
                                           level=slide_stats_dict[subject][str(roi)].meta_data["level"],
                                           excluded=[])
                       for (subject, roi) in zip(subjects, rois)]

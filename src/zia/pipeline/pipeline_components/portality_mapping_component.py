@@ -1,15 +1,15 @@
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 import cv2
 import numpy as np
 import pandas as pd
 import zarr
-from shapely import Geometry, Polygon
+from shapely import Geometry, Polygon, LineString, Point, GeometryCollection
 from shapely.ops import transform
 
 from zia.log import get_logger
-from zia.pipeline.common.geometry_utils import GeometryDraw
+from zia.pipeline.common.geometry_utils import GeometryDraw, off_set_geometry
 from zia.pipeline.common.project_config import Configuration
 from zia.pipeline.common.resolution_levels import PyramidalLevel
 from zia.pipeline.file_management.file_management import SlideFileManager
@@ -53,7 +53,6 @@ class PortalityMappingComponent(IPipelineComponent):
         subject_dfs = []
         for subject, _ in self.file_manager.group_by_subject().items():
             roi_dfs = []
-
             excluded = self.exclusion_dict.get(subject)
             for roi, slide_stats_path in self.get_roi_dirs(subject).items():
                 slide_stats = SlideStats.load_from_file_system(slide_stats_path)
@@ -69,6 +68,8 @@ class PortalityMappingComponent(IPipelineComponent):
                 df["roi"] = roi
                 df["species"] = slide_stats.meta_data["subject"]
                 roi_dfs.append(df)
+                # save the slide stats updated with the local maxima
+                slide_stats.to_geojson(slide_stats_path)
 
             subject_df = pd.concat(roi_dfs)
             subject_df["subject"] = subject
@@ -109,7 +110,12 @@ def swap_xy(geometry: Geometry):
     return transform(lambda x, y: (y, x), geometry)
 
 
-def create_lobule_df(height: np.ndarray, width: np.ndarray, d_portal: np.ndarray, d_central: np.ndarray, pv_dist: np.ndarray, intensity: np.ndarray,
+def create_lobule_df(height: np.ndarray,
+                     width: np.ndarray,
+                     d_portal: np.ndarray,
+                     d_central: np.ndarray,
+                     pv_dist: np.ndarray,
+                     intensity: np.ndarray,
                      idx: int) -> pd.DataFrame:
     return pd.DataFrame(
         dict(lobule=idx,
@@ -121,6 +127,29 @@ def create_lobule_df(height: np.ndarray, width: np.ndarray, d_portal: np.ndarray
              intensity=intensity
              )
     ).explode(["width", "height", "d_portal", "d_central", "intensity"])
+
+
+def set_local_lobule_maxima(local_maxima: np.ndarray, lobule_stats: LobuleStatistics, off_set: Tuple[int, int]) -> None:
+    contours, _ = cv2.findContours(local_maxima.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+    # Extract polygons for each contour
+    geometries = []
+    for contour in contours:
+        if len(contour) >= 3:
+            # Create Polygon for contours with 3 or more points
+            contour = np.squeeze(contour)
+            polygon = off_set_geometry(swap_xy(Polygon(contour)), off_set)
+            geometries.append(polygon)
+        elif len(contour) == 2:
+            # Create LineString for contours with 2 points
+            contour = np.squeeze(contour)
+            linestring = off_set_geometry(swap_xy(LineString(contour)), off_set)
+            geometries.append(linestring)
+        elif len(contour) == 1:
+            # Create Point for contours with 1 point
+            point = off_set_geometry(swap_xy(Point(contour.squeeze())), off_set)
+            geometries.append(point)
+
+    lobule_stats.local_maxima = GeometryCollection(geometries)
 
 
 def analyse_protein_expression_for_lobule(protein_array: np.ndarray, foreground_mask: np.ndarray, lobule_stats: LobuleStatistics, idx: int,
@@ -150,7 +179,10 @@ def analyse_protein_expression_for_lobule(protein_array: np.ndarray, foreground_
     mask_central_distance = ~mask_central.astype(bool)
     max_i = np.percentile(lobule_sum, 99)
 
-    mask_central_distance[lobule_sum > max_i] = False
+    local_maxima = lobule_sum > max_i
+    set_local_lobule_maxima(local_maxima, lobule_stats, (-miny, -minx))
+
+    mask_central_distance[local_maxima] = False
 
     # plot_pic(mask_lobule, "lobule")
     # plot_pic(mask_portal, "portal")
