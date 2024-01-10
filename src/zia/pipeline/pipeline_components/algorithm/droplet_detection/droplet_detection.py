@@ -20,7 +20,29 @@ import scipy.ndimage as ndi
 def detect_droplets_on_tile(tile: np.ndarray) -> List[Polygon]:
     gs = cv2.cvtColor(tile.astype(np.uint8), cv2.COLOR_RGB2GRAY)
 
-    filtered = None
+    # blurrs image but preserves edges
+    bilateral_filter = cv2.bilateralFilter(src=gs, d=15, sigmaColor=50, sigmaSpace=75)
+
+    # threshold to get the white areas
+    _, thresholded = cv2.threshold(bilateral_filter, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+
+    ## reduces noise -> to be adapted to not remove any meaningful data
+    kernel = np.ones((5, 5), np.uint8)
+    opening = cv2.morphologyEx(thresholded, cv2.MORPH_OPEN, kernel, iterations=2)
+
+    dist_transform = cv2.distanceTransform(opening, cv2.DIST_L2, 5)
+
+    # finding the local maxima of the distance transform and create markers for water shedding
+    plm = peak_local_max(dist_transform, min_distance=10)
+    mask = np.zeros(dist_transform.shape, dtype=bool)
+    mask[tuple(plm.T)] = True
+    markers, _ = ndi.label(mask)
+
+    segmented = skimage.segmentation.watershed(255 - dist_transform, markers, mask=opening)
+    segmented = segmented - 1
+    contours, _ = cv2.findContours(segmented, cv2.RETR_FLOODFILL, cv2.CHAIN_APPROX_SIMPLE)
+
+    return [Polygon(np.squeeze(cnt)) for cnt in contours]
 
 
 def detect_droplets(array: zarr.Array):

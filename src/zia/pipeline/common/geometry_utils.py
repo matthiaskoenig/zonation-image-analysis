@@ -5,7 +5,7 @@ from typing import List, Tuple, Union
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
-import shapely
+from shapely.ops import transform
 from shapely import Geometry, Polygon, LineString, LinearRing, Point, GeometryCollection
 from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
 
@@ -15,7 +15,7 @@ logger = get_logger(__file__)
 
 
 def off_set_geometry(geometry: Geometry, offset: Tuple[int, int]):
-    return shapely.ops.transform(lambda x, y: (x - offset[0], y - offset[1]), geometry)
+    return transform(lambda x, y: (x - offset[0], y - offset[1]), geometry)
 
 
 def rescale_coords(
