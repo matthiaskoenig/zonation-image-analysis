@@ -10,7 +10,7 @@ from zia.pipeline.pipeline_components.pipeline import IPipelineComponent
 from zia.pipeline.pipeline_components.stain_separation_component import Stain, StainSeparationComponent
 from zia.pipeline.common.project_config import Configuration
 from zia.pipeline.pipeline_components.algorithm.segementation.clustering import run_skeletize_image
-from zia.pipeline.pipeline_components.algorithm.segementation.filtering import SteatosisFilter, ControlFilter
+from zia.pipeline.pipeline_components.algorithm.segementation.filtering import SteatosisFilter
 from zia.pipeline.pipeline_components.algorithm.segementation.get_segments import segment_thinned_image
 from zia.pipeline.pipeline_components.algorithm.segementation.load_image_stack import load_image_stack_from_zarr
 from zia.pipeline.pipeline_components.algorithm.segementation.lobulus_statistics import SlideStats
@@ -19,12 +19,12 @@ from zia.pipeline.pipeline_components.algorithm.segementation.process_segment im
 logger = get_logger(__file__)
 
 
-class SegmentationComponent(IPipelineComponent):
+class SegmentationComponentSteatosis(IPipelineComponent):
     """Pipeline step for lobuli segmentation."""
     dir_name = "LobuliSegmentation"
 
     def __init__(self, project_config: Configuration, file_manager: SlideFileManager, overwrite: bool = False, report: bool = False):
-        super().__init__(project_config, file_manager, SegmentationComponent.dir_name, overwrite)
+        super().__init__(project_config, file_manager, SegmentationComponentSteatosis.dir_name, overwrite)
         self.report = report
 
     def get_lobe_paths(self, subject: str) -> Generator[Tuple[str, Path], None, None]:
@@ -73,6 +73,9 @@ class SegmentationComponent(IPipelineComponent):
                 logger.info(f"Started segmentation for {subject}.")
                 slide_stats = self.find_lobules_for_subject(protein_slide_paths, report_path)
                 slide_stats.meta_data.update(dict(subject=subject, lobe_id=lobe_id, species=slides[0].species))
+                if self.report:
+
+                    slide_stats.plot(report_path=report_path)
                 slide_stats.to_geojson(result_path)
 
     def find_lobules_for_subject(self, protein_slide_paths: Dict[str, Path],
@@ -86,7 +89,7 @@ class SegmentationComponent(IPipelineComponent):
         image_stack = load_image_stack_from_zarr(protein_slide_paths, loaded_level)
 
         logger.info("Applying filters and preprocessing.")
-        image_filter = ControlFilter(image_stack, loaded_level)
+        image_filter = SteatosisFilter(image_stack, loaded_level)
         final_level, filtered_image_stack = image_filter.prepare_image()
 
         if self.report:
@@ -108,8 +111,5 @@ class SegmentationComponent(IPipelineComponent):
                                             vessel_contours,
                                             final_level,
                                             pad)
-
-        if self.report:
-            slide_stats.plot(report_path=report_path)
 
         return slide_stats

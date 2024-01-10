@@ -10,7 +10,7 @@ from zia.config import read_config
 from zia.oven.data_store import ZarrGroups
 from zia.log import get_logger
 from zia.pipeline.pipeline_components.algorithm.segementation.clustering import run_skeletize_image
-from zia.pipeline.pipeline_components.algorithm.segementation.filtering import Filter
+from zia.pipeline.pipeline_components.algorithm.segementation.filtering import SteatosisFilter
 from zia.pipeline.pipeline_components.algorithm.segementation.get_segments import segment_thinned_image
 from zia.pipeline.pipeline_components.algorithm.segementation.load_image_stack import load_image_stack_from_zarr
 from zia.pipeline.pipeline_components.algorithm.segementation.process_segment import process_line_segments
@@ -30,7 +30,7 @@ def find_lobules_for_subject(subject: str, roi: int, roi_group: zarr.Group, resu
 
     logger.info("Applying filters and preprocessing.")
 
-    image_filter = Filter(image_stack, loaded_level)
+    image_filter = SteatosisFilter(image_stack, loaded_level)
     final_level, filtered_image_stack = image_filter.prepare_image()
 
     if report_path is not None:

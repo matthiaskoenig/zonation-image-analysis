@@ -186,12 +186,14 @@ class SlideStats:
 
     def plot(self, report_path=None):
         fig, ax = plt.subplots(1, 1, dpi=300)
+        ax: plt.Axes
         colors = np.random.rand(len(self.lobule_stats), 3)  # Random RGB values between 0 and 1
         for i, stat in enumerate(self.lobule_stats):
             x, y = stat.polygon.exterior.xy
             ax.fill(y, x, facecolor=colors[i], edgecolor="black", linewidth=0.2)
 
-            AxGeometryDraw.draw_geometry(ax, stat.local_maxima, facecolor="grey", edgecolor="grey", linewidth=0.2, markersize=0.2)
+            if stat.local_maxima is not None:
+                AxGeometryDraw.draw_geometry(ax, stat.local_maxima, facecolor="grey", edgecolor="grey", linewidth=0.2, markersize=0.2)
 
         for i, geom in enumerate(self.vessels_central):
             x, y = geom.buffer(1.0).exterior.xy
@@ -203,6 +205,8 @@ class SlideStats:
 
         # ax.set_xlim(right=labels.shape[1])
         # ax.set_ylim(top=labels.shape[0])
+
+        ax.set_title(f"{self.meta_data.get('subject')} {self.meta_data.get('lobe_id')}")
 
         ax.set_aspect("equal")
         ax.invert_yaxis()
