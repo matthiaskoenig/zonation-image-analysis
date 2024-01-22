@@ -81,6 +81,24 @@ def sphericity(polygon: Polygon) -> float:
     return r_inner / r_outer
 
 
+def elongation(polygon: Polygon) -> float:
+    bounding_rect = minimum_rotated_rectangle(polygon)
+
+    min_x, min_y, max_x, max_y = bounding_rect.bounds
+
+    width = max_x - min_x
+    height = max_y - min_y
+
+    if height > width:
+        return width / height
+
+    return height / width
+
+
+def compactness(polygon: Polygon) -> float:
+    return 4 * np.pi * polygon.area / polygon.length ** 2
+
+
 def bend_ratio(polygon: Polygon) -> float:
     angles = []
     for k in range(1, len(polygon.exterior.coords) - 1):
@@ -98,24 +116,6 @@ def bend_ratio(polygon: Polygon) -> float:
             angles.append(False)
 
     return np.count_nonzero(angles) / len(angles)
-
-
-def elongation(polygon: Polygon) -> float:
-    bounding_rect = minimum_rotated_rectangle(polygon)
-
-    min_x, min_y, max_x, max_y = bounding_rect.bounds
-
-    width = max_x - min_x
-    height = max_y - min_y
-
-    if height > width:
-        return width / height
-
-    return height / width
-
-
-def compactness(polygon: Polygon) -> float:
-    return 4 * np.pi * polygon.area / polygon.length ** 2
 
 
 def feature_vector(p: Polygon, feature_funs: List[Callable[[Polygon], float]]) -> List[float]:
@@ -193,22 +193,6 @@ if __name__ == "__main__":
 
     # plot_pic(sub_array)
 
-    dist_transform = cv2.distanceTransform(opening, cv2.DIST_L2, 5)
-    # plot_pic(dist_transform, "distance transform")
-
-    # finding the local maxima of the distance transform and create markers for water shedding
-    plm = peak_local_max(dist_transform, min_distance=10)
-    mask = np.zeros(dist_transform.shape, dtype=bool)
-    mask[tuple(plm.T)] = True
-    # plot_pic(mask, "peak local max")
-    markers, _ = ndi.label(mask)
-
-    segmented = skimage.segmentation.watershed(255 - dist_transform, markers, mask=opening)
-
-    segmented = segmented - 1
-
-    contours, _ = cv2.findContours(segmented, cv2.RETR_FLOODFILL, cv2.CHAIN_APPROX_SIMPLE)
-
     polygons = [Polygon(np.squeeze(cnt)) for cnt in contours]
     polygons = filter_size(polygons)
 
@@ -252,32 +236,59 @@ if __name__ == "__main__":
     ax.set_ylabel("K-means with PCA Clustering")
     plt.show()
 
-    kmeans_pca = KMeans(n_clusters=2, n_init="auto")
+    true_cluster_center = [-0.88873027, 0.05563239, 0.0062763]
+
+    ncl = 2
+    kmeans_pca = KMeans(n_clusters=ncl, n_init="auto")
 
     kmeans_pca.fit(scores_pca)
 
-    label_0 = scores_pca[kmeans_pca.labels_ == 0]
-    label_1 = scores_pca[kmeans_pca.labels_ == 1]
+    center_distance = np.linalg.norm(np.array(kmeans_pca.cluster_centers_) - np.array(true_cluster_center), axis=1)
+    sorted_idx = np.argsort(center_distance)
+
+    print(center_distance)
+
+    label_datas = [scores_pca[kmeans_pca.labels_ == sorted_idx[label]] for label in range(ncl)]
 
     fig, ax = plt.subplots(dpi=300)
     ax: plt.Axes
 
-    ax.scatter(label_0[:, 0], label_0[:, 2], c="blue", alpha=0.2)
-    ax.scatter(label_1[:, 0], label_1[:, 2], c="red", alpha=0.2)
-
+    for label_data_set in label_datas:
+        ax.scatter(label_data_set[:, 0], label_data_set[:, 1], alpha=0.4)
     ax.set_xlabel("Component 1")
     ax.set_ylabel("Component 2")
     plt.show()
 
-    polys_0 = list(compress(polygons, kmeans_pca.labels_ == 0))
-    polys_1 = list(filter(lambda p: p not in polys_0, polygons))
+    poly_clustered = [list(compress(polygons, kmeans_pca.labels_ == sorted_idx[label])) for label in range(ncl)]
 
     # circular, non_circular = filter_solidity(polygons)
 
-    circular_cnts = [np.array(poly.exterior.coords, dtype=np.int32) for poly in polys_0]
-    non_circular_cnts = [np.array(poly.exterior.coords, dtype=np.int32) for poly in polys_1]
+    circular_cnts = [[np.array(poly.exterior.coords, dtype=np.int32) for poly in poly_cl] for poly_cl in poly_clustered]
 
-    cv2.drawContours(sub_array, circular_cnts, -1, (0, 255, 0), 2)
-    cv2.drawContours(sub_array, non_circular_cnts, -1, (255, 0, 0), 2)
+    cv2.drawContours(sub_array, circular_cnts[0], -1, (0, 255, 0), 2)
 
-    plot_pic(sub_array, "first watershed, then clustering")
+    plot_pic(sub_array)
+
+    ###
+
+    remaining_polys = poly_clustered[1]
+
+    bend_ratios = [bend_ratio(p) for p in remaining_polys]
+
+    plt.hist(bend_ratios, bins="sqrt")
+    plt.show()
+
+    
+    ncl = 2
+    kmeans_pca = KMeans(n_clusters=ncl, n_init="auto")
+
+    kmeans_pca.fit(np.array([bend_ratios]).reshape(1, -1))
+
+    poly_clustered = [list(compress(remaining_polys, kmeans_pca.labels_ == label)) for label in range(ncl)]
+
+    circular_cnts = [[np.array(poly.exterior.coords, dtype=np.int32) for poly in poly_cl] for poly_cl in poly_clustered]
+
+    for contours, color in zip(circular_cnts, [(255, 0, 0), (0, 0, 255)]):
+        cv2.drawContours(sub_array, contours, -1, color, 2)
+
+    plot_pic(sub_array)

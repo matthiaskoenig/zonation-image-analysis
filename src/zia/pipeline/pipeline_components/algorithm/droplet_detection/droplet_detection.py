@@ -9,7 +9,8 @@ import zarr
 from matplotlib import pyplot as plt
 from shapely import Polygon, minimum_bounding_radius, minimum_clearance, minimum_rotated_rectangle
 from skimage.feature import peak_local_max
-from skimage import measure
+from skimage import filters
+from skimage.filters.thresholding import apply_hysteresis_threshold
 
 from zia.io.wsi_tifffile import read_ndpi
 from zia.oven.annotations.workflow_visualizations.util.image_plotting import plot_pic
@@ -18,14 +19,30 @@ from zia.pipeline.common.slicing import get_tile_slices
 import scipy.ndimage as ndi
 
 
-def detect_droplets_on_tile(tile: np.ndarray) -> List[Polygon]:
-    gs = cv2.cvtColor(tile.astype(np.uint8), cv2.COLOR_RGB2GRAY)
-
+def get_foreground_mask(array: np.ndarray) -> np.ndarray:
+    gs = cv2.cvtColor(array.astype(np.uint8), cv2.COLOR_RGB2GRAY)
     # blurrs image but preserves edges
-    bilateral_filter = cv2.bilateralFilter(src=gs, d=15, sigmaColor=50, sigmaSpace=75)
+    bilateral_filter = cv2.bilateralFilter(src=gs, d=5, sigmaColor=50, sigmaSpace=75)
+
+    # bilateral_filter = cv2.GaussianBlur(gs, (11, 11), sigmaX=5, sigmaY=5)
+    plot_pic(bilateral_filter)
 
     # threshold to get the white areas
-    _, thresholded = cv2.threshold(bilateral_filter, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    thresholded = apply_hysteresis_threshold(bilateral_filter, 170, 200).astype(np.uint8)*255
+
+    #print(thresholded)
+    #print(thresholded)
+    #_, thresholded = cv2.threshold(bilateral_filter, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+
+    #kernel = np.ones((3, 3), np.uint8)
+    #opening = cv2.morphologyEx(thresholded, cv2.MORPH_OPEN, kernel, iterations=2)
+
+    #_, thresholded = cv2.threshold(bilateral_filter, 200, 255, cv2.THRESH_BINARY)
+    return thresholded
+
+def detect_droplets_on_tile(tile: np.ndarray) -> List[Polygon]:
+
+    thresholded = get_foreground_mask(tile)
 
     ## reduces noise -> to be adapted to not remove any meaningful data
     kernel = np.ones((5, 5), np.uint8)
@@ -149,6 +166,7 @@ if __name__ == "__main__":
 
     # bilateral_filter = cv2.GaussianBlur(gs, (11, 11), sigmaX=5, sigmaY=5)
     plot_pic(bilateral_filter)
+
 
 
 
