@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import List, Tuple, Callable
 
 import cv2
+import matplotlib.cm
 import numpy as np
 import shapely
 import skimage
@@ -11,7 +12,12 @@ from shapely import Polygon, minimum_bounding_radius, minimum_clearance, minimum
 from skimage.feature import peak_local_max
 from skimage import filters
 from skimage.filters.thresholding import apply_hysteresis_threshold
+from sklearn.cluster import KMeans
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
+from tqdm import tqdm
 
+from zia import BASE_PATH
 from zia.io.wsi_tifffile import read_ndpi
 from zia.oven.annotations.workflow_visualizations.util.image_plotting import plot_pic
 from zia.pipeline.common.slicing import get_tile_slices
@@ -24,24 +30,36 @@ def get_foreground_mask(array: np.ndarray) -> np.ndarray:
     # blurrs image but preserves edges
     bilateral_filter = cv2.bilateralFilter(src=gs, d=5, sigmaColor=50, sigmaSpace=75)
 
-    # bilateral_filter = cv2.GaussianBlur(gs, (11, 11), sigmaX=5, sigmaY=5)
-    plot_pic(bilateral_filter)
-
     # threshold to get the white areas
-    thresholded = apply_hysteresis_threshold(bilateral_filter, 170, 200).astype(np.uint8)*255
+    thresholded = apply_hysteresis_threshold(bilateral_filter, 170, 200).astype(np.uint8) * 255
 
-    #print(thresholded)
-    #print(thresholded)
-    #_, thresholded = cv2.threshold(bilateral_filter, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-
-    #kernel = np.ones((3, 3), np.uint8)
-    #opening = cv2.morphologyEx(thresholded, cv2.MORPH_OPEN, kernel, iterations=2)
-
-    #_, thresholded = cv2.threshold(bilateral_filter, 200, 255, cv2.THRESH_BINARY)
     return thresholded
 
-def detect_droplets_on_tile(tile: np.ndarray) -> List[Polygon]:
 
+def extract_features(image: np.ndarray) -> Tuple[List[Polygon], np.ndarray]:
+    thresholded = get_foreground_mask(image)
+
+    ## get the contours from the opened binary mask
+    contours, hierarchy = cv2.findContours(thresholded, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    contours = [cnt for cnt in contours if cv2.contourArea(cnt) > 100]
+
+    components = np.zeros_like(thresholded).astype(np.int32)
+
+    for i, contour in enumerate(contours):
+        components = cv2.drawContours(components, [contour], -1, (i + 1), cv2.FILLED)
+
+    polygons = [Polygon(np.squeeze(cnt)) for cnt in contours if len(cnt) >= 3]
+
+    feature_funs = [circularity, roundness, convexity, sphericity, elongation, compactness, solidity, bend_ratio]
+    feature_vectors = np.vstack([feature_vector(p, feature_funs) for p in polygons])
+
+    adj_stats = adjacency_statistics(components)
+
+    return polygons, np.hstack((adj_stats, feature_vectors))
+
+
+def detect_droplets_on_tile(tile: np.ndarray) -> List[Polygon]:
     thresholded = get_foreground_mask(tile)
 
     ## reduces noise -> to be adapted to not remove any meaningful data
@@ -66,6 +84,12 @@ def detect_droplets_on_tile(tile: np.ndarray) -> List[Polygon]:
 
     return circular
 
+
+def area(polygon: Polygon) -> float:
+    return polygon.area
+
+def perimeter(polygon: Polygon) -> float:
+    return polygon.length
 
 def solidity(polygon: Polygon) -> float:
     return polygon.area / polygon.convex_hull.area
@@ -110,6 +134,44 @@ def compactness(polygon: Polygon) -> float:
     return 4 * np.pi * polygon.area / polygon.length ** 2
 
 
+def bend_ratio(polygon: Polygon) -> float:
+    angles = []
+    for k in range(1, len(polygon.exterior.coords) - 1):
+        p0 = np.array(polygon.exterior.coords[k - 1])
+        p1 = np.array(polygon.exterior.coords[k])
+        p2 = np.array(polygon.exterior.coords[k + 1])
+        d1 = p0 - p1
+        d2 = p2 - p1
+
+        cosine_angle = np.dot(d1, d2) / (np.linalg.norm(d1) * np.linalg.norm(d2))
+
+        if cosine_angle >= 0:
+            angles.append(True)
+        else:
+            angles.append(False)
+
+    return np.count_nonzero(angles) / len(angles)
+
+
+def adjacency_statistics(cc: np.ndarray):
+    neighbors = [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1]]
+    h, w = cc.shape[:2]
+
+    stats = np.zeros(shape=(len(np.unique(cc)) - 1, 9))
+
+    for y in range(1, h - 1):
+        for x in range(1, w - 1):
+            if cc[y, x] > 0:
+                blob = cc[y, x] - 1  # blob label
+                c = 0
+                for (i, j) in neighbors:
+                    if cc[y + i, x + j] > 0:
+                        c += 1
+                stats[blob, c] += 1
+
+    return stats / stats.sum(axis=1, keepdims=True)
+
+
 def feature_vector(p: Polygon, feature_funs: List[Callable[[Polygon], float]]) -> List[float]:
     return [fun(p) for fun in feature_funs]
 
@@ -144,79 +206,71 @@ def filter_size(polygons: List[Polygon], min_diameter=6, pixel_size=0.22) -> Lis
     return list(filter(lambda p: p.area >= np.pi * (min_diameter / pixel_size), polygons))
 
 
-if __name__ == "__main__":
-    path = Path("/media/jkuettner/Extreme Pro/image_data/steatosis/RoiExtraction/FLR-180/0/J-15-0789_FLR-180_Lewis_HE_Run 06_LLL02_MAA_003.ome.tiff")
-    array = read_ndpi(path)[0]
+def cluster_droplets_trial(feature_vectors: np.ndarray) -> None:
+    scaler = StandardScaler()
 
-    print(array.shape)
+    scaled_features = scaler.fit_transform(feature_vectors)
 
-    sub_array = array[8750: 8750 + 2048, 12500: 12500 + 2048]
-    plot_pic(sub_array)
+    pca = PCA()
 
-    gs = cv2.cvtColor(sub_array.astype(np.uint8), cv2.COLOR_RGB2GRAY)
-    plot_pic(gs)
+    pca.fit(scaled_features)
 
-    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
-    gs = clahe.apply(gs)
+    fig, ax = plt.subplots(dpi=300)
+    ax.plot(range(feature_vectors.shape[1]), pca.explained_variance_ratio_.cumsum(), marker='o', linestyle="--")
+    ax.set_xlabel("Number of components")
+    ax.set_ylabel("Cumulative Explained Variance")
+    plt.show()
 
-    plt.show()    # plot_pic(gs)
+    pca = PCA(n_components=10)
 
-    # blurrs image but preserves edges
-    bilateral_filter = cv2.bilateralFilter(src=gs, d=15, sigmaColor=50, sigmaSpace=75)
+    pca.fit(scaled_features)
 
-    # bilateral_filter = cv2.GaussianBlur(gs, (11, 11), sigmaX=5, sigmaY=5)
-    plot_pic(bilateral_filter)
+    scores_pca = pca.transform(scaled_features)
+
+    wcss = []
+    for i in range(1, 21):
+        kmeans_pca = KMeans(n_clusters=i, n_init="auto")
+        kmeans_pca.fit(scores_pca)
+        wcss.append(kmeans_pca.inertia_)
+
+    fig, ax = plt.subplots(dpi=300)
+    ax.plot(range(1, 21), wcss, marker='o', linestyle="--")
+    ax.set_xlabel("Number of components")
+    ax.set_ylabel("K-means with PCA Clustering")
+    plt.show()
 
 
+def cluster_droplets(feature_vectors: np.ndarray, pca_components: float, n_clusters: int) -> KMeans:
+    scaler = StandardScaler()
+
+    scaled_features = scaler.fit_transform(feature_vectors)
+
+    pca = PCA(n_components=pca_components)
+
+    pca.fit(scaled_features)
+
+    scores_pca = pca.transform(scaled_features)
+
+    kmeans_pca = KMeans(n_clusters=n_clusters, n_init="auto")
+
+    kmeans_pca.fit(scores_pca)
+
+    return kmeans_pca
 
 
-    # threshold to get the white areas
-    _, thresholded = cv2.threshold(bilateral_filter, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    # plot_pic(thresholded)
+def convert_polys_to_contours(polygons: List[Polygon]) -> List[np.ndarray]:
+    cv2_contours = []
 
-    ## reduces noise -> to be adapted to not remove any meaningful data
-    kernel = np.ones((5, 5), np.uint8)
-    opening = cv2.morphologyEx(thresholded, cv2.MORPH_OPEN, kernel, iterations=2)
+    # Convert Shapely polygons to OpenCV contours
+    for shapely_polygon in polygons:
+        # Extract the coordinates of the Shapely polygon
+        coordinates = shapely_polygon.exterior.coords.xy
 
-    plot_pic(opening, "cleaned up mask")
+        # Reshape coordinates to (N, 1, 2) format required by OpenCV
+        contour = [(int(x), int(y)) for x, y in zip(coordinates[0], coordinates[1])]
+        contour = np.array(contour).reshape((-1, 1, 2))
 
-    ## get the contours from the opened binary mask
-    contours, _ = cv2.findContours(opening, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        # Append the contour to the list
+        cv2_contours.append(contour)
 
-    # plot_pic(sub_array)
-
-    dist_transform = cv2.distanceTransform(opening, cv2.DIST_L2, 5)
-    # plot_pic(dist_transform, "distance transform")
-
-    # finding the local maxima of the distance transform and create markers for water shedding
-    plm = peak_local_max(dist_transform, min_distance=10)
-    mask = np.zeros(dist_transform.shape, dtype=bool)
-    mask[tuple(plm.T)] = True
-    # plot_pic(mask, "peak local max")
-    markers, _ = ndi.label(mask)
-
-    segmented = skimage.segmentation.watershed(255 - dist_transform, markers, mask=opening)
-
-    segmented = segmented - 1
-
-    contours, _ = cv2.findContours(segmented, cv2.RETR_FLOODFILL, cv2.CHAIN_APPROX_SIMPLE)
-
-    polygons = [Polygon(np.squeeze(cnt)) for cnt in contours]
-    polygons = filter_size(polygons)
-
-    feature_funs = [circularity, roundness, convexity, sphericity, elongation, compactness, solidity]
-
-    feature_vectors = np.vstack([feature_vector(p, feature_funs) for p in polygons])
-
-    print(feature_vectors)
-    # integrate_droplets(polygons)
-
-    circular, non_circular = filter_solidity(polygons)
-
-    circular_cnts = [np.array(poly.exterior.coords, dtype=np.int32) for poly in circular]
-    non_circular_cnts = [np.array(poly.exterior.coords, dtype=np.int32) for poly in non_circular]
-
-    cv2.drawContours(sub_array, circular_cnts, -1, (0, 255, 0), 2)
-    cv2.drawContours(sub_array, non_circular_cnts, -1, (255, 0, 0), 2)
-
-    plot_pic(sub_array)
+    return cv2_contours

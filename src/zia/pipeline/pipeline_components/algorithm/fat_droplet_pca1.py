@@ -183,8 +183,11 @@ def get_foreground_mask(array: np.ndarray) -> np.ndarray:
     return thresholded
 
 
+
+
+
 if __name__ == "__main__":
-    path = Path("D:/image_data/steatosis/RoiExtraction/FLR-180/0/J-15-0789_FLR-180_Lewis_HE_Run 06_LLL02_MAA_003.ome.tiff")
+    path = Path("/media/jkuettner/Extreme Pro/image_data/steatosis/RoiExtraction/FLR-180/0/J-15-0789_FLR-180_Lewis_HE_Run 06_LLL02_MAA_003.ome.tiff")
     array = read_ndpi(path)[0]
 
     print(array.shape)
