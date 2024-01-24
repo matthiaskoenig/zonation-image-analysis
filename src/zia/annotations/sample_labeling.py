@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Tuple
 from zipfile import Path
 
 import cv2
@@ -12,6 +12,11 @@ from zia import BASE_PATH
 from zia.oven.annotations.workflow_visualizations.util.image_plotting import plot_pic
 from zia.pipeline.pipeline_components.algorithm.droplet_detection.droplet_detection import extract_features, cluster_droplets_trial, cluster_droplets, \
     convert_polys_to_contours
+
+
+def convert_to_BGR(rgb: Tuple[int, int, int]) -> Tuple[int, int, int]:
+    r, g, b = [int(v * 255) for v in rgb[:3]]
+    return (b, g, r)
 
 
 def write_to_geojson(polygons: List[Polygon], labels: np.ndarray, output_path: Path):
@@ -78,8 +83,11 @@ if __name__ == "__main__":
             contours = convert_polys_to_contours(class_polys)
             color = matplotlib.colormaps["tab10"](i)
 
-            color = tuple([int(c * 255) for c in color[:3]])
+            color = convert_to_BGR(color)
             cv2.drawContours(image, contours, -1, color, thickness=2)
 
+        #image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
         cv2.imwrite(str(result_path / f"{img_name}.png"), image)
-        plot_pic(image)
+        write_to_geojson(polygons, label_dict[img_name], polygons_path / f"{img_name}.geojson")
+
+        #plot_pic(image)

@@ -47,13 +47,13 @@ def plot(images: list[np.ndarray], path: Path):
 
     plt.savefig(path)
     plt.close(fig)
-    #plt.show()
+    # plt.show()
 
 
 def create_data(sample_data: List[Tuple[str, int, List[Tuple[int, int]]]], paths: Dict[str, Path], control=False) -> None:
     project = "steatosis" if not control else "control"
     for subject, roi, positions in sample_data:
-        path = Path(f"/media/jkuettner/Extreme Pro/image_data/{project}/RoiExtraction/{subject}/{roi}")
+        path = Path(f"D:/image_data/{project}/RoiExtraction/{subject}/{roi}")
 
         image_file = None
         for p in path.iterdir():
@@ -71,7 +71,7 @@ def create_data(sample_data: List[Tuple[str, int, List[Tuple[int, int]]]], paths
             h, w = position
             sub_array = array[h: h + 2000, w: w + 2000]
 
-            # cv2.cvtColor(sub_array, cv2.COLOR_RGB2BGR)
+            sub_array = cv2.cvtColor(sub_array, cv2.COLOR_RGB2BGR)
             cv2.imwrite(str(paths["image"] / f"{subject}_{roi}_{suffix}_{i}.png"), sub_array)
 
             th = get_foreground_mask(sub_array)
@@ -81,7 +81,7 @@ def create_data(sample_data: List[Tuple[str, int, List[Tuple[int, int]]]], paths
             overlay = sub_array.copy()
             contours, hierarchy = cv2.findContours(th, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-            cv2.drawContours(overlay, contours, -1, color=(52, 235, 232), thickness=2)
+            cv2.drawContours(overlay, contours, -1, color=(232, 235, 52), thickness=2)
             cv2.imwrite(str(paths["overlay"] / f"{subject}_{roi}_{suffix}_{i}.png"), overlay)
 
             plot([sub_array, th, overlay], paths["plot"] / f"{subject}_{roi}_{suffix}_{i}.png")

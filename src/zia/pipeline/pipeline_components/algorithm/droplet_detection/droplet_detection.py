@@ -42,7 +42,7 @@ def extract_features(image: np.ndarray) -> Tuple[List[Polygon], np.ndarray]:
     ## get the contours from the opened binary mask
     contours, hierarchy = cv2.findContours(thresholded, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-    contours = [cnt for cnt in contours if cv2.contourArea(cnt) > 100]
+    contours = [cnt for cnt in contours if cv2.contourArea(cnt) > 350]
 
     components = np.zeros_like(thresholded).astype(np.int32)
 
@@ -50,11 +50,13 @@ def extract_features(image: np.ndarray) -> Tuple[List[Polygon], np.ndarray]:
         components = cv2.drawContours(components, [contour], -1, (i + 1), cv2.FILLED)
 
     polygons = [Polygon(np.squeeze(cnt)) for cnt in contours if len(cnt) >= 3]
+    polygons = [p.simplify(0.1) for p in polygons]
 
     feature_funs = [circularity, roundness, convexity, sphericity, elongation, compactness, solidity, bend_ratio]
     feature_vectors = np.vstack([feature_vector(p, feature_funs) for p in polygons])
 
     adj_stats = adjacency_statistics(components)
+
 
     return polygons, np.hstack((adj_stats, feature_vectors))
 
@@ -88,8 +90,10 @@ def detect_droplets_on_tile(tile: np.ndarray) -> List[Polygon]:
 def area(polygon: Polygon) -> float:
     return polygon.area
 
+
 def perimeter(polygon: Polygon) -> float:
     return polygon.length
+
 
 def solidity(polygon: Polygon) -> float:
     return polygon.area / polygon.convex_hull.area
