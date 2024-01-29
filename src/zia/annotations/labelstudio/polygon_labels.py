@@ -1,16 +1,16 @@
 import json
 import uuid
-from dataclasses import dataclass, asdict
-from typing import List, Tuple
+from dataclasses import asdict
+from typing import List, Optional
 
 import geojson
 from shapely import Polygon
 from shapely.geometry import shape
 
-from zia.annotations.labelstudio.labelstudio_json_model import DataItem, Prediction, Result, KeypointValue, Annotation
+from zia.annotations.labelstudio.json_model import DataItem, Prediction, Result, KeypointValue, Annotation, PolygonValue
 
 
-def create_keypoint_result(id: str, polygon: Polygon, label: str, h: int, w: int) -> Result:
+def create_keypoint_result(id: Optional[str], polygon: Polygon, label: str, h: int, w: int) -> Result:
     return Result(
         original_width=w,
         original_height=h,
@@ -22,23 +22,26 @@ def create_keypoint_result(id: str, polygon: Polygon, label: str, h: int, w: int
             keypointlabels=[label]
         ),
         id=id,
-        from_name="kp-1",
-        to_name="img-1",
+        from_name="keypoint",
+        to_name="image",
         type="keypoint"
     )
 
 
-def create_polygon_keypoint_predictions(polygons: List[Polygon], labels: List[str], h: int, w: int) -> List[Prediction]:
-    predictions = []
-    for i, (polygon, label) in enumerate(zip(polygons, labels)):
-        predictions.append(
-            Prediction(
-                model_version="test",
-                score=0,
-                result=[create_keypoint_result(str(i), polygon, label, h, w)]
-            )
-        )
-    return predictions
+def create_polygon_result(id: Optional[str], polygon: Polygon, label: str, h: int, w: int) -> Result:
+    return Result(
+        original_width=w,
+        original_height=h,
+        image_rotation=0,
+        value=PolygonValue(
+            points=[(x / w * 100, y / h * 100) for x, y in polygon.exterior.coords],
+            polygonlabels=[label]
+        ),
+        id=id,
+        from_name="polygon",
+        to_name="image",
+        type="keypoint"
+    )
 
 
 def create_polygon_keypoint_annotation(polygons: List[Polygon], labels: List[str], h: int, w: int) -> Annotation:
@@ -53,12 +56,16 @@ def create_polygon_keypoint_annotation(polygons: List[Polygon], labels: List[str
     )
 
 
-def create_predictions_for_image(polygons: List[Polygon], labels: List[str], h: int, w: int) -> DataItem:
-    predictions = create_polygon_keypoint_predictions(polygons, labels, h, w)
-    return DataItem(
-        data={},
-        predictions=predictions
+def create_polygon_keypoint_prediction(task_id: int, polygons: List[Polygon], labels: List[str], h: int, w: int) -> Prediction:
+    results = [create_keypoint_result(str(i), polygon, label, h, w) for i, (polygon, label) in enumerate(zip(polygons, labels))]
+
+    return Prediction(
+        task=task_id,
+        result=results,
+        model_version="initial-clustering",
+        score=0.5
     )
+
 
 
 if __name__ == "__main__":

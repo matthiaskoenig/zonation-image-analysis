@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import List, Union, Optional
+from typing import List, Union, Optional, Tuple
 
 
 @dataclass
@@ -13,7 +13,7 @@ class RectangleValue:
 
 @dataclass
 class PolygonValue:
-    points: List[List[float]]
+    points: List[Tuple[float, float]]
     polygonlabels: List[str]
 
 
@@ -68,11 +68,21 @@ class Annotation:
 @dataclass
 class Prediction:
     model_version: str
-    score: float
-    result: List[Result]
+    task: int
+    result: Optional[List[Result]] = field(default_factory=list)
+    score: Optional[float] = None
+    cluster: Optional[int] = None
+    neighbors: Optional[list] = field(default_factory=list)
+    mislabeling: Optional[float] = None
+    project: Optional[int] = None
 
 
 @dataclass
 class DataItem:
     data: dict
     predictions: List[Prediction]
+
+
+@dataclass
+class Task:
+    pass

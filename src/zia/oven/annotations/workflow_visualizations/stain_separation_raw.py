@@ -5,7 +5,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from tifffile import imwrite
 
-from zia.oven.annotations.pipelines.stain_separation.stain_separation_whole_image import separate_raw_image
+from zia.annotations.preprocessing.stain_normalization import normalize_stain
 from zia.io.wsi_tifffile import read_ndpi
 
 if __name__ == "__main__":
@@ -33,7 +33,7 @@ if __name__ == "__main__":
         protein = re.split("_|\.", file)[1]
         print(protein)
         image_array = np.array(read_ndpi(base_path / file)[0])
-        stain_0, stain_1 = separate_raw_image(image_array)
+        stain_0, stain_1 = normalize_stain(image_array)
         axes[0, i].imshow(stain_0, vmin=0, vmax=255, cmap="binary_r")
         axes[1, i].imshow(stain_1, vmin=0, vmax=255, cmap="binary_r")
 

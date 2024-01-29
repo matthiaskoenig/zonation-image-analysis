@@ -3,6 +3,7 @@ import numpy as np
 
 # copied from https://github.com/schaugf/HEnorm_python/blob/master/normalizeStaining.py
 
+
 def calculate_stain_matrix(pxi: np.ndarray, Io=240, alpha=1) -> np.ndarray:
     """
     calculates the stain base vectors
@@ -58,7 +59,8 @@ def svd(pxi: np.ndarray, stain_matrix: np.ndarray, Io=240) -> np.ndarray:
     # determine concentrations of the individual stains
     return np.linalg.lstsq(stain_matrix, y, rcond=None)[0]
 
-def deconvolve_image(pxi:np.ndarray, stain_matrix: np.ndarray, maxC: np.ndarray, Io=240) -> np.ndarray:
+
+def deconvolve_image(pxi: np.ndarray, stain_matrix: np.ndarray, maxC: np.ndarray, maxCRef=None, Io=240) -> np.ndarray:
     """
     deconvolution of the stains for the pixels of interest.
     @param pxi: pixels of interest
@@ -71,13 +73,15 @@ def deconvolve_image(pxi:np.ndarray, stain_matrix: np.ndarray, maxC: np.ndarray,
     C = svd(pxi, stain_matrix, Io)
 
     # we do not need those reference max concentrations. We don't know anyway
-    # tmp = np.divide(maxC, maxCRef)
-    # C2 = np.divide(C, tmp[:, np.newaxis])
+    if maxCRef is not None:
+        tmp = np.divide(maxC, maxCRef)
+        C2 = np.divide(C, tmp[:, np.newaxis])
 
-    # That should actually contain the information about the cyps (concentration)
-    # as given by Lambert Beer log(I0/I) = e*c*d where c is concentration
-    # However, some pixels have negative concentrations
-    C2 = np.divide(C, maxC[:, np.newaxis])
+    else:
+        # That should actually contain the information about the cyps (concentration)
+        # as given by Lambert Beer log(I0/I) = e*c*d where c is concentration
+        # However, some pixels have negative concentrations
+        C2 = np.divide(C, maxC[:, np.newaxis])
 
     # recreate the image using reference mixing matrix
     # Inorm = reconstruct_pixels(C2)
@@ -86,6 +90,29 @@ def deconvolve_image(pxi:np.ndarray, stain_matrix: np.ndarray, maxC: np.ndarray,
     # CHANGED: Instead of using reference matrix for mixing, the image is just
     # the concentration is just exponentiated into a single channel
     #
+
+    return C2
+
+
+def deconvolve_image_and_normalize(pxi: np.ndarray, stain_matrix: np.ndarray, Io=240) -> np.ndarray:
+    """
+    deconvolution of the stains for the pixels of interest.
+    @param pxi: pixels of interest
+    @param stain_matrix: m x 2 matrix where m is rgb channel for 2 stain colors
+    @param Io: transmission intensity
+    @return: Io, he, dab np arrays of shapes (m*n, 3), (m*n,), (m*n,)
+    """
+
+    # determine concentrations of the individual stains
+    C = svd(pxi, stain_matrix, Io)
+
+    # we do not need those reference max concentrations. We don't know anyway
+
+    # That should actually contain the information about the cyps (concentration)
+    # as given by Lambert Beer log(I0/I) = e*c*d where c is concentration
+    # However, some pixels have negative concentrations
+    maxC = np.array([np.percentile(C[0, :], 99), np.percentile(C[1, :], 99)])
+    C2 = np.divide(C, maxC[:, np.newaxis])
 
     return C2
 
