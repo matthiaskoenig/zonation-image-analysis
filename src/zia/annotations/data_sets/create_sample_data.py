@@ -41,7 +41,7 @@ def create_data(subject: str, roi: str, positions: List[Tuple[int, int]], group:
         h, w = position
         sub_array = array[h: h + height, w: w + width]
 
-        normalized = normalize_stain(sub_array, stain_separation_config.reference_stain_matrix)
+        normalized = normalize_stain(sub_array, stain_separation_config.reference_stain_matrix, stain_separation_config.reference_max_conc)
 
         images.append(normalized)
 
@@ -51,10 +51,10 @@ def create_data(subject: str, roi: str, positions: List[Tuple[int, int]], group:
     return images
 
 
-def prepare_and_preclassify_sample_data():
+def create_sample_dataset():
     resource_path = ResourcePaths("sample_data")
 
-    with open(resource_path.base_path / "sample_data.json", "r") as f:
+    with open(resource_path.base_path / "data_config.json", "r") as f:
         sample_data = json.load(f)
 
     features_dict = {}
@@ -84,4 +84,4 @@ def prepare_and_preclassify_sample_data():
 
 
 if __name__ == "__main__":
-    prepare_and_preclassify_sample_data()
+    create_sample_dataset()

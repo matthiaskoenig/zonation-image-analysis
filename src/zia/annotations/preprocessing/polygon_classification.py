@@ -8,7 +8,6 @@ import numpy as np
 import shapely
 from geojson import Polygon
 from matplotlib import pyplot as plt
-from numba import jit
 from shapely import Polygon, minimum_bounding_radius, minimum_rotated_rectangle
 from skimage.filters.thresholding import apply_hysteresis_threshold
 from sklearn.cluster import KMeans
@@ -44,13 +43,18 @@ def classify_and_save_polygons(features_dict: Dict[str, np.ndarray], polygon_dic
 
     for img_name, polygons in polygon_dict.items():
         # image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-        write_to_geojson(polygons, label_dict[img_name], resource_paths.polygon_path / f"{img_name}.geojson", sort_idx)
+        labels = label_dict[img_name]
+        mapped_labels = [int(sort_idx[labels[idx]]) for idx in range(len(polygons))]
+
+        filtered = [poly for label, poly in zip(mapped_labels, polygons) if label == 1]
+
+        write_to_geojson(filtered, dict(label="makrosteatosis"), resource_paths.polygon_path / f"{img_name}.geojson")
 
 
-def write_to_geojson(polygons: List[Polygon], labels: np.ndarray, output_path: Path, sorted_idx: np.ndarray):
+def write_to_geojson(polygons: List[Polygon], properties: dict, output_path: Path):
     features = []
     for idx, polygon in enumerate(polygons):
-        feature = geojson.Feature(id=idx, geometry=polygon.__geo_interface__, properties={"label": int(sorted_idx[labels[idx]])})
+        feature = geojson.Feature(id=idx, geometry=polygon.__geo_interface__, properties=properties)
         features.append(feature)
 
     feature_collection = geojson.FeatureCollection(features=features)

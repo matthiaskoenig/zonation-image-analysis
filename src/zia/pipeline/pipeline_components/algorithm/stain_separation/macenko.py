@@ -94,7 +94,7 @@ def deconvolve_image(pxi: np.ndarray, stain_matrix: np.ndarray, maxC: np.ndarray
     return C2
 
 
-def deconvolve_image_and_normalize(pxi: np.ndarray, stain_matrix: np.ndarray, Io=240) -> np.ndarray:
+def deconvolve_image_and_normalize(pxi: np.ndarray, stain_matrix: np.ndarray, maxCRef: np.ndarray, Io=240) -> np.ndarray:
     """
     deconvolution of the stains for the pixels of interest.
     @param pxi: pixels of interest
@@ -112,7 +112,16 @@ def deconvolve_image_and_normalize(pxi: np.ndarray, stain_matrix: np.ndarray, Io
     # as given by Lambert Beer log(I0/I) = e*c*d where c is concentration
     # However, some pixels have negative concentrations
     maxC = np.array([np.percentile(C[0, :], 99), np.percentile(C[1, :], 99)])
-    C2 = np.divide(C, maxC[:, np.newaxis])
+
+    if maxCRef is not None:
+        tmp = np.divide(maxC, maxCRef)
+        C2 = np.divide(C, tmp[:, np.newaxis])
+
+    else:
+        # That should actually contain the information about the cyps (concentration)
+        # as given by Lambert Beer log(I0/I) = e*c*d where c is concentration
+        # However, some pixels have negative concentrations
+        C2 = np.divide(C, maxC[:, np.newaxis])
 
     return C2
 

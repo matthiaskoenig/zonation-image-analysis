@@ -24,7 +24,6 @@ src/zia/oven/annotations/resources/geojsons/*
 src/zia/annotations/resources
 
 path_config.ini
-config*.ini
 configuration.ini
 
 # numpy arrays for testing and quick serialization

@@ -29,8 +29,8 @@ def normalize_stain1(image_array: np.ndarray, HERef: np.ndarray) -> np.ndarray:
     template[idx] = normalized
     return template
 
-def normalize_stain(image_array: np.ndarray, HERef: np.ndarray) -> np.ndarray:
 
+def normalize_stain(image_array: np.ndarray, HERef: np.ndarray, maxCRef: np.ndarray) -> np.ndarray:
     # create a grayscale representation to find interesting pixels with otsu
     gs = cv2.cvtColor(image_array, cv2.COLOR_RGB2GRAY)
 
@@ -43,7 +43,7 @@ def normalize_stain(image_array: np.ndarray, HERef: np.ndarray) -> np.ndarray:
 
     stain_matrix = calculate_stain_matrix(px_oi)
 
-    concentrations = deconvolve_image_and_normalize(image_array.reshape(-1, 3), stain_matrix)
+    concentrations = deconvolve_image_and_normalize(image_array.reshape(-1, 3), stain_matrix, maxCRef)
 
     normalized = reconstruct_pixels(concentrations=concentrations, refrence_matrix=HERef)
 

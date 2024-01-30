@@ -1,7 +1,7 @@
 import json
 import uuid
 from dataclasses import asdict
-from typing import List, Optional
+from typing import List, Optional, Dict
 
 import geojson
 from shapely import Polygon
@@ -10,8 +10,8 @@ from shapely.geometry import shape
 from zia.annotations.labelstudio.json_model import DataItem, Prediction, Result, KeypointValue, Annotation, PolygonValue
 
 
-def create_keypoint_result(id: Optional[str], polygon: Polygon, label: str, h: int, w: int) -> Result:
-    return Result(
+def create_keypoint_result(id: Optional[str], polygon: Polygon, label: str, h: int, w: int) -> Dict:
+    return asdict(Result(
         original_width=w,
         original_height=h,
         image_rotation=0,
@@ -25,11 +25,11 @@ def create_keypoint_result(id: Optional[str], polygon: Polygon, label: str, h: i
         from_name="keypoint",
         to_name="image",
         type="keypoint"
-    )
+    ))
 
 
-def create_polygon_result(id: Optional[str], polygon: Polygon, label: str, h: int, w: int) -> Result:
-    return Result(
+def create_polygon_result(id: Optional[str], polygon: Polygon, label: str, h: int, w: int) -> Dict:
+    return asdict(Result(
         original_width=w,
         original_height=h,
         image_rotation=0,
@@ -41,7 +41,7 @@ def create_polygon_result(id: Optional[str], polygon: Polygon, label: str, h: in
         from_name="polygon",
         to_name="image",
         type="keypoint"
-    )
+    ))
 
 
 def create_polygon_keypoint_annotation(polygons: List[Polygon], labels: List[str], h: int, w: int) -> Annotation:
@@ -65,7 +65,6 @@ def create_polygon_keypoint_prediction(task_id: int, polygons: List[Polygon], la
         model_version="initial-clustering",
         score=0.5
     )
-
 
 
 if __name__ == "__main__":
