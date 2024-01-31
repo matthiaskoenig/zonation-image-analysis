@@ -64,13 +64,13 @@ def write_to_geojson(polygons: List[Polygon], properties: dict, output_path: Pat
         geojson.dump(feature_collection, output_file, indent=2)
 
 
-def get_foreground_mask(array: np.ndarray) -> np.ndarray:
+def get_foreground_mask(array: np.ndarray, low=170, high=200) -> np.ndarray:
     gs = cv2.cvtColor(array.astype(np.uint8), cv2.COLOR_RGB2GRAY)
     # blurrs image but preserves edges
     bilateral_filter = cv2.bilateralFilter(src=gs, d=5, sigmaColor=50, sigmaSpace=75)
 
     # threshold to get the white areas
-    thresholded = apply_hysteresis_threshold(bilateral_filter, 170, 200).astype(np.uint8) * 255
+    thresholded = apply_hysteresis_threshold(bilateral_filter, low, high).astype(np.uint8) * 255
 
     return thresholded
 

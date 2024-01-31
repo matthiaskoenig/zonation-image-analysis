@@ -12,14 +12,16 @@ from zia import BASE_PATH
 from zia.config import read_config
 
 config = read_config(BASE_PATH / "configuration.ini")
-vipsbin = str(config.libvips_path)
-# print(vipsbin)
 
-os.environ['PATH'] = vipsbin + ';' + os.environ['PATH']
-os.add_dll_directory(vipsbin)
+if config.libvips_path is not None:
+    vipsbin = str(config.libvips_path)
+    # print(vipsbin)
 
-for s in os.environ["PATH"].split(";"):
-    print(s)
+    os.environ['PATH'] = vipsbin + ';' + os.environ['PATH']
+    os.add_dll_directory(vipsbin)
+
+    for s in os.environ["PATH"].split(";"):
+        print(s)
 
 from valis import registration
 

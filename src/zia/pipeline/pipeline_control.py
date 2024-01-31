@@ -28,10 +28,10 @@ if __name__ == "__main__":
             # valis slide registration
             # SlideRegistrationComponent(config, file_manager, overwrite=False)
             # stain separation
-            # StainSeparationComponent(config, file_manager, stains=[Stain.ZERO, Stain.ONE], overwrite=False)
+            StainSeparationComponent(config, file_manager, stains=[Stain.ONE], overwrite=True)
             # lobule segmentation
             # SegmentationComponent(config, file_manager, overwrite=True, report=False),
-            PortalityMappingComponent(config, file_manager, overwrite=True)
+            #PortalityMappingComponent(config, file_manager, overwrite=True)
         ]
     )
 

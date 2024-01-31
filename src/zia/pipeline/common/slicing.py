@@ -16,12 +16,13 @@ def get_tile_slices(shape: Tuple[int, int], tile_size=(2 ** 13, 2 ** 13), col_fi
     else:
         for row_i in range(num_row):
             for col_i in range(num_col):
-                slices.append(get_tile_slice(col_i, row_i, shape, tile_size, pad))
+                slices.append(get_tile_slice(col_i, row_i, shape, pad, tile_size))
     return slices
 
 
 def get_tile_slice(col_i: int, row_i: int, shape: Tuple[int, int], pad: int, tile_size=(2 ** 13, 2 ** 13)) -> Tuple[slice, slice]:
     r, c = shape
+
     tile_size_r, tile_size_c = tile_size
 
     col_end = min(c, (col_i + 1) * tile_size_c + pad)

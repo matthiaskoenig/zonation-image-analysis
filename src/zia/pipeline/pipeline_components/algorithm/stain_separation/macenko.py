@@ -44,11 +44,6 @@ def calculate_stain_matrix(pxi: np.ndarray, Io=240, alpha=1) -> np.ndarray:
 def find_max_c(pxi, stain_matrix: np.ndarray, Io=240) -> np.ndarray:
     C = svd(pxi, stain_matrix, Io)
 
-    # print(C.shape)
-    # print(np.min(C[0, :]), np.min(C[1, :]))
-
-    # print(np.max(concentrations))
-
     # normalize stain concentrations
     return np.array([np.percentile(C[0, :], 99), np.percentile(C[1, :], 99)])
 
@@ -126,7 +121,7 @@ def deconvolve_image_and_normalize(pxi: np.ndarray, stain_matrix: np.ndarray, ma
     return C2
 
 
-def create_single_channel_pixels(concentrations: np.ndarray, Io=240):
+def create_single_channel_pixels(concentrations: np.ndarray, Io=240) -> np.ndarray:
     """
     reconstructs the pixel values for one stain using the concentrations from
     the deconvolution
@@ -134,9 +129,11 @@ def create_single_channel_pixels(concentrations: np.ndarray, Io=240):
     @param Io: transmission intensity
     @return:
     """
-    i = np.multiply(Io, np.exp(-concentrations)).astype(np.uint8)
+
+    i = np.multiply(Io, np.exp(-concentrations))
     i[i > 255] = 254
-    return i
+
+    return i.astype(np.uint8)
 
 
 def reconstruct_pixels(concentrations: np.ndarray, refrence_matrix=None, Io=240):
@@ -148,6 +145,7 @@ def reconstruct_pixels(concentrations: np.ndarray, refrence_matrix=None, Io=240)
     @param Io: transmission intensity
     @return:
     """
+
     HERef = np.array([[0, 1],
                       [1, 1],
                       [1, 0]])
