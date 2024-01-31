@@ -55,7 +55,8 @@ def create_tasks_for_image(dataset_name: str,
         tasks_to_create.append(
             {
                 "data": {
-                    "image": f"/data/local-files/?d={dataset_name}/image/{image_path.name}"
+                    "image": f"/data/local-files/?d={dataset_name}/image/{image_path.name}",
+                    "pet": "rat"
                 },
                 "meta": {
                     "dataset": dataset_name,

@@ -67,5 +67,7 @@ class LabelStudioClient:
 if __name__ == "__main__":
     client = LabelStudioClient(LabelStudioClient.create_sdk_client())
 
-    result = client.get_image_task_dict(1)
+    project = client.client.get_project(1)
+    task = project.tasks[0]
+    print(task["data"])
 

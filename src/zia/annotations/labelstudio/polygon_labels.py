@@ -18,7 +18,7 @@ def create_keypoint_result(id: Optional[str], polygon: Polygon, label: str, h: i
         value=KeypointValue(
             x=polygon.centroid.x / w * 100,
             y=polygon.centroid.y / h * 100,
-            width=0.2,
+            width=1,
             keypointlabels=[label]
         ),
         id=id,
@@ -40,7 +40,7 @@ def create_polygon_result(id: Optional[str], polygon: Polygon, label: str, h: in
         id=id,
         from_name="polygon",
         to_name="image",
-        type="keypoint"
+        type="polygon"
     ))
 
 
