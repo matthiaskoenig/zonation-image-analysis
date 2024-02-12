@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import Dict, List
 
 from label_studio_sdk import Client
-from label_studio_sdk.data_manager import Filters, Column
 
 from zia.annotations.config.project_config import read_labelstudio_config
 import requests
@@ -67,7 +66,9 @@ class LabelStudioClient:
 if __name__ == "__main__":
     client = LabelStudioClient(LabelStudioClient.create_sdk_client())
 
-    project = client.client.get_project(1)
-    task = project.tasks[0]
-    print(task["data"])
+    response = client.client.make_request(
+            method="GET",
+            url=f"/storages/localfiles?project={4}",
+    )
 
+    print(response.json())

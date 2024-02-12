@@ -18,9 +18,10 @@ class LabelStudioConfig(BaseModel):
 
 
 @dataclass
-class StainSeparationConfig:
+class SampleDataConfig:
     reference_stain_matrix: np.ndarray
     reference_max_conc: np.ndarray
+    tile_coords_path: Path
 
 
 def read_labelstudio_config(mode: Literal["Production", "Test"]) -> LabelStudioConfig:
@@ -36,13 +37,14 @@ def read_labelstudio_config(mode: Literal["Production", "Test"]) -> LabelStudioC
     return configuration
 
 
-def read_stain_separation_config() -> StainSeparationConfig:
+def read_sample_data_config() -> SampleDataConfig:
     config = configparser.ConfigParser()
     config.read(Path(__file__).parent.parent / "configuration.ini")
 
-    configuration = StainSeparationConfig(
+    configuration = SampleDataConfig(
         reference_stain_matrix=np.array(json.loads(config["StainSeparation"]["HERef"])),
-        reference_max_conc=np.array(json.loads(config["StainSeparation"]["maxCRef"]))
+        reference_max_conc=np.array(json.loads(config["StainSeparation"]["maxCRef"])),
+        tile_coords_path=Path(config["TrainingData"]["tile_coords_path"])
     )
 
     return configuration
@@ -54,9 +56,10 @@ class ResourcePaths:
         self.image_path = self.base_path / "image"
         self.mask_path = self.base_path / "mask"
         self.polygon_path = self.base_path / "polygons"
+        self.predictions = self.base_path / "predictions"
 
         self.initialize_paths()
 
     def initialize_paths(self):
-        for p in [self.base_path, self.image_path, self.mask_path, self.polygon_path]:
+        for p in [self.base_path, self.image_path, self.mask_path, self.polygon_path, self.predictions]:
             p.mkdir(exist_ok=True, parents=True)

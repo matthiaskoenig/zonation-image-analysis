@@ -1,3 +1,5 @@
+import json
+import uuid
 from pathlib import Path
 from typing import Dict, Optional
 from typing import List, Tuple, Callable
@@ -15,12 +17,13 @@ from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 
 from zia.annotations.config.project_config import ResourcePaths
+from zia.annotations.labelstudio.polygon_labels import create_keypoint_result, create_polygon_result
 from zia.log import get_logger
 
 logger = get_logger(__file__)
 
 
-def classify_and_save_polygons(features_dict: Dict[str, np.ndarray], polygon_dict: Dict[str, List[Polygon]], resource_paths: ResourcePaths):
+def create_predictions(features_dict: Dict[str, np.ndarray], polygon_dict: Dict[str, List[Polygon]], resource_paths: ResourcePaths):
     fv = np.vstack([f for f in features_dict.values()])
 
     # cluster_droplets_trial(fv)
@@ -46,9 +49,18 @@ def classify_and_save_polygons(features_dict: Dict[str, np.ndarray], polygon_dic
         labels = label_dict[img_name]
         mapped_labels = [int(sort_idx[labels[idx]]) for idx in range(len(polygons))]
 
-        filtered = [poly for label, poly in zip(mapped_labels, polygons) if label == 1]
+        # write_to_geojson(polygons, dict(label="makrosteatosis"), resource_paths.polygon_path / f"{img_name}.geojson")
 
-        write_to_geojson(filtered, dict(label="makrosteatosis"), resource_paths.polygon_path / f"{img_name}.geojson")
+        filtered = [poly for label, poly in zip(mapped_labels, polygons) if label == 0 and poly.area > 800]
+
+        labels_kp = ["macrosteatosis keypoint" for _ in range(len(filtered))]
+        labels_poly = ["macrosteatosis polygon" for _ in range(len(filtered))]
+
+        keypoint_results = [create_keypoint_result(str(uuid.uuid4()), polygon, label, 1024, 1024) for label, polygon in zip(labels_kp, filtered)]
+        polygon_result = [create_polygon_result(str(uuid.uuid4()), polygon, label, 1024, 1024) for label, polygon in zip(labels_poly, filtered)]
+
+        with open(resource_paths.predictions / f"{img_name}.json", "w") as f:
+            json.dump(keypoint_results + polygon_result, f)
 
 
 def write_to_geojson(polygons: List[Polygon], properties: dict, output_path: Path):
@@ -64,7 +76,7 @@ def write_to_geojson(polygons: List[Polygon], properties: dict, output_path: Pat
         geojson.dump(feature_collection, output_file, indent=2)
 
 
-def get_foreground_mask(array: np.ndarray, low=170, high=200) -> np.ndarray:
+def get_foreground_mask(array: np.ndarray, low=190, high=210) -> np.ndarray:
     gs = cv2.cvtColor(array.astype(np.uint8), cv2.COLOR_RGB2GRAY)
     # blurrs image but preserves edges
     bilateral_filter = cv2.bilateralFilter(src=gs, d=5, sigmaColor=50, sigmaSpace=75)

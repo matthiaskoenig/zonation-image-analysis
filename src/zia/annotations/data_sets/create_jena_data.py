@@ -7,7 +7,7 @@ import numpy as np
 from shapely import Polygon
 from tqdm import tqdm
 
-from zia.annotations.config.project_config import ResourcePaths, read_stain_separation_config
+from zia.annotations.config.project_config import ResourcePaths, read_sample_data_config
 from zia.annotations.preprocessing.polygon_classification import write_to_geojson
 from zia.annotations.preprocessing.stain_normalization import normalize_stain
 
@@ -43,7 +43,7 @@ def extract_polygons_from_mask(mask: np.ndarray, size_cutoff: int) -> List[Polyg
 
 
 def create_data(image_paths: Dict[str, Path], mask_paths: Dict[str, Path], mode: str, resource_paths: ResourcePaths) -> None:
-    stain_separation_config = read_stain_separation_config()
+    stain_separation_config = read_sample_data_config()
 
     for image_name, mask_path in tqdm(mask_paths.items(), desc="Normalizing images and creating masks and polygons", unit="images"):
         image = cv2.imread(str(image_paths[image_name]))
