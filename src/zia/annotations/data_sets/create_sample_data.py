@@ -46,6 +46,7 @@ def create_sample_data():
         project_config = get_project_config(group)
         file_manager = SlideFileManager(project_config.data_path, project_config.extension)
         for subject, slides in tqdm(file_manager.group_by_subject().items(), desc=f"Creating sample dataset for {group}", unit="slides"):
+
             slide = None
             for sl in slides:
                 if sl.protein == "he":
