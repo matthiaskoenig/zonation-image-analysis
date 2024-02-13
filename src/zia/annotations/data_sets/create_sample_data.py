@@ -82,7 +82,7 @@ def create_sample_data():
                 cv2.imwrite(str(resource_paths.image_path / image_name), bgr)
 
                 mask, polygons, feature_vectors = extract_features(bgr)
-                cv2.imwrite(str(resource_paths.mask_path / image_name), mask)
+                cv2.imwrite(str(resource_paths.raw_masks / image_name), mask)
 
                 if feature_vectors is not None:
                     features_dict[f"{subject}_{i}"] = feature_vectors

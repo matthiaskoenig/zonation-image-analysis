@@ -41,7 +41,7 @@ if __name__ == '__main__':
 
             print(np.expand_dims(image_coords, 0))
 
-            cv2.fillPoly(template, np.expand_dims(image_coords, 0).astype(np.int32), color=(labels[label]))
+            cv2.fillPoly(template, np.expand_dims(image_coords, 0).astype(np.int32), color=labels[label])
 
         cv2.imwrite(str(resource_paths.mask_path / image), template)
         #plot_pic(template)
