@@ -57,9 +57,10 @@ class ResourcePaths:
         self.mask_path = self.base_path / "mask"
         self.polygon_path = self.base_path / "polygons"
         self.predictions = self.base_path / "predictions"
+        self.raw_masks = self.base_path / "raw_masks"
 
         self.initialize_paths()
 
     def initialize_paths(self):
-        for p in [self.base_path, self.image_path, self.mask_path, self.polygon_path, self.predictions]:
+        for p in [self.base_path, self.image_path, self.mask_path, self.polygon_path, self.predictions, self.raw_masks]:
             p.mkdir(exist_ok=True, parents=True)
