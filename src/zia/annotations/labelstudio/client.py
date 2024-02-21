@@ -67,8 +67,8 @@ if __name__ == "__main__":
     client = LabelStudioClient(LabelStudioClient.create_sdk_client())
 
     response = client.client.make_request(
-            method="GET",
-            url=f"/storages/localfiles?project={4}",
+            method="DELETE",
+            url=f"/api/annotations/{395}",
     )
 
     print(response.json())
