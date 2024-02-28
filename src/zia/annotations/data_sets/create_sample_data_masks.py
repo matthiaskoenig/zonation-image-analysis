@@ -15,7 +15,7 @@ if __name__ == '__main__':
         if len(task["annotations"]) == 0:
             continue
 
-        print(task)
+        #print(task)
 
         image = task["data"]["subject"] + "_" + task["data"]["sample"] + ".png"
 
@@ -25,25 +25,17 @@ if __name__ == '__main__':
 
         polygons = list(filter(lambda r: r["type"] == "polygon", result))
 
-        template = np.zeros(shape=(1024, 1024)).astype(np.uint8)
+        print(image, len(polygons))
 
-        labels = {}
+        template = np.zeros(shape=(1024, 1024)).astype(np.uint8)
 
         for polygon in polygons:
 
-            label = polygon["value"]["polygonlabels"][0]
             points = np.array(polygon["value"]["points"])
 
             image_coords = points / 100 * 1024
 
-            if label not in labels.keys():
-                labels[label] = 1 if len(labels.values()) == 0 else max(labels.values()) + 1
-
-            print(np.expand_dims(image_coords, 0))
-
-            cv2.fillPoly(template, np.expand_dims(image_coords, 0).astype(np.int32), color=labels[label])
-
-            template = template * 255
+            cv2.fillPoly(template, np.expand_dims(image_coords, 0).astype(np.int32), color=(255,))
 
         cv2.imwrite(str(resource_paths.mask_path / image), template)
         # plot_pic(template)
