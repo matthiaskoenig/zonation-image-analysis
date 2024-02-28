@@ -70,12 +70,6 @@ def normalize_stain(image_array: np.ndarray, HERef: np.ndarray, maxCRef: np.ndar
 
     return normalized.reshape(image_array.shape)
 
-
-import argparse
-import numpy as np
-from PIL import Image
-
-
 def normalizeStaining(img, saveFile=None, Io=240, alpha=1, beta=0.15):
     ''' Normalize staining appearence of H&E stained images
 
