@@ -51,7 +51,7 @@ def create_predictions(features_dict: Dict[str, np.ndarray], polygon_dict: Dict[
 
         # write_to_geojson(polygons, dict(label="makrosteatosis"), resource_paths.polygon_path / f"{img_name}.geojson")
 
-        filtered = [poly for label, poly in zip(mapped_labels, polygons) if label == 0 and poly.area > 800]
+        filtered = [poly for label, poly in zip(mapped_labels, polygons) if label == 0 and poly.area > 4000]
 
         labels_kp = ["macrosteatosis keypoint" for _ in range(len(filtered))]
         labels_poly = ["macrosteatosis polygon" for _ in range(len(filtered))]
