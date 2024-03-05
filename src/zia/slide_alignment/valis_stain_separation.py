@@ -1,14 +1,9 @@
-import re
-from pathlib import Path
 from typing import List, Dict
 
-import PIL.Image
 import numpy as np
 from matplotlib import pyplot as plt
-from PIL import Image
-from tifffile import imwrite
 
-from zia.annotations.pipelines.stain_separation.stain_separation_whole_image import separate_raw_image
+from zia.annotations.preprocessing.stain_normalization import normalize_stain
 from zia.console import console
 from zia.io.wsi_tifffile import read_ndpi
 
@@ -18,7 +13,6 @@ from zia.slide_alignment.image_manipulation import merge_images
 
 
 def image_prefixes_from_dir(p_dir: Path, stains: List[str]) -> Dict[str, str]:
-
     paths = [f for f in p_dir.iterdir() if f.is_file()]
     d: Dict[str, str] = {}
     for stain in stains:
@@ -36,14 +30,14 @@ def create_registration_image(subject_dir: Path, stains: List[str], results_dir:
 
     non_rigid_dir = subject_dir / subject_id / "non_rigid_registration"
     image_prefixes: Dict[str, str] = image_prefixes_from_dir(non_rigid_dir, stains=stains)
-    console.log(subject_id)
-    console.log(image_prefixes)
+    console.log_pair(subject_id)
+    console.log_pair(image_prefixes)
 
     # output_path = subject_dir / f"{subject_id}_registered.png"
     output_path = results_dir / f"{subject_id}_registered.png"
     image_paths = [non_rigid_dir / f"{prefix}.png" for prefix in image_prefixes.values()]
     merge_images(paths=image_paths, output_path=output_path, direction="horizontal")
-    console.log(output_path)
+    console.log_pair(output_path)
 
 
 def create_stain_separation_image(subject_dir: Path, stains: List[str], results_dir: Path):
@@ -54,22 +48,21 @@ def create_stain_separation_image(subject_dir: Path, stains: List[str], results_
     files = [ome_tiff_dir / f"{prefix}.ome.tiff" for prefix in image_prefixes.values()]
     output_path = results_dir / f"{subject_id}_registered_stain_separated.png"
 
-    console.log(subject_id)
-    console.log(image_prefixes)
+    console.log_pair(subject_id)
+    console.log_pair(image_prefixes)
 
-    console.log(output_path)
+    console.log_pair(output_path)
 
     fig, axes = plt.subplots(2, len(files), figsize=(3 * len(files), 3 * 0.90 * 2), dpi=1000)
     axes[0, 0].set_ylabel("Hematoxylin")
     axes[0, 1].set_ylabel("DAB/Eosin")
     fig.suptitle(subject_id)
     for i, file in enumerate(files):
-
         protein = list(image_prefixes.keys())[i]
         console.print(f"{subject_id}_{protein}")
 
         image_array = np.array(read_ndpi(file)[0])
-        stain_0, stain_1 = separate_raw_image(image_array)
+        stain_0, stain_1 = normalize_stain(image_array)
         axes[0, i].imshow(stain_0, vmin=0, vmax=255, cmap="binary_r")
         axes[1, i].imshow(stain_1, vmin=0, vmax=255, cmap="binary_r")
 
@@ -103,7 +96,6 @@ if __name__ == "__main__":
 
         # create_registration_image(subject_dir=subject_dir, stains=stains, results_dir=results_dir)
         create_stain_separation_image(subject_dir=subject_dir, stains=stains, results_dir=results_dir)
-
 
 """
 - NOR-026, CYP2D6 staining has a large hole, repeat if possible

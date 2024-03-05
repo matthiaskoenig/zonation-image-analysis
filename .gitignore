@@ -13,17 +13,20 @@ results
 reports
 src/zonation_image_analysis.egg-info/
 image
+fat_detection_validation
+
 
 dist
 .tox
 src/zia/resources/RH0422_1x2.5.pickle
-src/zia/annotations/resources/image/*
-src/zia/annotations/resources/geojsons/*
+src/zia/oven/annotations/resources/image/*
+src/zia/oven/annotations/resources/geojsons/*
+src/zia/annotations/resources
 
 path_config.ini
-config*.ini
 configuration.ini
 
 # numpy arrays for testing and quick serialization
 *.npy
-
+*.pickle
+*.png

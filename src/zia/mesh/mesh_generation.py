@@ -7,22 +7,17 @@ simplices. Triangulations of a three-dimensional volume would involve
 subdividing it into tetrahedra packed together.
 
 """
-import meshio
-import pymesh
-import trimesh
 
 import cv2
 import numpy as np
 from matplotlib import pyplot as plt
 
-from zia.annotations.annotation.util import PyramidalLevel
-from zia.annotations.pipelines.stain_separation.macenko import calculate_stain_matrix, \
+from zia.pipeline.annotation import PyramidalLevel
+from zia.pipeline.pipeline_components.algorithm.stain_separation.macenko import calculate_stain_matrix, \
     deconvolve_image
-from zia.annotations.workflow_visualizations.util.image_plotting import plot_pic, \
-    plot_rgb
 from zia.config import read_config
-from zia.data_store import DataStore, ZarrGroups
-from zia.path_utils import FileManager, ImageInfo
+from zia.oven.data_store import DataStore, ZarrGroups
+from zia.oven.path_utils import FileManager, ImageInfo
 from zia.console import console
 
 
@@ -186,8 +181,8 @@ if __name__ == "__main__":
             ('dab_test_L5.npy', PyramidalLevel.FIVE),
             ('dab_test_L4.npy', PyramidalLevel.FOUR),
             ('dab_test_L3.npy', PyramidalLevel.THREE),
-            ('dab_test_L2.npy', PyramidalLevel.TWO),
-            ('dab_test_L1.npy', PyramidalLevel.ONE),
+            ('dab_test_L2.npy', PyramidalLevel.ONE),
+            ('dab_test_L1.npy', PyramidalLevel.ZERO),
             ('dab_test_L0.npy', PyramidalLevel.ZERO),
         ]:
             channels: dict[str, np.ndarray] = separate_channels(
