@@ -19,6 +19,37 @@ from zia.pipeline.pipeline_components.roi_extraction_component import RoiExtract
 
 logger = get_logger(__file__)
 
+diet = {
+    "FLR-167": "2",
+    "FLR-168": "2",
+    "FLR-169": "2",
+    "FLR-170": "2",
+    "FLR-171": "2",
+    "FLR-172": "2",
+
+    "FLR-179": "4",
+    "FLR-180": "4",
+    "FLR-181": "4",
+    "FLR-199": "4",
+    "FLR-200": "4",
+    "FLR-201": "4",
+
+    "MNT-031": "2",
+    "MNT-032": "2",
+    "MNT-027": "2",
+    "MNT-033": "2",
+    "MNT-034": "2",
+    "MNT-035": "2",
+    "MNT-036": "2",
+
+    "MNT-041": "4",
+    "MNT-042": "4",
+    "MNT-043": "4",
+    "MNT-044": "4",
+    "MNT-045": "4",
+    "MNT-046": "4",
+}
+
 
 def create_data(image: zarr.Array, position: Tuple[int, int], shape: Tuple[int, int],
                 stain_separation_config: SampleDataConfig) -> np.ndarray:
@@ -72,8 +103,9 @@ def create_sample_data():
                         "dataset": "sample_data",
                         "subject": slide.subject,
                         "species": slide.species,
-                        "group": "steatosis",
-                        "sample": i,
+                        "group": group,
+                        "diet weeks": diet[subject] if subject in diet else "N/A",
+                        "tile": i,
                         "position": [x, y],
                     }
                 )
