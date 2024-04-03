@@ -29,14 +29,19 @@ def dist(d_p: float, d_c: float) -> float:
 
 def open_protein_arrays(address: Path, path: str, level: PyramidalLevel, excluded: List[str]) -> Dict[str, np.ndarray]:
     group = zarr.open(store=address, path=path)
-    return {key: 255 - np.array(val.get(f"{level}")) for key, val in group.items() if not key in excluded}
+    return {key: 255 - np.array(val.get(f"{level}")) for key, val in group.items() if key not in excluded}
 
 
 def swap_xy(geometry: Geometry):
     return shapely.ops.transform(lambda x, y: (y, x), geometry)
 
 
-def create_lobule_df(height: np.ndarray, width: np.ndarray, d_portal: np.ndarray, d_central: np.ndarray, pv_dist: np.ndarray, intensity: np.ndarray,
+def create_lobule_df(height: np.ndarray,
+                     width: np.ndarray,
+                     d_portal: np.ndarray,
+                     d_central: np.ndarray,
+                     pv_dist: np.ndarray,
+                     intensity: np.ndarray,
                      idx: int) -> pd.DataFrame:
     return pd.DataFrame(
         dict(lobule=idx,

@@ -40,7 +40,7 @@ class PortalityMappingComponent(IPipelineComponent):
         slide_stats_df = self.generate_distance_df()
 
         log.info("Saving data frame.")
-        slide_stats_df.to_csv(self.image_data_path / "lobule_distances.csv")
+        slide_stats_df.to_csv(self.image_data_path / "lobule_distances.csv", index=False)
 
     def get_roi_dirs(self, subject: str) -> Dict[str, Path]:
         subject_path = self.project_config.image_data_path / SegmentationComponent.dir_name / subject
@@ -66,7 +66,7 @@ class PortalityMappingComponent(IPipelineComponent):
                 normalized_arrays = normalize_arrays(protein_arrays)
                 df = analyse_lobuli(slide_stats, normalized_arrays, foreground_masks)
                 df["roi"] = roi
-                df["species"] = slide_stats.meta_data["subject"]
+                df["species"] = slide_stats.meta_data["species"]
                 roi_dfs.append(df)
                 # save the slide stats updated with the local maxima
                 slide_stats.to_geojson(slide_stats_path)

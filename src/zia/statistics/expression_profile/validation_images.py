@@ -13,18 +13,19 @@ from matplotlib.colors import to_rgba, to_rgb
 from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
 
-from zia import BASE_PATH
-from zia.config import read_config, Configuration
+from zia.config import Configuration
 from zia.io.wsi_tifffile import read_ndpi
 from zia.pipeline.pipeline_components.algorithm.segementation.lobulus_statistics import SlideStats
 from zia.pipeline.pipeline_components.portality_mapping_component import open_protein_arrays
+from zia.pipeline.pipeline_components.roi_registration_component import SlideRegistrationComponent
+from zia.pipeline.pipeline_components.segementation_component import SegmentationComponent
 from zia.pipeline.pipeline_components.stain_separation_component import StainSeparationComponent, Stain
-from zia.statistics.utils.data_provider import SlideStatsProvider
+from zia.statistics.utils.data_provider import get_slide_stats
 
 numcodecs.register_codec(Jpeg2k)
 
 def get_zarr_path(project_config: Configuration, subject: str, lobe_id: str) -> Dict[str, Path]:
-    base_path = project_config.image_data_path / StainSeparationComponent.dir_name / f"{Stain.ONE.value}" / subject / lobe_id
+    base_path = project_config.image_data_path / StainSeparationComponent.dir_name / f"{Stain.ONE.value}" / subject / str(lobe_id)
     if not base_path.exists():
         raise FileNotFoundError(f"No stain separation directory exists for subject {subject} and lobe {lobe_id}.")
 
@@ -62,7 +63,7 @@ def normalize(arr: np.ndarray) -> np.ndarray:
 
 
 def plot_mixed_channel(ax: plt.Axes, protein_arrays: Dict[str, np.ndarray]):
-    keys = ["CYP2E1", "GS", "CYP3A4"]
+    keys = ["cyp2e1", "gs", "cyp3a4"]
     arrays = [arr for key, arr in protein_arrays.items() if key in keys]
     arrays = [normalize(arr) for arr in arrays]
 
@@ -116,8 +117,9 @@ def plot_he(ax: plt.Axes, he_array: np.ndarray):
     ax.imshow(he_array)
 
 
-def plot_validation_for_all(project_config: Configuration, report_path: Path, slide_stats_dict: Dict[str, Dict[str, SlideStats]], distance_df: pd.DataFrame):
-    config = read_config(BASE_PATH / "configuration.ini")
+def plot_validation_for_all(project_config: Configuration, report_path: Path, distance_df: pd.DataFrame):
+
+    slide_stats_dict = get_slide_stats(project_config.image_data_path / SegmentationComponent.dir_name)
 
     for (subject, roi), subject_df in distance_df.groupby(["subject", "roi"]):
         fig, axes = plt.subplots(2, 4, figsize=(8.3, 8.3 * 1.1 / 4), dpi=300, height_ratios=[0.96, 0.04])
@@ -130,18 +132,18 @@ def plot_validation_for_all(project_config: Configuration, report_path: Path, sl
         )
 
         slide_path = None
-        slide_dir = config.image_data_path / "rois_registered" / f"{subject}" / f"{roi}"
+        slide_dir = project_config.image_data_path / SlideRegistrationComponent.dir_name / f"{subject}" / f"{roi}"
         for file in slide_dir.iterdir():
-            if file.is_file() and "HE" in file.stem:
+            if file.is_file() and "he" in file.stem.lower():
                 slide_path = file
         if slide_path is not None:
             slide = read_ndpi(slide_path)
             he_array = get_level_seven_array(slide)
             plot_he(axes[0, 0], he_array)
 
-        template = np.zeros_like(protein_arrays["CYP2E1"], dtype=float)
+        template = np.zeros_like(protein_arrays["cyp2e1"], dtype=float)
         plot_distances(axes[0, 3], subject_df, template, slide_stats)
-        plot_boundaries(axes[0, 2], protein_arrays["CYP2E1"], slide_stats)
+        plot_boundaries(axes[0, 2], protein_arrays["cyp2e1"], slide_stats)
         plot_mixed_channel(axes[0, 1], protein_arrays)
 
         for ax in axes[0, :]:
@@ -150,7 +152,7 @@ def plot_validation_for_all(project_config: Configuration, report_path: Path, sl
         for ax in axes[1, :]:
             ax.axis("off")
 
-        h, w = protein_arrays["HE"].shape
+        h, w = protein_arrays["he"].shape
         pixel_width = 0.22724690376093626  # µm level 0
         p_factor = 2 ** 7 * pixel_width
         rular_width = 1000 / p_factor / h
@@ -181,13 +183,3 @@ def plot_validation_for_all(project_config: Configuration, report_path: Path, sl
 
         plt.savefig(report_path / f"distance_{subject}_{roi}.png", bbox_inches="tight")
         plt.close(fig)
-
-
-if __name__ == "__main__":
-    config = SlideStatsProvider.config
-    report_path = config.reports_path / "supplementary_images"
-    report_path.mkdir(exist_ok=True, parents=True)
-
-    df = pd.read_csv(config.reports_path / "lobule_distances.csv", sep=",", index_col=False)
-
-    plot_validation_for_all(report_path, df)

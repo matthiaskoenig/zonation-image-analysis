@@ -28,7 +28,7 @@ def plot_gradient(report_path: Path, distance_df: pd.DataFrame):
 
         for row, protein in enumerate(protein_order):
             ax: plt.Axes = axes[row, col]
-            protein_df = protein_gb.get_group(protein)
+            protein_df = protein_gb.get_group(protein.lower())
 
             bins = np.histogram_bin_edges(protein_df["pv_dist"], range=(0, 1), bins=12)
             binned, bins = pd.cut(protein_df["pv_dist"], bins=bins, retbins=True)

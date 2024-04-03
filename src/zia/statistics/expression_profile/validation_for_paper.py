@@ -9,11 +9,11 @@ from matplotlib.colors import to_rgb, to_rgba
 from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
 
-from zia import BASE_PATH
-from zia.config import read_config, Configuration
+from zia.config import Configuration
 from zia.io.wsi_tifffile import read_ndpi
 from zia.pipeline.pipeline_components.algorithm.segementation.lobulus_statistics import SlideStats
 from zia.pipeline.pipeline_components.portality_mapping_component import open_protein_arrays
+from zia.pipeline.pipeline_components.roi_registration_component import SlideRegistrationComponent
 from zia.statistics.expression_profile.validation_images import plot_mixed_channel, plot_boundaries, plot_distances, get_level_seven_array, plot_he, \
     get_zarr_path
 from zia.statistics.utils.data_provider import SlideStatsProvider, capitalize
@@ -25,13 +25,12 @@ def plot_overview_for_paper(report_path: Path,
                             distance_df: pd.DataFrame):
     subjects = ["MNT-023", "NOR-021", "SSES2021 10", "UKJ-19-026_Human"]
     rois = [0, 0, 0, 0]
-    config = read_config(BASE_PATH / "configuration.ini")
 
     distance_gb = distance_df.groupby(["subject", "roi"])
 
     slide_paths = []
     for subject, roi in zip(subjects, rois):
-        slide_dir = config.image_data_path / "rois_registered" / f"{subject}" / f"{roi}"
+        slide_dir = project_config.image_data_path / SlideRegistrationComponent.dir_name / f"{subject}" / f"{roi}"
         for file in slide_dir.iterdir():
             if file.is_file() and "HE" in file.stem:
                 slide_paths.append(file)
@@ -46,7 +45,7 @@ def plot_overview_for_paper(report_path: Path,
                                           excluded=[])
                       for (subject, roi) in zip(subjects, rois)]
 
-    shapes = [arr["HE"].shape for arr in protein_arrays]
+    shapes = [arr["he"].shape for arr in protein_arrays]
 
     max_h = 0
     w = 0
@@ -61,11 +60,11 @@ def plot_overview_for_paper(report_path: Path,
 
     for i, (subject, roi, protein_array, he_array) in enumerate(zip(subjects, rois, protein_arrays, he_arrays)):
         subject_df = distance_gb.get_group((subject, roi))
-        template = np.zeros_like(protein_array["CYP2E1"], dtype=float)
+        template = np.zeros_like(protein_array["cyp2e1"], dtype=float)
         slide_stats = slide_stats_dict[subject][str(roi)]
         plot_he(axes[1, i], he_array)
         plot_mixed_channel(axes[2, i], protein_array)
-        plot_boundaries(axes[3, i], protein_array["CYP2E1"], slide_stats)
+        plot_boundaries(axes[3, i], protein_array["cyp2e1"], slide_stats)
         plot_distances(axes[4, i], subject_df, template, slide_stats)
 
     for species, color, ax in zip(SlideStatsProvider.species_order, SlideStatsProvider.species_colors, axes[0, :]):
@@ -82,7 +81,7 @@ def plot_overview_for_paper(report_path: Path,
 
     for ax, protein_array in zip(axes[-1, :].flatten(), protein_arrays):
         # ax.axis("off")
-        h, w = protein_array["HE"].shape
+        h, w = protein_array["he"].shape
         pixel_width = 0.22724690376093626  # µm level 0
         p_factor = 2 ** 7 * pixel_width
         rular_width = 1000 / p_factor / h
@@ -119,8 +118,3 @@ def plot_overview_for_paper(report_path: Path,
     plt.show()
 
 
-if __name__ == "__main__":
-    config = SlideStatsProvider.config
-    report_path = config.reports_path / "supplementary_images"
-    distance_df = pd.read_csv(config.reports_path / "lobule_distances.csv", sep=",", index_col=False)
-    plot_overview_for_paper(report_path, distance_df)

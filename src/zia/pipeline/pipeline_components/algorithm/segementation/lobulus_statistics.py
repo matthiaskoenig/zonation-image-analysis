@@ -284,7 +284,7 @@ class SlideStats:
             row_dict = dict(
                 area=stat.get_area() * dimension_factor ** 2,
                 area_unit="µm$^2$",
-                perimeter=stat.get_perimeter(),
+                perimeter=stat.get_perimeter() * dimension_factor,
                 perimeter_unit="µm",
                 n_central_vessel=len(stat.vessels_central),
                 n_portal_vessel=len(stat.vessels_portal),

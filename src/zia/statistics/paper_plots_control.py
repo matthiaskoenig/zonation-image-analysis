@@ -46,7 +46,7 @@ def load_distance_df(project_config: Configuration) -> pd.DataFrame:
 if __name__ == "__main__":
 
     exclusion_dict = {
-        "UKJ-19-010_Human": ["CYP2D6", "GS"]
+        "UKJ-19-010_Human": ["cyp2d6", "gs"]
     }
 
     log = get_logger(__file__)
@@ -124,16 +124,18 @@ if __name__ == "__main__":
 
     # plot distance related plots
     log.info("Creating gradient plots")
-    plot_gradient(report_path_paper_plots, distance_df)
+    gradient = plot_gradient(report_path_paper_plots, distance_df)
     plot_overview_for_paper(report_path_paper_plots, project_config, slide_stat_provider.slide_stats_dict, distance_df)
 
     # validation plot for every subject and roi
     log.info("Creating overview plots for each subject and ROI")
-    plot_validation_for_all(report_path_valdiation_all, distance_df)
+    plot_validation_for_all(project_config, report_path_valdiation_all, distance_df)
 
     # copy README file
     log.info("Copying README file")
     shutil.copy("README.md", report_path_base / "README.md")
+    shutil.copy(project_config.image_data_path / PortalityMappingComponent.dir_name / "lobule_distances.csv",
+                report_path_distance_df / "lobule_distances.csv")
 
     log.info("Creating zip archive")
     shutil.make_archive(str(report_path_base / "manuscript"), 'zip', str(report_path_base))

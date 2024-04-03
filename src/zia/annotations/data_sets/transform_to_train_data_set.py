@@ -12,7 +12,7 @@ from zia.annotations.labelstudio.client import LabelStudioClient
 
 dataset_paths = ResourcePaths("sample_data")
 
-target_path = Path(r"/media/jkuettner/Extreme Pro/exchange/training_data/sampledata")
+target_path = Path(r"D:/exchange/training_data/sampledata")
 
 
 def transform_to_image_key_point(keypoint: Dict[str, Any]) -> Tuple[int, int]:
@@ -44,16 +44,14 @@ def create_mask(image: np.ndarray, image_key_points: List[Tuple[int, int]]) -> n
     for i, keypoint in enumerate(image_key_points):
         cv2.circle(markers, keypoint, 5, (i + 2,), cv2.FILLED)
 
-    markers = cv2.watershed(image, markers)
+    blurred = cv2.GaussianBlur(image, (31, 31), 0)
 
-    mask = np.zeros_like(gs, dtype=np.uint8)
-    mask[markers > 1] = 255
+    # background comes out at as 1, boundary as -1
+    result = cv2.watershed(blurred, markers)
 
-    for _ in range(1):
-        mask = cv2.GaussianBlur(mask, (31, 31), 0)
-        _, mask = cv2.threshold(mask, 255 // 2, 255, cv2.THRESH_BINARY)
+    result[result == -1] = 1
 
-    return mask
+    return result - 1
 
 
 def get_image_name(task: Dict[str, Any]) -> str:
@@ -97,5 +95,6 @@ if __name__ == '__main__':
 
             image = cv2.pyrDown(image)
             mask = cv2.resize(mask, dsize=None, fx=0.5, fy=0.5, interpolation=cv2.INTER_NEAREST)
+
             cv2.imwrite(str(target_path / use / "image" / image_name), image)
             cv2.imwrite(str(target_path / use / "mask" / image_name), mask)

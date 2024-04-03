@@ -31,7 +31,7 @@ def merge_to_one_df(slide_stats: Dict[str, Dict[str, SlideStats]]) -> pd.DataFra
 def get_slide_stats(slide_stats_dir: Path) -> Dict[str, Dict[str, SlideStats]]:
 
     if not slide_stats_dir.exists():
-        raise FileNotFoundError("The slide statistic directory does not exist.")
+        raise FileNotFoundError(f"The slide statistic directory does not exist. {slide_stats_dir}")
 
     subject_dirs = sorted([f for f in slide_stats_dir.iterdir() if f.is_dir() and not f.name.startswith(".")])
 
@@ -53,7 +53,7 @@ def get_slide_stats(slide_stats_dir: Path) -> Dict[str, Dict[str, SlideStats]]:
 
 class SlideStatsProvider:
     species_order = ["mouse", "rat", "pig", "human"]
-    protein_order = ["HE", "GS", "CYP1A2", "CYP2D6", "CYP2E1", "CYP3A4"]
+    protein_order = ["he", "gs", "cyp1a2", "cyp2d6", "cyp2e1", "cyp3a4"]
     species_colors = ["#77AADD", "#EE8866", "#DDDDDD", "#44BB99"]
 
     def __init__(self, slide_stat_directory: Path):
