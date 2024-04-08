@@ -24,7 +24,7 @@ def create_keypoint_result(id: Optional[str], polygon: Polygon, label: str, h: i
         id=id,
         from_name="keypoint",
         to_name="image",
-        type="keypoint"
+        type="keypointlabels"
     ))
 
 
@@ -40,7 +40,7 @@ def create_polygon_result(id: Optional[str], polygon: Polygon, label: str, h: in
         id=id,
         from_name="polygon",
         to_name="image",
-        type="polygon"
+        type="polygonlabels"
     ))
 
 
