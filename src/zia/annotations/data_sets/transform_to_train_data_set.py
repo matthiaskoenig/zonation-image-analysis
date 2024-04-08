@@ -1,3 +1,4 @@
+import shutil
 from pathlib import Path
 from typing import Dict, Any, Tuple, List
 
@@ -74,6 +75,8 @@ if __name__ == '__main__':
     train_tasks, test_tasks = train_test_split(project.get_tasks(), test_size=0.2, shuffle=True, random_state=42)
 
     val_tasks, test_tasks = train_test_split(test_tasks, test_size=0.5, shuffle=True, random_state=42)
+
+    shutil.copy(resource_paths.base_path / "data_config.json", target_path / "data_config.json")
 
     for tasks, use in zip([train_tasks, val_tasks, test_tasks], ["train", "val", "test"]):
         for task in tqdm(tasks, desc=f"Creating masks from tasks for {use} data", unit="tasks"):
