@@ -337,6 +337,8 @@ def plot_n_area(df: pd.DataFrame):
             stds_all: Dict[str, float] = {}
             cvs_all: Dict[str, float] = {}
             ns_all: Dict[str, float] = {}
+
+            # relative expression is calculated; update;
             for (subject, protein_df) in species_protein_df.groupby(["subject"]):
                 lobule_count = len(protein_df.groupby(["subject", "roi", "lobule"]))
                 # console.print(f"{lobule_count=}")
@@ -348,9 +350,16 @@ def plot_n_area(df: pd.DataFrame):
                 # evaluate for every lobule
                 values = []
                 for lobule, lobule_df in protein_df.groupby("lobule"):
-                    values.append(
-                        lobule_df.intensity.sum() / len(lobule_df)
-                    )
+
+                    # intensity of all pixels in a lobulus
+
+                    # [1] mean intensity
+                    value = lobule_df.intensity.sum() / len(lobule_df)
+
+                    # [2] intensity above 0.5
+                    # value = (lobule_df.intensity > 0.5).sum() / len(lobule_df)
+                    # values.append(value)
+
                 means[0] = np.mean(values)
                 stds[0] = np.std(values)
 
@@ -398,7 +407,6 @@ def plot_n_area(df: pd.DataFrame):
                 box.set(facecolor=color, linewidth=0.5)
 
             # plot individual data points
-
             ax1.plot(
                 x,
                 y1,
@@ -423,7 +431,7 @@ def plot_n_area(df: pd.DataFrame):
             ax1.set_ylim(bottom=0, top=100)
             ax2.set_ylim(bottom=0, top=150)
 
-    axes[0, 0].set_ylabel("Relative expression [%]", fontsize=9, fontweight="bold")
+    axes[0, 0].set_ylabel("Relative expression area [%]", fontsize=9, fontweight="bold")
     axes[1, 0].set_ylabel("Number of lobuli [-]", fontsize=9, fontweight="bold")
 
 
