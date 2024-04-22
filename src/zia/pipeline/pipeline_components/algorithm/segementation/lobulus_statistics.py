@@ -1,8 +1,6 @@
 """
 Takes list of polygons and calculates statistics on them.
 
-
-
 - area
 - number of corners (after useful simplification)
 - circumference length

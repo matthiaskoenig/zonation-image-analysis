@@ -66,7 +66,8 @@ def plot_n_geometric(df: pd.DataFrame, distances) -> None:
         yupper = 200
         ax.set_ylim(top=yupper)
         # ax.set_xlim(left=0)
-        ax.fill([8, 12, 12, 8], [0, 0, yupper, yupper], 'gray', alpha=0.2, edgecolor=None,
+        d = 20
+        ax.fill([d-2, d+2, d+2, d-2], [0, 0, yupper, yupper], 'gray', alpha=0.2, edgecolor=None,
                 label="__nolabel__")
 
         ax.set_xticks(distances * 100)
@@ -92,7 +93,7 @@ def plot_n_geometric(df: pd.DataFrame, distances) -> None:
                 markeredgecolor="black"
             )
             console.print(f"{attr}, {species}")
-            console.print(f"{means[1]:.1f} ± {stds[1]:.1f}")
+            console.print(f"{means[3]:.1f} ± {stds[1]:.1f}")
 
         ax.legend()
 
@@ -181,7 +182,7 @@ def plot_n_gradient(df: pd.DataFrame):
                 "color": color,
             }
 
-            species_protein_df = df[(df.species == species) & (df.protein == protein)]
+            species_protein_df = df[(df.species == species) & (df.protein == protein.lower())]
 
             # analysis by individual subjects
             x_all: Dict[str, np.ndarray] = {}
@@ -218,8 +219,8 @@ def plot_n_gradient(df: pd.DataFrame):
                     cvs[i] = stds[i]/means[i]
 
                     # TODO: calculate this for the different slides
-                    # calculation of the required n at 95% confidence and ME=0.1
-                    d = 0.1
+                    # calculation of the required n at 95% confidence and ME=0.2
+                    d = 0.2
                     ns[i] = 1 / ((means[i] * d) ** 2 / (1.96 ** 2 * stds[i] ** 2) + 1 / lobule_count)
 
                 x_all[subject] = x
@@ -238,6 +239,10 @@ def plot_n_gradient(df: pd.DataFrame):
 
             ns_means = np.median(np.array([v for v in ns_all.values()]), axis=0)
             ns_stds = np.std(np.array([v for v in ns_all.values()]), axis=0)
+
+            console.print(f"{ns_means=}")
+            console.print(f"{ns_stds=}")
+
 
             # gradient (mean +- SD)
             ax1.errorbar(
@@ -268,16 +273,17 @@ def plot_n_gradient(df: pd.DataFrame):
                 ax.set_xticks([])
                 ax.set_xlim(left=0, right=1)
 
-            ax1.set_ylim(bottom=0, top=1.1)
-            ax2.set_ylim(bottom=0, top=0.3)
-            ax3.set_ylim(bottom=0, top=100)
+            ax1.set_ylim(bottom=0, top=1.0)
+            ax2.set_ylim(bottom=0, top=0.5)
+            ax3.set_ylim(bottom=0, top=200)
 
     axes[0, 0].set_ylabel("Intensity [-]", fontsize=9, fontweight="bold")
     axes[1, 0].set_ylabel("Intensity CV [-]", fontsize=9, fontweight="bold")
     axes[2, 0].set_ylabel("Number of lobuli [-]", fontsize=9, fontweight="bold")
 
 
-    for ax in axes.flatten():
+    # for ax in axes.flatten():
+    for ax in axes[:1, :].flatten():
         ax.legend(prop={'size': 6})
     # axes[0, 0].legend(prop={'size': 6})
     # axes[1, 0].legend(prop={'size': 6})
@@ -304,7 +310,8 @@ def plot_n_area(df: pd.DataFrame):
     # protein_order = ["GS"]
     # species_order = ["mouse"]
 
-    fig, axes = plt.subplots(nrows=2, ncols=len(protein_order), dpi=300, figsize=(2*len(protein_order), 2*2.5), layout="constrained")
+    fig, axes = plt.subplots(nrows=2, ncols=len(protein_order), dpi=300,
+                             figsize=(2*len(protein_order), 2*2.5), layout="constrained")
 
 
     for kspecies, species in enumerate(species_order):
@@ -322,7 +329,7 @@ def plot_n_area(df: pd.DataFrame):
                 "color": color,
             }
 
-            species_protein_df = df[(df.species == species) & (df.protein == protein)]
+            species_protein_df = df[(df.species == species) & (df.protein == protein.lower())]
 
             # analysis by individual subjects
             medians_all: Dict[str, float] = {}
@@ -330,9 +337,7 @@ def plot_n_area(df: pd.DataFrame):
             stds_all: Dict[str, float] = {}
             cvs_all: Dict[str, float] = {}
             ns_all: Dict[str, float] = {}
-
             for (subject, protein_df) in species_protein_df.groupby(["subject"]):
-
                 lobule_count = len(protein_df.groupby(["subject", "roi", "lobule"]))
                 # console.print(f"{lobule_count=}")
 
@@ -344,14 +349,14 @@ def plot_n_area(df: pd.DataFrame):
                 values = []
                 for lobule, lobule_df in protein_df.groupby("lobule"):
                     values.append(
-                        lobule_df.nintensity.sum() / len(lobule_df)
+                        lobule_df.intensity.sum() / len(lobule_df)
                     )
                 means[0] = np.mean(values)
                 stds[0] = np.std(values)
 
                 # TODO: calculate this for the different slides
                 # calculation of the required n at 95% confidence and ME=0.1
-                d = 0.1
+                d = 0.2
                 ns[0] = 1 / ((means[0] * d) ** 2 / (1.96 ** 2 * stds[0] ** 2) + 1 / lobule_count)
 
                 means_all[subject] = means
@@ -416,7 +421,7 @@ def plot_n_area(df: pd.DataFrame):
                 # ax.set_xlim(left=0, right=len(species))
 
             ax1.set_ylim(bottom=0, top=100)
-            ax2.set_ylim(bottom=0, top=45)
+            ax2.set_ylim(bottom=0, top=150)
 
     axes[0, 0].set_ylabel("Relative expression [%]", fontsize=9, fontweight="bold")
     axes[1, 0].set_ylabel("Number of lobuli [-]", fontsize=9, fontweight="bold")
@@ -472,7 +477,7 @@ if __name__ == "__main__":
 
     # Number of lobuli for geometric parameters
     xlsx_path = Path("/home/mkoenig/Downloads/manuscript/descriptive-stats/descriptive-stats.xlsx")
-    analysis_n_geometric(xlsx_path=xlsx_path)
+    # analysis_n_geometric(xlsx_path=xlsx_path)
 
     # calculate and plot the n for the gradient
     # plot_n_gradient(df=df)
