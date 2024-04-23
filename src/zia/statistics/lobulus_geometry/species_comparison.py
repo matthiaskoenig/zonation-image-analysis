@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -12,7 +12,8 @@ def plot_species_comparison(slide_stats_df: pd.DataFrame,
                             attributes: List[str],
                             labels: List[str],
                             logs: List[bool],
-                            test_results_path: Path):
+                            test_results_path: Path,
+                            units: Optional[List[str]] = None):
 
     kruskal_result = pd.read_excel(test_results_path / f"test-species-comparison.xlsx", sheet_name="kruskal-wallis", index_col=False)
     dunns_result = pd.read_excel(test_results_path / "test-species-comparison.xlsx", sheet_name="dunns-post-hoc", index_col=False)
@@ -21,7 +22,10 @@ def plot_species_comparison(slide_stats_df: pd.DataFrame,
                              figsize=(len(attributes) * 2.5, 2.5),
                              layout="constrained")
 
-    for attr, ax, log, y_label in zip(attributes, axes, logs, labels):
+    for i, (attr, ax, log, y_label) in enumerate(zip(attributes, axes, logs, labels)):
+
+        unit = units[i] if units is not None else None
+
         if kruskal_result[kruskal_result["attr"] == attr].iloc[0]["pvalue"] < 0.05:
             test_results_attr = dunns_result[dunns_result["attr"] == attr]
         else:
@@ -35,7 +39,8 @@ def plot_species_comparison(slide_stats_df: pd.DataFrame,
                                     log=log,
                                     ax=ax,
                                     test_results=test_results_attr,
-                                    annotate_n=True)
+                                    annotate_n=True,
+                                    unit=unit)
 
     plt.savefig(report_path / "species_comparison.png", dpi=600)
     plt.savefig(report_path / "species_comparison.svg", dpi=600)

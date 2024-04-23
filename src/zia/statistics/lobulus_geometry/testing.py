@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 import numpy as np
 import pandas as pd
@@ -124,7 +124,7 @@ def run_all_tests(slide_stats_df: pd.DataFrame,
                   test_result_path: Path,
                   attributes: List[str],
                   logs: List[bool],
-                  mouse_lobe_dict: Dict[str, str]):
+                  mouse_lobe_dict: Optional[Dict[str, str]]):
     # species comparison
     with pd.ExcelWriter(test_result_path / "test-species-comparison.xlsx") as species_writer:
         kruskal = test_kruskal("species", attributes, slide_stats_df, logs)
@@ -149,7 +149,7 @@ def run_all_tests(slide_stats_df: pd.DataFrame,
             dunns_subject.to_excel(subject_writer, f"dunns-{species}", index=False)
 
             # mouse roi comparison
-            if species == "mouse":
+            if species == "mouse" and mouse_lobe_dict is not None:
                 with pd.ExcelWriter(test_result_path / "test-mouse-lobe-comparison.xlsx") as mouse_writer:
                     for subject, subject_df in species_df.groupby("subject"):
 
