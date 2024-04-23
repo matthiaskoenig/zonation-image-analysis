@@ -9,6 +9,7 @@ from shapely import Geometry, Polygon, LineString, Point, GeometryCollection
 from shapely.ops import transform
 
 from zia.log import get_logger
+from zia.oven.annotations.workflow_visualizations.util.image_plotting import plot_pic
 from zia.pipeline.common.geometry_utils import GeometryDraw, off_set_geometry
 from zia.pipeline.common.project_config import Configuration
 from zia.pipeline.common.resolution_levels import PyramidalLevel
@@ -191,8 +192,17 @@ def analyse_protein_expression_for_lobule(protein_array: np.ndarray, foreground_
     # plot_pic(mask_portal_distance, "mask portal dist")
     # plot_pic(mask_central_distance, "mask central dist")
 
-    dist_central = cv2.distanceTransform(mask_central_distance.astype(np.uint8), distanceType=cv2.DIST_L2, maskSize=3)
-    dist_portal = cv2.distanceTransform(mask_portal_distance.astype(np.uint8), distanceType=cv2.DIST_L2, maskSize=3)
+    # if all values are true in a mask, the distance transform returns 3.4e38 -> therefore set all zero
+    if (np.all(mask_central_distance)):
+        dist_central = np.zeros_like(mask_central_distance, dtype=np.float32)
+    else:
+        dist_central = cv2.distanceTransform(mask_central_distance.astype(np.uint8), distanceType=cv2.DIST_L2, maskSize=5)
+
+    if np.all(mask_portal_distance):
+        dist_portal = cv2.distanceTransform(np.zeros_like(mask_portal_distance, dtype=np.uint8), distanceType=cv2.DIST_L2, maskSize=5)
+    else:
+        dist_portal = np.zeros_like(mask_portal_distance, dtype=np.float32)
+
 
     # plot_pic(dist_central, "central dist")
     # plot_pic(dist_portal, "portal dist")
@@ -221,7 +231,7 @@ def analyse_protein_expression_for_lobule(protein_array: np.ndarray, foreground_
 
     p_min, p_max = np.min(pixels), np.max(pixels)
 
-    if p_max == p_min:
+    if p_max == p_min or np.all(mask):
         return None
 
     pw = meta["pixel_size"]
@@ -232,8 +242,10 @@ def analyse_protein_expression_for_lobule(protein_array: np.ndarray, foreground_
     intensity = lobule_array[mask]
 
     d_central = dist_central[mask] * factor
+
     d_portal = dist_portal[mask] * factor
     pv_dist = dist(d_portal, d_central)
+
 
     positions = np.argwhere(mask)
     height = positions[:, 0] + miny

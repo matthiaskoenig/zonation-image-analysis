@@ -2,6 +2,8 @@
 
 import time
 
+import numpy as np
+
 from zia.pipeline.file_management.file_management import SlideFileManager
 from zia.pipeline.pipeline_components.pipeline import Pipeline
 from zia.pipeline.common.project_config import get_project_config
@@ -19,6 +21,7 @@ if __name__ == "__main__":
     config = get_project_config("steatosis")
 
     file_manager = SlideFileManager(config.data_path, config.extension)
+    np.seterr(all="raise")
 
     pipeline = Pipeline(
         components=[
@@ -31,8 +34,8 @@ if __name__ == "__main__":
             # stain separation
             # StainSeparationComponent(config, file_manager, stains=[Stain.ZERO, Stain.ONE], overwrite=False)
             # lobule segmentation
-            SegmentationComponentSteatosis(config, file_manager, overwrite=True, report=True),
-            # PortalityMappingComponent(config, file_manager, overwrite=True)
+            # SegmentationComponentSteatosis(config, file_manager, overwrite=True, report=True),
+            PortalityMappingComponent(config, file_manager, overwrite=True)
         ]
     )
 

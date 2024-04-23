@@ -4,6 +4,7 @@ import pandas as pd
 
 from zia.oven.annotations.workflow_visualizations.util.image_plotting import plot_pic
 from zia.pipeline.common.project_config import get_project_config
+from zia.pipeline.pipeline_components.portality_mapping_component import PortalityMappingComponent
 from zia.pipeline.pipeline_components.roi_extraction_component import RoiExtractionComponent
 from zia.statistics.lobulus_geometry.species_comparison import plot_species_comparison
 from image_utils.io.tiffile import read_ndpi
@@ -108,3 +109,36 @@ def get_density_stats(px_size=0.2272) -> pd.DataFrame:
                 )
 
     return pd.DataFrame(data_points)
+
+
+def get_droplet_df(droplet_data: pd.DataFrame, overwrite: bool = True) -> pd.DataFrame:
+    result_df_path = project_config.image_data_path / PortalityMappingComponent.dir_name / "lobule_droplets.csv"
+
+    if not overwrite:
+        if result_df_path.exists():
+            return pd.read_csv(result_df_path)
+
+    portality_df = pd.read_csv(project_config.image_data_path / PortalityMappingComponent.dir_name / "lobule_distances.csv")
+
+    droplet_groupy = droplet_data.groupby(["subject", "roi"])
+
+    print(droplet_groupy.groups.keys())
+    result_dfs = []
+
+    for (subject, roi), pgroup_df in portality_df.groupby(["subject", "roi"]):
+        droplet_group_df = droplet_groupy.get_group((subject, str(roi))).copy()
+
+        droplet_group_df["y_idx"] = np.ceil((droplet_group_df["cy"] / 2 ** 7)).astype(int)
+        droplet_group_df["x_idx"] = np.ceil((droplet_group_df["cx"] / 2 ** 7)).astype(int)
+
+        grouped_by_idx = droplet_group_df.groupby(["x_idx", "y_idx"]).agg(mean_droplet_area=("area", "mean"), droplet_count=("area", "count"))
+
+
+        result_dfs.append(
+            pd.merge(pgroup_df.copy(), grouped_by_idx, left_on=("height", "width"), right_on=("y_idx", "x_idx"), how="left")
+        )
+
+    portality_droplet_df = pd.concat(result_dfs, ignore_index=True)
+    portality_droplet_df.to_csv(project_config.image_data_path / PortalityMappingComponent.dir_name / "lobule_droplets.csv", index=False)
+
+    return portality_droplet_df
