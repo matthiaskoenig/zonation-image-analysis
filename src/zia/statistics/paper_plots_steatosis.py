@@ -18,7 +18,6 @@ report_path_paper_plots = report_path_base / "paper-plots"
 report_path_steatosis_boxplots = report_path_base / "steatosis-boxplots"
 report_path_steatosis_portality = report_path_base / "steatosis-portality"
 
-
 report_path_descriptive_stats = report_path_base / "descriptive-stats"
 
 for p in [report_path_base, report_path_stats_steatosis_test, report_path_paper_plots, report_path_steatosis_boxplots, report_path_descriptive_stats,
@@ -35,19 +34,29 @@ df = df[df["min_enclosing_circle"] < 25]
 
 wsi_df = get_density_stats()
 
-portality_droplet_df = get_droplet_df(df, overwrite=True)
-
+portality_droplet_df = get_droplet_df(df, overwrite=False)
+"""
 plt.hist(portality_droplet_df["pv_dist"])
 plt.show()
 plt.hist(portality_droplet_df["mean_droplet_area"])
 plt.show()
 plt.hist(portality_droplet_df["droplet_count"])
 plt.show()
+"""
 
+# portality_droplet_df.to_csv(project_config.image_data_path / PortalityMappingComponent.dir_name / "lobule_distances.csv", index=False)
+# run_all_tests(df, report_path_stats_steatosis_test, attributes, logs, False)
 
-#portality_droplet_df.to_csv(project_config.image_data_path / PortalityMappingComponent.dir_name / "lobule_distances.csv", index=False)
-print(wsi_df)
-#run_all_tests(df, report_path_stats_steatosis_test, attributes, logs, False)
+for (roi, subject), group_df in portality_droplet_df.groupby(["roi", "subject"]):
+    group_df = group_df.drop_duplicates(subset=["width", "height"])
+
+    #print(np.unique(group_df[['height', 'width']].values, return_counts=True))
+    heat_map_data = group_df.pivot(index="height", columns="width", values="droplet_count").to_numpy()
+    plt.imshow(heat_map_data, cmap=plt.get_cmap("hot"), interpolation="nearest")
+    plt.colorbar()
+
+    # Show plot
+    plt.show()
 
 plot_species_comparison(slide_stats_df=df,
                         report_path=report_path_steatosis_boxplots,
@@ -78,13 +87,7 @@ for gr in SPECIES_ORDER:
     else:
         colors.append(SPECIES_COLORS[gr])
 
-
-
 plot_droplet_portality(report_path=report_path_steatosis_portality,
                        distance_df=portality_droplet_df,
                        group_order=group_order,
-                       colors=colors,
-                       attributes=["mean_droplet_area", "droplet_count"],
-                       y_labels=["Macrosteatosis area", "Macrosteatosis droplet count"],
-                       units=["mm$^2$", "-"])
-
+                       colors=colors)
