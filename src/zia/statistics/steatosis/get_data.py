@@ -116,9 +116,14 @@ def get_droplet_df(droplet_data: pd.DataFrame, overwrite: bool = True) -> pd.Dat
 
     if not overwrite:
         if result_df_path.exists():
-            return pd.read_csv(result_df_path)
+            df = pd.read_csv(result_df_path)
+            df = df.astype(dict(diet="Int64"))
+
+            return df
 
     portality_df = pd.read_csv(project_config.image_data_path / PortalityMappingComponent.dir_name / "lobule_distances.csv")
+
+    portality_df = portality_df[portality_df["protein"] == "he"]
 
     droplet_groupy = droplet_data.groupby(["subject", "roi"])
 
@@ -131,14 +136,17 @@ def get_droplet_df(droplet_data: pd.DataFrame, overwrite: bool = True) -> pd.Dat
         droplet_group_df["y_idx"] = np.ceil((droplet_group_df["cy"] / 2 ** 7)).astype(int)
         droplet_group_df["x_idx"] = np.ceil((droplet_group_df["cx"] / 2 ** 7)).astype(int)
 
-        grouped_by_idx = droplet_group_df.groupby(["x_idx", "y_idx"]).agg(mean_droplet_area=("area", "mean"), droplet_count=("area", "count"))
-
+        grouped_by_idx = droplet_group_df.groupby(["x_idx", "y_idx"]).agg(mean_droplet_area=("area", "mean"), droplet_count=("area", "count"),
+                                                                          diet=("diet", lambda x: pd.unique(x)[0]))
 
         result_dfs.append(
             pd.merge(pgroup_df.copy(), grouped_by_idx, left_on=("height", "width"), right_on=("y_idx", "x_idx"), how="left")
         )
 
     portality_droplet_df = pd.concat(result_dfs, ignore_index=True)
+
+    portality_droplet_df = portality_droplet_df.astype(dict(diet="Int64"))
+
     portality_droplet_df.to_csv(project_config.image_data_path / PortalityMappingComponent.dir_name / "lobule_droplets.csv", index=False)
 
     return portality_droplet_df

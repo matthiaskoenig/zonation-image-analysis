@@ -8,4 +8,7 @@ SPECIES_COLORS = {"mouse": "#77AADD", "rat": "#EE8866", "human": "#44BB99"}
 SPECIES_COLORS_RGB = _species_colors_rgb(SPECIES_COLORS)
 
 
-
+def map_to_group(species, diet):
+    if species in ["mouse", "rat"]:
+        return f"{species} ({diet}W HDF)"
+    return species

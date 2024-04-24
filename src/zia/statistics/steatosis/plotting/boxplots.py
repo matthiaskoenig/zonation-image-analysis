@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 from scipy.stats import gaussian_kde
 
+from zia.statistics.steatosis.utils import map_to_group
 from zia.statistics.utils.data_provider import SlideStatsProvider, capitalize
 from zia.statistics.lobulus_geometry.plotting.plot_significance import plot_significance
 import seaborn as sbn
@@ -181,10 +182,6 @@ def box_plot_subject_comparison(species_df: pd.DataFrame,
         plt.show()
 
 
-def map_to_group(species, diet):
-    if species in ["mouse", "rat"]:
-        return f"{species} ({diet}W HDF)"
-    return species
 
 
 def box_plot_species_comparison(df: pd.DataFrame,

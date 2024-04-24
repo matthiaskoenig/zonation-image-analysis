@@ -199,10 +199,9 @@ def analyse_protein_expression_for_lobule(protein_array: np.ndarray, foreground_
         dist_central = cv2.distanceTransform(mask_central_distance.astype(np.uint8), distanceType=cv2.DIST_L2, maskSize=5)
 
     if np.all(mask_portal_distance):
-        dist_portal = cv2.distanceTransform(np.zeros_like(mask_portal_distance, dtype=np.uint8), distanceType=cv2.DIST_L2, maskSize=5)
-    else:
         dist_portal = np.zeros_like(mask_portal_distance, dtype=np.float32)
-
+    else:
+        dist_portal = cv2.distanceTransform(mask_portal_distance.astype(np.uint8), distanceType=cv2.DIST_L2, maskSize=5)
 
     # plot_pic(dist_central, "central dist")
     # plot_pic(dist_portal, "portal dist")
@@ -245,7 +244,6 @@ def analyse_protein_expression_for_lobule(protein_array: np.ndarray, foreground_
 
     d_portal = dist_portal[mask] * factor
     pv_dist = dist(d_portal, d_central)
-
 
     positions = np.argwhere(mask)
     height = positions[:, 0] + miny
