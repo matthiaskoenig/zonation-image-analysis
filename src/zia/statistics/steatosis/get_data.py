@@ -9,11 +9,13 @@ from zia.pipeline.pipeline_components.roi_extraction_component import RoiExtract
 from zia.statistics.lobulus_geometry.species_comparison import plot_species_comparison
 from image_utils.io.tiffile import read_ndpi
 
+from zia.statistics.steatosis.utils import map_to_group
+
 project_config = get_project_config("steatosis")
 
 steatosis_stats_path = project_config.image_data_path / "SteatosisStats"
 
-diet = {
+DIET = {
     "FLR-167": "2",
     "FLR-168": "2",
     "FLR-169": "2",
@@ -71,10 +73,14 @@ def get_steatosis_stats() -> pd.DataFrame:
             df["species"] = species
 
             if species in ["mouse", "rat"]:
-                df["diet"] = diet[subject]
+                df["diet"] = DIET[subject]
 
             dfs.append(df)
     return pd.concat(dfs, ignore_index=True)
+
+
+def map_diet_on_df(df: pd.DataFrame) -> None:
+    df["group"] = list(map(map_to_group, df['species'], df['diet']))
 
 
 def get_density_stats(px_size=0.2272) -> pd.DataFrame:
@@ -104,7 +110,7 @@ def get_density_stats(px_size=0.2272) -> pd.DataFrame:
                         roi=roi_dir.stem,
                         species=get_species_from_subject(subject_dir.stem),
                         area=area,
-                        diet=diet.get(subject_dir.stem)
+                        diet=DIET.get(subject_dir.stem)
                     )
                 )
 
@@ -117,35 +123,51 @@ def get_droplet_df(droplet_data: pd.DataFrame, overwrite: bool = True) -> pd.Dat
     if not overwrite:
         if result_df_path.exists():
             df = pd.read_csv(result_df_path)
-            df = df.astype(dict(diet="Int64"))
-
             return df
 
     portality_df = pd.read_csv(project_config.image_data_path / PortalityMappingComponent.dir_name / "lobule_distances.csv")
+
+
+    portality_df["diet"] = portality_df["subject"].map(DIET)
+    map_diet_on_df(portality_df)
 
     portality_df = portality_df[portality_df["protein"] == "he"]
 
     droplet_groupy = droplet_data.groupby(["subject", "roi"])
 
-    print(droplet_groupy.groups.keys())
+    # print(droplet_groupy.groups.keys())
     result_dfs = []
 
     for (subject, roi), pgroup_df in portality_df.groupby(["subject", "roi"]):
         droplet_group_df = droplet_groupy.get_group((subject, str(roi))).copy()
-
+        # print(subject, roi)
+        # print("portality_df", len(pgroup_df))
+        # print("droplet_df", len(droplet_group_df))
         droplet_group_df["y_idx"] = np.ceil((droplet_group_df["cy"] / 2 ** 7)).astype(int)
         droplet_group_df["x_idx"] = np.ceil((droplet_group_df["cx"] / 2 ** 7)).astype(int)
 
         grouped_by_idx = droplet_group_df.groupby(["x_idx", "y_idx"]).agg(mean_droplet_area=("area", "mean"), droplet_count=("area", "count"),
+                                                                          total_droplet_area=("area", "sum"),
                                                                           diet=("diet", lambda x: pd.unique(x)[0]))
 
         result_dfs.append(
             pd.merge(pgroup_df.copy(), grouped_by_idx, left_on=("height", "width"), right_on=("y_idx", "x_idx"), how="left")
         )
 
-    portality_droplet_df = pd.concat(result_dfs, ignore_index=True)
+        #print("merged_df", len(result_dfs[-1]))
 
-    portality_droplet_df = portality_droplet_df.astype(dict(diet="Int64"))
+
+    portality_droplet_df = pd.concat(result_dfs, ignore_index=True)
+    #print(portality_droplet_df.columns)
+
+
+    portality_droplet_df = portality_droplet_df.drop(columns="diet_y")
+    portality_droplet_df = portality_droplet_df.rename(columns={"diet_x": "diet"})
+
+    portality_droplet_df[['mean_droplet_area', 'droplet_count', 'total_droplet_area']] = portality_droplet_df[['mean_droplet_area', 'droplet_count', 'total_droplet_area']].fillna(0)
+    #print(len(portality_droplet_df))
+
+    # portality_droplet_df = portality_droplet_df.astype(dict(diet="Int64"))
 
     portality_droplet_df.to_csv(project_config.image_data_path / PortalityMappingComponent.dir_name / "lobule_droplets.csv", index=False)
 

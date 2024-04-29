@@ -3,7 +3,9 @@ import numpy as np
 import pandas as pd
 
 from zia.pipeline.common.project_config import get_project_config
+from zia.pipeline.pipeline_components.algorithm.segementation.lobulus_statistics import SlideStats
 from zia.pipeline.pipeline_components.portality_mapping_component import PortalityMappingComponent
+from zia.pipeline.pipeline_components.segementation_component import SegmentationComponent
 from zia.statistics.lobulus_geometry.testing import run_all_tests
 from zia.statistics.steatosis.get_data import get_steatosis_stats, get_density_stats, get_droplet_df
 from zia.statistics.steatosis.plot_portality_density import plot_droplet_portality
@@ -47,27 +49,37 @@ plt.show()
 # portality_droplet_df.to_csv(project_config.image_data_path / PortalityMappingComponent.dir_name / "lobule_distances.csv", index=False)
 # run_all_tests(df, report_path_stats_steatosis_test, attributes, logs, False)
 
-for (roi, subject), group_df in portality_droplet_df.groupby(["roi", "subject"]):
+"""for (roi, subject), group_df in portality_droplet_df.groupby(["roi", "subject"]):
+    print(roi, subject)
     group_df = group_df.drop_duplicates(subset=["width", "height"])
 
-    #print(np.unique(group_df[['height', 'width']].values, return_counts=True))
-    heat_map_data = group_df.pivot(index="height", columns="width", values="droplet_count").to_numpy()
-    plt.imshow(heat_map_data, cmap=plt.get_cmap("hot"), interpolation="nearest")
-    plt.colorbar()
+    min_w, min_h = np.min(group_df["width"]), np.min(group_df["height"])
 
+    # print(np.unique(group_df[['height', 'width']].values, return_counts=True))
+    heat_map_data = group_df.pivot(index="height", columns="width", values="total_droplet_area").to_numpy()
+
+    fig, ax = plt.subplots()
+
+    ax.imshow(heat_map_data, cmap=plt.get_cmap("hot"), interpolation="nearest")
+    #plt.colorbar()
+
+    slidestats = SlideStats.load_from_file_system(project_config.image_data_path / SegmentationComponent.dir_name / subject / str(roi))
+
+    slidestats.plot_on_axis(ax, offset=(min_h, min_w))
+    ax.set_title(f"{subject}, {roi}")
     # Show plot
-    plt.show()
+    plt.show()"""
 
-plot_species_comparison(slide_stats_df=df,
-                        report_path=report_path_steatosis_boxplots,
-                        attributes=attributes,
-                        labels=labels,
-                        logs=logs,
-                        units=units)
-
-plot_species_comparison_density(slide_stats_df=df,
-                                wsi_df=wsi_df,
-                                report_path=report_path_steatosis_boxplots)
+# plot_species_comparison(slide_stats_df=df,
+#                         report_path=report_path_steatosis_boxplots,
+#                         attributes=attributes,
+#                         labels=labels,
+#                         logs=logs,
+#                         units=units)
+#
+# plot_species_comparison_density(slide_stats_df=df,
+#                                 wsi_df=wsi_df,
+#                                 report_path=report_path_steatosis_boxplots)
 
 group_order = []
 
