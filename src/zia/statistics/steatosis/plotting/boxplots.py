@@ -182,8 +182,6 @@ def box_plot_subject_comparison(species_df: pd.DataFrame,
         plt.show()
 
 
-
-
 def box_plot_species_comparison(df: pd.DataFrame,
                                 attribute: str,
                                 y_label: str,
@@ -194,11 +192,11 @@ def box_plot_species_comparison(df: pd.DataFrame,
                                 show_violins: bool = False,
                                 ax: plt.Axes = None,
                                 test_results=None,
-                                annotate_n=True
+                                annotate_n=True,
+                                annotate_group=True,
+                                anno_ax_size = 0.07
                                 ) -> None:
     data_colors = []
-
-    df["group"] = df.apply(lambda row: map_to_group(row['species'], row['diet']), axis=1)
 
     len_groups = len(pd.unique(df["group"]))
 
@@ -260,15 +258,12 @@ def box_plot_species_comparison(df: pd.DataFrame,
             for pcol in vplot["bodies"]:
                 pcol.set_facecolor(colors[sp] + (0.3,))
 
-        n_axes = in_ax.inset_axes((0, -0.07, 1, 0.07), transform=in_ax.transAxes)
-        gr_axes = in_ax.inset_axes((0, 1, 1, 0.07), transform=in_ax.transAxes)
-
         group_gb = sp_df.groupby("group")
-        for i, (group, group_df) in enumerate(group_gb):
-            diet = pd.unique(group_df["diet"])
 
-            if annotate_n:
+        if annotate_n:
+            n_axes = in_ax.inset_axes((0, -anno_ax_size, 1, anno_ax_size), transform=in_ax.transAxes)
 
+            for i, (group, group_df) in enumerate(group_gb):
                 n = len(group_df)
 
                 if n > 9999:
@@ -282,28 +277,31 @@ def box_plot_species_comparison(df: pd.DataFrame,
                             ha="center",
                             va="bottom",
                             fontsize=8)
+                n_axes.fill_betweenx(y=[0, 1], x1=i / n_sub_groups, x2=(i + 1) / n_sub_groups, color="white" if i % 2 == 0 else "whitesmoke")
+            n_axes.set_xlim(left=0, right=1)
+            n_axes.set_yticks([])
+            n_axes.set_xticks([0.5], [capitalize(sp)])
 
-                w = diet[0]
+
+
+        if annotate_group:
+            gr_axes = in_ax.inset_axes((0, 1, 1, anno_ax_size), transform=in_ax.transAxes)
+
+            for i, (group, group_df) in enumerate(group_gb):
+                diet = pd.unique(group_df["diet"])
+
+                w = f"{diet[0]}W" if not pd.isna(diet[0]) else "Control" if group == "control" else np.nan
                 if not pd.isna(w):
                     gr_axes.text((i + 1) / n_sub_groups - 1 / 2 * 1 / n_sub_groups,
-                                 0,
-                                 s=f"{w}W",
-                                 ha="center",
-                                 va="bottom",
-                                 fontsize=8)
+                                     0,
+                                     s=w,
+                                     ha="center",
+                                     va="bottom",
+                                     fontsize=8)
 
-                n_axes.fill_betweenx(y=[0, 1], x1=i / n_sub_groups, x2=(i + 1) / n_sub_groups, color="white" if i % 2 == 0 else "whitesmoke")
                 gr_axes.fill_betweenx(y=[0, 1], x1=i / n_sub_groups, x2=(i + 1) / n_sub_groups, color="white" if i % 2 == 0 else "whitesmoke")
-
-                # in_ax.fill_betweenx(y=[0, 1], x1=i / n_sub_groups, x2=(i + 1) / n_sub_groups, color="white" if i % 2 == 0 else "whitesmoke", transform=in_ax.transAxes)
-            n_axes.set_xlim(left=0, right=1)
             gr_axes.set_xlim(left=0, right=1)
-
-            # in_ax.set_xlim(left=0, right=1, transform=in_ax.transAxes)
-            n_axes.set_yticks([])
             gr_axes.set_yticks([])
-
-            n_axes.set_xticks([0.5], [capitalize(sp)])
             gr_axes.set_xticks([])
 
     mins = [in_ax.get_ylim()[0] for in_ax in in_axes]
@@ -345,7 +343,7 @@ def violin_plot(data_dict: Dict[str, pd.Series], ax: plt.Axes, log: bool = False
                  whishi=reverser(whishi))
         )
 
-        if log:
+        if show_violins:
             min_val = np.min(d)
             max_val = np.max(d)
             mean = np.mean(d)

@@ -14,8 +14,8 @@ def plot_droplet_portality(report_path: Path,
                            group_order: List[str],
                            colors: List[str],
                            level: int = 7):
-    y_labels = ["MS droplet density", "MS area fraction", "Mean droplet size"]
-    units = ["mm$^{-2}$", "%", "mm$^{2}$"]
+    y_labels = ["MS droplet density", "MS area fraction", "Mean droplet size", "Droplet area skew"]
+    units = ["mm$^{-2}$", "%", "µm$^{2}$", "-"]
 
     # colors = ["#77AADD", "#EE8866", "#DDDDDD", "#44BB99"]
 
@@ -41,85 +41,65 @@ def plot_droplet_portality(report_path: Path,
             print(subject)
             print("subject", len(subject_df))
             x = []
-            steatotic_fraction = []
             droplet_area = []
+            droplet_area_perc = []
+            droplet_area_std = []
             droplet_area_fraction = []
+            droplet_area_fraction_perc = []
+            droplet_area_fraction_std = []
             droplet_density = []
+            droplet_density_perc = []
+            droplet_density_std = []
+            droplet_area_skew = []
 
             for i in range(len(bins) - 1):
                 df_bin = subject_df[(subject_df["pv_dist"] > bins[i]) & (subject_df["pv_dist"] <= bins[i + 1])]
                 x.append((bins[i] + bins[i + 1]) / 2)
-                print("binned", len(df_bin))
 
                 st_bin = df_bin[df_bin["droplet_count"] > 0]
 
                 if len(st_bin) == 0:
-                    steatotic_fraction.append(np.nan)
-                    droplet_area.append(np.nan)
+                    droplet_area.append(np.nan)  #
+                    droplet_area_perc.append((np.nan, np.nan))
+                    droplet_area_std.append(np.nan)
                     droplet_area_fraction.append(np.nan)
+                    droplet_area_fraction_perc.append((np.nan, np.nan))
+                    droplet_area_fraction_std.append(np.nan)
                     droplet_density.append(np.nan)
+                    droplet_density_perc.append((np.nan, np.nan))
+                    droplet_density_std.append(np.nan)
+                    droplet_area_skew.append(np.nan)
 
                 else:
-                    print("st vs df", len(st_bin), len(df_bin))
-
-                    #steatotic_fraction.append(len(st_bin) / len(df_bin) * 100)
-
-                    # df_bin = df_bin[df_bin["droplet_count"] > 0]
-
-                    droplet_area.append((st_bin["total_droplet_area"]/st_bin["droplet_count"]).mean())
-
+                    droplet_area.append((st_bin["total_droplet_area"] / st_bin["droplet_count"]).mean())
+                    droplet_area_perc.append(np.percentile(st_bin["total_droplet_area"] / st_bin["droplet_count"], [25, 75]))
+                    droplet_area_std.append((st_bin["total_droplet_area"] / st_bin["droplet_count"]).std())
+                    droplet_area_skew.append((st_bin["total_droplet_area"] / st_bin["droplet_count"]).skew())
                     droplet_area_fraction.append(
                         df_bin["total_droplet_area"].mean() / ((PIXEL_SIZE * 2 ** level) ** 2) * 100
                     )
 
+                    droplet_area_fraction_perc.append(
+                        np.percentile(df_bin["total_droplet_area"] / ((PIXEL_SIZE * 2 ** level) ** 2) * 100, [25, 75])
+                    )
+
+                    droplet_area_fraction_std.append(df_bin["total_droplet_area"].std() / ((PIXEL_SIZE * 2 ** level) ** 2) * 100)
+
                     droplet_density.append(
                         df_bin["droplet_count"].mean() / ((PIXEL_SIZE * 2 ** level) ** 2 / 1e6)  # µm² -> mm²
                     )
+                    droplet_density_perc.append(np.percentile(df_bin["droplet_count"] / ((PIXEL_SIZE * 2 ** level) ** 2 / 1e6), [25, 75]))
 
-            # d = (bins[1] - bins[0])
-
-            # # plot area medians
-            # ax: plt.Axes = axes[0, col]
-            # bp = ax.boxplot(x=droplet_area, positions=x, widths=d, patch_artist=True, showfliers=False,
-            #                 whis=(5, 95))
-            #
-            # ax.plot(x, droplet_area_medians,
-            #         marker="o",
-            #         markerfacecolor=colors[col],
-            #         markeredgecolor="black",
-            #         linewidth=1,
-            #         markersize=4,
-            #         zorder=10,
-            #         color="black")
-            #
-            # for box in bp["boxes"]:
-            #     box.set(facecolor=colors[col], linewidth=0.5)
-            # for box in bp["medians"]:
-            #     box.set(color="None", linewidth=0)
-            # for box in bp["caps"]:
-            #     box.set(linewidth=0.5)
-            # for box in bp["whiskers"]:
-            #     box.set(linewidth=0.5)
-            #
-            # lobule_count = len(group_df.groupby(["subject", "roi", "lobule"]))
-            #
-            # ax.text(x=0.02, y=0.98, s=f"n={lobule_count}", fontsize=10, ha="left", va="top", transform=ax.transAxes)
-            #
-            # ax.set_xticks([])
-            #
-            # # plot droplet density
-            # ax: plt.Axes = axes[0, col]
-            #
-            # ax.plot(x, steatotic_fraction,
-            #         marker="o",
-            #         markerfacecolor=colors[col],
-            #         markeredgecolor="black",
-            #         linewidth=1,
-            #         markersize=4,
-            #         zorder=10,
-            #         color="black")
+                    droplet_density_std.append(df_bin["droplet_count"].std() / ((PIXEL_SIZE * 2 ** level) ** 2 / 1e6))
 
             ax: plt.Axes = axes[0, col]
+
+            print(droplet_density_perc)
+
+            min_y = [x[0] for x in droplet_density_perc]
+            max_y = [x[1] for x in droplet_density_perc]
+
+            print(min_y, max_y)
 
             ax.plot(x, droplet_density,
                     marker="o",
@@ -130,8 +110,15 @@ def plot_droplet_portality(report_path: Path,
                     zorder=10,
                     color="black")
 
+            ax.fill_between(x,np.array(droplet_density) - np.array(droplet_density_std),
+                            np.array(droplet_density) + np.array(droplet_density_std),
+                            alpha=0.2, color=colors[col])
+
             # plot
             ax: plt.Axes = axes[1, col]
+
+            min_y = [x[0] for x in droplet_area_fraction_perc]
+            max_y = [x[1] for x in droplet_area_fraction_perc]
 
             ax.plot(x, droplet_area_fraction,
                     marker="o",
@@ -141,8 +128,14 @@ def plot_droplet_portality(report_path: Path,
                     markersize=4,
                     zorder=10,
                     color="black")
+            ax.fill_between(x, np.array(droplet_area_fraction) - np.array(droplet_area_fraction_std),
+                            np.array(droplet_area_fraction) + np.array(droplet_area_fraction_std),
+                            alpha=0.2, color=colors[col])
 
             ax: plt.Axes = axes[2, col]
+
+            min_y = [x[0] for x in droplet_area_perc]
+            max_y = [x[1] for x in droplet_area_perc]
 
             ax.plot(x, droplet_area,
                     marker="o",
@@ -152,6 +145,21 @@ def plot_droplet_portality(report_path: Path,
                     markersize=4,
                     zorder=10,
                     color="black")
+            ax.fill_between(x, np.array(droplet_area) - np.array(droplet_area_std),
+                            np.array(droplet_area) + np.array(droplet_area_std), alpha=0.2, color=colors[col])
+
+            ax: plt.Axes = axes[3, col]
+
+
+            ax.plot(x, droplet_area_skew,
+                    marker="o",
+                    markerfacecolor=colors[col],
+                    markeredgecolor="black",
+                    linewidth=1,
+                    markersize=4,
+                    zorder=10,
+                    color="black")
+            #ax.fill_between(x, min_y, max_y, alpha=0.2, color=colors[col])
 
     fig: plt.Figure
     fig.supxlabel("Portality (-)", fontsize=14)
