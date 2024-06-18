@@ -31,10 +31,10 @@ def plot_species_comparison_gradient(report_path:Path,
     steatosis_portality_df["diet"] = steatosis_portality_df["subject"].map(DIET)
     map_diet_on_df(steatosis_portality_df)
 
-    distance_df = pd.concat([control_portality_df, steatosis_portality_df])
+    distance_df_all = pd.concat([control_portality_df, steatosis_portality_df])
 
-    for species in ["mouse", "rat", "human"]:
-        distance_df = distance_df[distance_df["species"] == species]
+    for species, color in zip(["mouse", "rat", "human"], colors):
+        distance_df = distance_df_all[distance_df_all["species"] == species]
 
         group_gb = distance_df.groupby("group")
 
@@ -96,8 +96,8 @@ def plot_species_comparison_gradient(report_path:Path,
 
         # plot all species per protein
         for i in range(len(protein_order)):
-            for (x, medians), c in zip(medians_array[i, :], colors):
-                axes[i, -1].plot(x, medians, marker="o", color=c, markeredgecolor="black",
+            for x, medians in medians_array[i, :]:
+                axes[i, -1].plot(x, medians, marker="o", color=color, markeredgecolor="black",
                                  markersize=4)
 
         # plot all proteins per group
@@ -136,7 +136,7 @@ def plot_species_comparison_gradient(report_path:Path,
             ax.set_ylabel(protein, fontsize=14, fontweight="bold")
             ax.yaxis.set_label_position("right")
 
-        for species, ax in zip(group_gb, axes[0, :].flatten()):
+        for species, ax in zip(group_gb.groups.keys() , axes[0, :].flatten()):
             ax.set_title(capitalize(species), fontsize=14, fontweight="bold")
 
         axes[-2, -1].xaxis.set_ticks([0, 1], labels=["PP", "PV"])
