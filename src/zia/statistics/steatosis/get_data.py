@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 
 from zia.oven.annotations.workflow_visualizations.util.image_plotting import plot_pic
-from zia.pipeline.common.project_config import get_project_config
+from zia.pipeline.common.project_config import get_project_config, Configuration
 from zia.pipeline.pipeline_components.portality_mapping_component import PortalityMappingComponent
 from zia.pipeline.pipeline_components.roi_extraction_component import RoiExtractionComponent
 from zia.statistics.lobulus_geometry.species_comparison import plot_species_comparison
@@ -117,16 +117,20 @@ def get_density_stats(px_size=0.2272) -> pd.DataFrame:
     return pd.DataFrame(data_points)
 
 
-def get_droplet_df(droplet_data: pd.DataFrame, overwrite: bool = True) -> pd.DataFrame:
+def load_distance_df(project_config: Configuration) -> pd.DataFrame:
+    p = project_config.image_data_path / PortalityMappingComponent.dir_name / "lobule_distances.csv"
+    if not p.exists():
+        raise FileNotFoundError("The Lobule Portality data frame does not exist.")
+
+    return pd.read_csv(p, index_col=False)
+
+def get_droplet_df(droplet_data: pd.DataFrame, portality_df: pd.DataFrame, overwrite: bool = True) -> pd.DataFrame:
     result_df_path = project_config.image_data_path / PortalityMappingComponent.dir_name / "lobule_droplets.csv"
 
     if not overwrite:
         if result_df_path.exists():
             df = pd.read_csv(result_df_path)
             return df
-
-    portality_df = pd.read_csv(project_config.image_data_path / PortalityMappingComponent.dir_name / "lobule_distances.csv")
-
 
     portality_df["diet"] = portality_df["subject"].map(DIET)
     map_diet_on_df(portality_df)

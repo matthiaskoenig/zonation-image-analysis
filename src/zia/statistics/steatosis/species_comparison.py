@@ -164,3 +164,4 @@ def plot_species_comparison_density(slide_stats_df: pd.DataFrame,
     plt.savefig(report_path / "species_comparison_density.svg", dpi=600)
 
     plt.show()
+
