@@ -74,7 +74,7 @@ def box_plot_roi_comparison(subject_df: pd.DataFrame,
                            medianprops=dict(color="black"),
                            patch_artist=True)
     else:
-        bplot = violin_plot(data_dict, ax)
+        bplot = violin_plot(data_dict.values(), ax)
 
     for patch in bplot['boxes']:
         patch.set_facecolor(color + (0.3,))
@@ -144,7 +144,7 @@ def box_plot_subject_comparison(species_df: pd.DataFrame,
                            medianprops=dict(color="black"),
                            patch_artist=True)
     else:
-        bplot = violin_plot(data_dict, ax)
+        bplot = violin_plot(data_dict.values(), ax)
 
     for patch in bplot['boxes']:
         patch.set_facecolor(color + (0.3,))
@@ -182,8 +182,6 @@ def box_plot_subject_comparison(species_df: pd.DataFrame,
         plt.show()
 
 
-
-
 def box_plot_species_comparison(df: pd.DataFrame,
                                 attribute: str,
                                 y_label: str,
@@ -194,11 +192,11 @@ def box_plot_species_comparison(df: pd.DataFrame,
                                 show_violins: bool = False,
                                 ax: plt.Axes = None,
                                 test_results=None,
-                                annotate_n=True
+                                annotate_n=True,
+                                annotate_group=True,
+                                anno_ax_size=0.07
                                 ) -> None:
     data_colors = []
-
-    df["group"] = df.apply(lambda row: map_to_group(row['species'], row['diet']), axis=1)
 
     len_groups = len(pd.unique(df["group"]))
 
@@ -251,7 +249,7 @@ def box_plot_species_comparison(df: pd.DataFrame,
         else:
             in_ax.tick_params(axis='x', which='both', length=0, width=0)
 
-        bplot, vplot = violin_plot(data_dict=data_dict, log=log, ax=in_ax, show_violins=show_violins)
+        bplot, vplot = violin_plot(data=data_dict.values(), log=log, ax=in_ax, show_violins=show_violins)
 
         for patch in bplot['boxes']:
             patch.set_facecolor(colors[sp] + (1 if vplot is not None else 0.3,))
@@ -260,15 +258,12 @@ def box_plot_species_comparison(df: pd.DataFrame,
             for pcol in vplot["bodies"]:
                 pcol.set_facecolor(colors[sp] + (0.3,))
 
-        n_axes = in_ax.inset_axes((0, -0.07, 1, 0.07), transform=in_ax.transAxes)
-        gr_axes = in_ax.inset_axes((0, 1, 1, 0.07), transform=in_ax.transAxes)
-
         group_gb = sp_df.groupby("group")
-        for i, (group, group_df) in enumerate(group_gb):
-            diet = pd.unique(group_df["diet"])
 
-            if annotate_n:
+        if annotate_n:
+            n_axes = in_ax.inset_axes((0, -anno_ax_size, 1, anno_ax_size), transform=in_ax.transAxes)
 
+            for i, (group, group_df) in enumerate(group_gb):
                 n = len(group_df)
 
                 if n > 9999:
@@ -282,28 +277,29 @@ def box_plot_species_comparison(df: pd.DataFrame,
                             ha="center",
                             va="bottom",
                             fontsize=8)
+                n_axes.fill_betweenx(y=[0, 1], x1=i / n_sub_groups, x2=(i + 1) / n_sub_groups, color="white" if i % 2 == 0 else "whitesmoke")
+            n_axes.set_xlim(left=0, right=1)
+            n_axes.set_yticks([])
+            n_axes.set_xticks([0.5], [capitalize(sp)])
 
-                w = diet[0]
+        if annotate_group:
+            gr_axes = in_ax.inset_axes((0, 1, 1, anno_ax_size), transform=in_ax.transAxes)
+
+            for i, (group, group_df) in enumerate(group_gb):
+                diet = pd.unique(group_df["diet"])
+
+                w = f"{diet[0]}W" if not pd.isna(diet[0]) else "Control" if group == "control" else np.nan
                 if not pd.isna(w):
                     gr_axes.text((i + 1) / n_sub_groups - 1 / 2 * 1 / n_sub_groups,
                                  0,
-                                 s=f"{w}W",
+                                 s=w,
                                  ha="center",
                                  va="bottom",
                                  fontsize=8)
 
-                n_axes.fill_betweenx(y=[0, 1], x1=i / n_sub_groups, x2=(i + 1) / n_sub_groups, color="white" if i % 2 == 0 else "whitesmoke")
                 gr_axes.fill_betweenx(y=[0, 1], x1=i / n_sub_groups, x2=(i + 1) / n_sub_groups, color="white" if i % 2 == 0 else "whitesmoke")
-
-                # in_ax.fill_betweenx(y=[0, 1], x1=i / n_sub_groups, x2=(i + 1) / n_sub_groups, color="white" if i % 2 == 0 else "whitesmoke", transform=in_ax.transAxes)
-            n_axes.set_xlim(left=0, right=1)
             gr_axes.set_xlim(left=0, right=1)
-
-            # in_ax.set_xlim(left=0, right=1, transform=in_ax.transAxes)
-            n_axes.set_yticks([])
             gr_axes.set_yticks([])
-
-            n_axes.set_xticks([0.5], [capitalize(sp)])
             gr_axes.set_xticks([])
 
     mins = [in_ax.get_ylim()[0] for in_ax in in_axes]
@@ -325,17 +321,25 @@ def adjacent_values(vals, q1, q3):
     return lower_adjacent_value, upper_adjacent_value
 
 
-def violin_plot(data_dict: Dict[str, pd.Series], ax: plt.Axes, log: bool = False, show_violins=True) -> Tuple[dict, Optional[dict]]:
+def violin_plot(data: List[pd.Series], ax: plt.Axes, log: bool = False, show_violins=True,
+                positions: List[float] = None,
+                widths: float = None,
+                whis=None,
+                ) -> Tuple[dict, Optional[dict]]:
     transformer = lambda x: np.log(x) if log else x
     reverser = lambda x: np.exp(x) if log else x
 
     bxpstats = []
     vpstats = []
 
-    for d in data_dict.values():
+    for d in data:
         d = transformer(d)
         q1, median, q3 = np.percentile(d, [25, 50, 75])
-        whislo, whishi = adjacent_values(sorted(d.values), q1, q3)
+
+        if type(whis) is tuple:
+            whislo, whishi = np.percentile(d.values, whis)
+        else:
+            whislo, whishi = adjacent_values(sorted(d.values), q1, q3)
 
         bxpstats.append(
             dict(med=reverser(median),
@@ -345,7 +349,7 @@ def violin_plot(data_dict: Dict[str, pd.Series], ax: plt.Axes, log: bool = False
                  whishi=reverser(whishi))
         )
 
-        if log:
+        if show_violins:
             min_val = np.min(d)
             max_val = np.max(d)
             mean = np.mean(d)
@@ -366,17 +370,22 @@ def violin_plot(data_dict: Dict[str, pd.Series], ax: plt.Axes, log: bool = False
 
     if show_violins:
         violin = ax.violin(vpstats,
+                           positions=positions,
                            widths=0.8, showmeans=False,
                            showextrema=False, showmedians=False)
     else:
         violin = None
 
+    if widths is None:
+        widths = 0.3 if show_violins else 0.66
+
     bplot = ax.bxp(bxpstats,
+                   positions=positions,
                    showfliers=False,
                    showcaps=False,
-                   widths=0.3 if show_violins else 0.66,
+                   widths=widths,
                    medianprops=dict(color="white" if show_violins else "black"),
-                   patch_artist=True
+                   patch_artist=True,
                    )
 
     if log:
