@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import List
 
-from zia.pipeline.file_management.file_management import SlideFileManager
+from image_utils.io.file_management import SlideFileManager
 from zia.pipeline.common.project_config import Configuration
 from zia.log import get_logger
 

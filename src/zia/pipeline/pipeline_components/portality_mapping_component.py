@@ -9,11 +9,10 @@ from shapely import Geometry, Polygon, LineString, Point, GeometryCollection
 from shapely.ops import transform
 
 from zia.log import get_logger
-from zia.oven.annotations.workflow_visualizations.util.image_plotting import plot_pic
 from zia.pipeline.common.geometry_utils import GeometryDraw, off_set_geometry
 from zia.pipeline.common.project_config import Configuration
 from zia.pipeline.common.resolution_levels import PyramidalLevel
-from zia.pipeline.file_management.file_management import SlideFileManager
+from image_utils.io.file_management import SlideFileManager
 from zia.pipeline.pipeline_components.algorithm.segementation.lobulus_statistics import SlideStats, LobuleStatistics
 from zia.pipeline.pipeline_components.pipeline import IPipelineComponent
 from zia.pipeline.pipeline_components.segementation_component import SegmentationComponent

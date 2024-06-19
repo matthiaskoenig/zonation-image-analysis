@@ -5,12 +5,12 @@ import cv2
 
 from zia.log import get_logger
 from zia.pipeline.common.resolution_levels import PyramidalLevel
-from zia.pipeline.file_management.file_management import SlideFileManager, Slide
+from image_utils.io.file_management import SlideFileManager, Slide
 from zia.pipeline.pipeline_components.pipeline import IPipelineComponent
 from zia.pipeline.pipeline_components.stain_separation_component import Stain, StainSeparationComponent
 from zia.pipeline.common.project_config import Configuration
 from zia.pipeline.pipeline_components.algorithm.segementation.clustering import run_skeletize_image
-from zia.pipeline.pipeline_components.algorithm.segementation.filtering import SteatosisFilter, ControlFilter
+from zia.pipeline.pipeline_components.algorithm.segementation.filtering import  ControlFilter
 from zia.pipeline.pipeline_components.algorithm.segementation.get_segments import segment_thinned_image
 from zia.pipeline.pipeline_components.algorithm.segementation.load_image_stack import load_image_stack_from_zarr
 from zia.pipeline.pipeline_components.algorithm.segementation.lobulus_statistics import SlideStats

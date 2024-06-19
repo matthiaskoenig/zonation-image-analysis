@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import List
 
-from zia.pipeline.file_management.file_management import SlideFileManager
+from image_utils.io.file_management import SlideFileManager
 from zia.pipeline.pipeline_components.pipeline import IPipelineComponent
 from zia.pipeline.common.project_config import Configuration
 from zia.pipeline.pipeline_components.roi_extraction_component import RoiExtractionComponent

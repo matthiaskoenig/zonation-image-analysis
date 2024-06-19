@@ -5,7 +5,7 @@ import cv2
 
 from zia.log import get_logger
 from zia.pipeline.common.resolution_levels import PyramidalLevel
-from zia.pipeline.file_management.file_management import SlideFileManager, Slide
+from image_utils.io.file_management import SlideFileManager, Slide
 from zia.pipeline.pipeline_components.pipeline import IPipelineComponent
 from zia.pipeline.pipeline_components.stain_separation_component import Stain, StainSeparationComponent
 from zia.pipeline.common.project_config import Configuration

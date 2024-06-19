@@ -4,16 +4,11 @@ import time
 
 import numpy as np
 
-from zia.pipeline.file_management.file_management import SlideFileManager
+from image_utils.io.file_management import SlideFileManager
 from zia.pipeline.pipeline_components.pipeline import Pipeline
 from zia.pipeline.common.project_config import get_project_config
 from zia.pipeline.pipeline_components.portality_mapping_component import PortalityMappingComponent
-from zia.pipeline.pipeline_components.roi_extraction_component import RoiExtractionComponent
 from zia.log import get_logger
-from zia.pipeline.pipeline_components.roi_registration_component import SlideRegistrationComponent
-from zia.pipeline.pipeline_components.segementation_component import SegmentationComponent
-from zia.pipeline.pipeline_components.stain_separation_component import StainSeparationComponent, Stain
-from zia.pipeline.pipeline_components.steatosis_segmentation_component import SegmentationComponentSteatosis
 
 logger = get_logger(__name__)
 

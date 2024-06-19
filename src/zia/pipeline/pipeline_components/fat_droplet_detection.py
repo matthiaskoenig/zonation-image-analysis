@@ -1,9 +1,9 @@
 from pathlib import Path
-from typing import List, Dict
+from typing import  Dict
 
 from zia.io.wsi_tifffile import read_ndpi
 from zia.pipeline.common.project_config import Configuration
-from zia.pipeline.file_management.file_management import SlideFileManager, Slide
+from image_utils.io.file_management import SlideFileManager, Slide
 from zia.pipeline.pipeline_components.algorithm.droplet_detection.droplet_detection import detect_droplets
 from zia.pipeline.pipeline_components.pipeline import IPipelineComponent
 from zia.pipeline.pipeline_components.roi_extraction_component import RoiExtractionComponent

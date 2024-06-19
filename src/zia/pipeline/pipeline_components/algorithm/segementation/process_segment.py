@@ -1,13 +1,10 @@
-import pickle
-from pathlib import Path
+
 from typing import List, Tuple, Union
 
 import shapely
 from shapely import LineString, GeometryCollection, Polygon, make_valid, polygonize_full, affinity, Geometry
 
 from zia.pipeline.common.resolution_levels import PyramidalLevel
-from zia.pipeline.file_management.file_management import Slide
-from zia.pipeline.pipeline_components.algorithm.segementation.get_segments import LineSegmentsFinder
 from zia.pipeline.pipeline_components.algorithm.segementation.lobulus_statistics import LobuleStatistics, SlideStats
 
 

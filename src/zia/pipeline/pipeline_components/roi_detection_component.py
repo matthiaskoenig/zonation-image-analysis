@@ -14,7 +14,7 @@ from zia.pipeline.common.annotations import Annotation, AnnotationParser, Annota
 from zia.pipeline.common.project_config import Configuration
 from zia.pipeline.common.resolution_levels import PyramidalLevel
 from zia.pipeline.common.roi import Roi
-from zia.pipeline.file_management.file_management import Slide, SlideFileManager
+from image_utils.io.file_management import Slide, SlideFileManager
 from zia.pipeline.pipeline_components.pipeline import IPipelineComponent
 
 logger = get_logger(__name__)

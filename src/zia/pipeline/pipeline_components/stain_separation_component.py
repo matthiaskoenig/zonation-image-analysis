@@ -19,7 +19,7 @@ from zia.io.zarr_utils import write_slice_to_zarr_location
 from zia.log import get_logger
 from zia.pipeline.common.resolution_levels import PyramidalLevel
 from zia.pipeline.common.slicing import get_tile_slices
-from zia.pipeline.file_management.file_management import Slide, SlideFileManager
+from image_utils.io.file_management import Slide, SlideFileManager
 from zia.pipeline.pipeline_components.algorithm.stain_separation.macenko import \
     calculate_stain_matrix, \
     deconvolve_image, find_max_c, create_single_channel_pixels
