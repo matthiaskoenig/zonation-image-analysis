@@ -6,7 +6,7 @@ from matplotlib import pyplot as plt
 from matplotlib.lines import Line2D
 
 from zia.statistics.steatosis.get_data import DIET
-from zia.statistics.utils.data_provider import SlideStatsProvider, capitalize
+from zia.statistics.utils.data_provider import capitalize
 
 
 def map_to_group(species, diet) -> pd.DataFrame:
@@ -16,16 +16,21 @@ def map_to_group(species, diet) -> pd.DataFrame:
 def map_diet_on_df(df: pd.DataFrame) -> None:
     df["group"] = list(map(map_to_group, df['species'], df['diet']))
 
+
 def plot_species_comparison_gradient(report_path:Path,
                                      steatosis_portality_df: pd.DataFrame,
                                      control_portality_df: pd.DataFrame
                                      ):
     plt.style.use("tableau-colorblind10")
-
+    group_order = {
+        "human": ["Control", "Steatosis"],
+        "mouse": ["Control", "2W HDF", "4W HDF"],
+        "rat": ["Control", "2W HDF", "4W HDF"],
+    }
     protein_order = ["HE", "GS", "CYP1A2", "CYP2D6", "CYP2E1", "CYP3A4"]
-    species_order = SlideStatsProvider.species_order
-    colors = ["#77AADD", "#EE8866", "#DDDDDD", "#44BB99"]
 
+    colors = ["#77AADD", "#EE8866", "#44BB99"]
+    markers = ["o", "P", "^"]
     control_portality_df["group"] = "Control"
 
     steatosis_portality_df["diet"] = steatosis_portality_df["subject"].map(DIET)
@@ -39,11 +44,13 @@ def plot_species_comparison_gradient(report_path:Path,
         group_gb = distance_df.groupby("group")
 
         fig, axes = plt.subplots(nrows=len(protein_order) + 1, ncols=len(group_gb) + 1, dpi=300,
-                                 figsize=(len(group_gb) * 2, len(protein_order) * 1.85),
+                                 figsize=(4 * 2, len(protein_order) * 1.85),
                                  layout="constrained")
 
         medians_array = np.empty(shape=(len(protein_order), len(group_gb)), dtype=object)
-        for col, group in enumerate(group_gb.groups.keys()):
+
+        for col, group in enumerate(group_order[species]):
+
             species_df = group_gb.get_group(group)
             protein_gb = species_df.groupby("protein")
 
@@ -67,12 +74,11 @@ def plot_species_comparison_gradient(report_path:Path,
                 medians_array[row, col] = (x, medians)
                 d = (bins[1] - bins[0])
 
-                bp = ax.boxplot(x=y, positions=x, widths=d, patch_artist=True, showfliers=False,
-                                whis=(5, 95))
+                bp = ax.boxplot(x=y, positions=x, widths=d, patch_artist=True, showfliers=False, whis=(5, 95))
 
                 ax.plot(x, medians,
-                        marker="o",
-                        markerfacecolor=colors[col],
+                        marker=markers[col],
+                        markerfacecolor=color,
                         markeredgecolor="black",
                         linewidth=1,
                         markersize=4,
@@ -80,7 +86,7 @@ def plot_species_comparison_gradient(report_path:Path,
                         color="black")
 
                 for box in bp["boxes"]:
-                    box.set(facecolor=colors[col], linewidth=0.5)
+                    box.set(facecolor=color, linewidth=0.5)
                 for box in bp["medians"]:
                     box.set(color="None", linewidth=0)
                 for box in bp["caps"]:
@@ -96,8 +102,8 @@ def plot_species_comparison_gradient(report_path:Path,
 
         # plot all species per protein
         for i in range(len(protein_order)):
-            for x, medians in medians_array[i, :]:
-                axes[i, -1].plot(x, medians, marker="o", color=color, markeredgecolor="black",
+            for k, (x, medians) in enumerate(medians_array[i, :]):
+                axes[i, -1].plot(x, medians, marker=markers[k], color=color, markeredgecolor="black",
                                  markersize=4)
 
         # plot all proteins per group
@@ -136,7 +142,7 @@ def plot_species_comparison_gradient(report_path:Path,
             ax.set_ylabel(protein, fontsize=14, fontweight="bold")
             ax.yaxis.set_label_position("right")
 
-        for species, ax in zip(group_gb.groups.keys() , axes[0, :].flatten()):
+        for species, ax in zip(group_order[species] , axes[0, :].flatten()):
             ax.set_title(capitalize(species), fontsize=14, fontweight="bold")
 
         axes[-2, -1].xaxis.set_ticks([0, 1], labels=["PP", "PV"])

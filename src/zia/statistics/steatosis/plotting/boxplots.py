@@ -232,6 +232,7 @@ def box_plot_species_comparison(df: pd.DataFrame,
 
         width = n_sub_groups / len_groups
         in_ax = ax.inset_axes((x, 0, width, 1), transform=ax.transAxes)
+        in_axes.append(in_ax)
         x += width
 
         if i != 0:
@@ -252,7 +253,7 @@ def box_plot_species_comparison(df: pd.DataFrame,
         bplot, vplot = violin_plot(data=data_dict.values(), log=log, ax=in_ax, show_violins=show_violins)
 
         for patch in bplot['boxes']:
-            patch.set_facecolor(colors[sp] + (1 if vplot is not None else 0.3,))
+            patch.set_facecolor(colors[sp])
 
         if vplot is not None:
             for pcol in vplot["bodies"]:
@@ -288,7 +289,7 @@ def box_plot_species_comparison(df: pd.DataFrame,
             for i, (group, group_df) in enumerate(group_gb):
                 diet = pd.unique(group_df["diet"])
 
-                w = f"{diet[0]}W" if not pd.isna(diet[0]) else "Control" if group == "control" else np.nan
+                w = f"{diet[0]}W" if not pd.isna(diet[0]) else "Control" if group == "control" else "Stea."
                 if not pd.isna(w):
                     gr_axes.text((i + 1) / n_sub_groups - 1 / 2 * 1 / n_sub_groups,
                                  0,

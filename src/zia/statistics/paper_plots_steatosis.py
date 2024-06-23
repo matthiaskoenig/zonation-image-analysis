@@ -88,16 +88,16 @@ slide_stats_df_control = slide_stat_provider_control.get_slide_stats_df()
 #     # Show plot
 #     plt.show()
 
-# plot_species_droplet_comparison(droplet_stats_df=df,
-#                                 report_path=report_path_steatosis_boxplots,
-#                                 attributes=steatosis_attributes,
-#                                 labels=steatosis_labels,
-#                                 logs=steatosis_logs,
-#                                 units=steatosis_units)
+plot_species_droplet_comparison(droplet_stats_df=df,
+                                report_path=report_path_steatosis_boxplots,
+                                attributes=steatosis_attributes,
+                                labels=steatosis_labels,
+                                logs=steatosis_logs,
+                                units=steatosis_units)
 #
-# plot_species_comparison_density(slide_stats_df=df,
-#                                 wsi_df=wsi_df,
-#                                 report_path=report_path_steatosis_boxplots)
+plot_species_comparison_density(slide_stats_df=df,
+                                wsi_df=wsi_df,
+                                report_path=report_path_steatosis_boxplots)
 
 group_order = []
 
