@@ -13,3 +13,17 @@ def map_to_group(species, diet):
     if species in ["mouse", "rat"]:
         return f"{species} ({diet}W HDF)"
     return species
+
+def create_data_dict(attributes, data_frame):
+    species_gb = data_frame.groupby("species")
+    species_dict = {}  # dict of species, groups, attributes
+    for i, sp in enumerate(SPECIES_ORDER):
+        sp_df = species_gb.get_group(sp)
+        group_dict = {}
+        for gr, gr_df in sp_df.groupby("group"):
+            attr_dict = {}
+            for attr in attributes:
+                attr_dict[attr] = gr_df[attr]
+            group_dict[gr] = attr_dict
+        species_dict[sp] = group_dict
+    return species_dict

@@ -5,7 +5,7 @@ import pandas as pd
 from matplotlib import pyplot as plt
 from matplotlib.lines import Line2D
 
-from zia.statistics.steatosis.get_data import DIET
+from zia.statistics.steatosis.utils.get_data import DIET
 from zia.statistics.utils.data_provider import capitalize
 
 

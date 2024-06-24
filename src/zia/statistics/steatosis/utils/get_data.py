@@ -9,7 +9,7 @@ from zia.pipeline.pipeline_components.roi_extraction_component import RoiExtract
 from zia.statistics.lobulus_geometry.species_comparison import plot_species_comparison
 from image_utils.io.tiffile import read_ndpi
 
-from zia.statistics.steatosis.utils import map_to_group
+from zia.statistics.steatosis.utils.utils import map_to_group
 
 project_config = get_project_config("steatosis")
 

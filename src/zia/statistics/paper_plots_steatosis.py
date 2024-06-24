@@ -1,16 +1,12 @@
-import matplotlib.pyplot as plt
-import numpy as np
-
 from zia.pipeline.common.project_config import get_project_config
-from zia.pipeline.pipeline_components.algorithm.segementation.lobulus_statistics import SlideStats
 from zia.pipeline.pipeline_components.segementation_component import SegmentationComponent
 from zia.statistics.paper_plots_control import load_distance_df
-from zia.statistics.steatosis.get_data import get_steatosis_stats, get_density_stats, get_droplet_df
-from zia.statistics.steatosis.plot_portality_density import plot_droplet_portality
-from zia.statistics.steatosis.species_comparison import plot_species_droplet_comparison, plot_species_comparison_density, \
-    plot_species_lobuli_comparison
+from zia.statistics.steatosis.droplet_density_species_comparison import species_comparison_droplet_density
+from zia.statistics.steatosis.droplet_species_comparison import droplet_species_comparison
+from zia.statistics.steatosis.utils.get_data import get_steatosis_stats, get_density_stats, get_droplet_df
+from zia.statistics.steatosis.lobuli_species_comparison import species_lobuli_comparison
 from zia.statistics.steatosis.steatosis_gradient import plot_species_comparison_gradient
-from zia.statistics.steatosis.utils import SPECIES_ORDER, SPECIES_COLORS
+from zia.statistics.steatosis.utils.utils import SPECIES_ORDER, SPECIES_COLORS
 from zia.statistics.utils.data_provider import SlideStatsProvider
 
 project_config = get_project_config("steatosis")
@@ -88,16 +84,16 @@ slide_stats_df_control = slide_stat_provider_control.get_slide_stats_df()
 #     # Show plot
 #     plt.show()
 
-plot_species_droplet_comparison(droplet_stats_df=df,
-                                report_path=report_path_steatosis_boxplots,
-                                attributes=steatosis_attributes,
-                                labels=steatosis_labels,
-                                logs=steatosis_logs,
-                                units=steatosis_units)
+droplet_species_comparison(droplet_stats_df=df,
+                           report_path=report_path_steatosis_boxplots,
+                           attributes=steatosis_attributes,
+                           labels=steatosis_labels,
+                           logs=steatosis_logs,
+                           units=steatosis_units)
 #
-plot_species_comparison_density(slide_stats_df=df,
-                                wsi_df=wsi_df,
-                                report_path=report_path_steatosis_boxplots)
+species_comparison_droplet_density(slide_stats_df=df,
+                                   wsi_df=wsi_df,
+                                   report_path=report_path_steatosis_boxplots)
 
 group_order = []
 
@@ -122,13 +118,12 @@ for gr in SPECIES_ORDER:
 #                        group_order=group_order,
 #                        colors=colors)
 
-# plot_species_lobuli_comparison(report_path=report_path_steatosis_boxplots,
-#                                slide_stats_df_steatosis=slide_stats_df,
-#                                slide_stats_df_control=slide_stats_df_control,
-#                                attributes=lobuli_attributes,
-#                                logs=lobuli_logs,
-#                                labels=lobuli_labels,
-#                                units=lobuli_units)
+species_lobuli_comparison(report_path=report_path_steatosis_boxplots,
+                          slide_stats_df_steatosis=slide_stats_df,
+                          slide_stats_df_control=slide_stats_df_control,
+                          attributes=lobuli_attributes,
+                          logs=lobuli_logs,
+                          labels=lobuli_labels, units=lobuli_units)
 
 plot_species_comparison_gradient(report_path=report_path_steatosis_portality,
                                  control_portality_df=control_portality_df,

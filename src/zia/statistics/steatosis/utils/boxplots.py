@@ -1,4 +1,3 @@
-from collections.abc import Callable
 from pathlib import Path
 from typing import Dict, List, Tuple, Optional
 
@@ -7,10 +6,8 @@ import numpy as np
 import pandas as pd
 from scipy.stats import gaussian_kde
 
-from zia.statistics.steatosis.utils import map_to_group
-from zia.statistics.utils.data_provider import SlideStatsProvider, capitalize
 from zia.statistics.lobulus_geometry.plotting.plot_significance import plot_significance
-import seaborn as sbn
+from zia.statistics.utils.data_provider import capitalize
 
 
 def identity(x):
@@ -67,12 +64,15 @@ def box_plot_roi_comparison(subject_df: pd.DataFrame,
         fig.suptitle(str(roi))
 
     if not log:
-        bplot = ax.boxplot(list(data_dict.values()),
-                           showfliers=False,
-                           showcaps=False,
-                           widths=0.66,
-                           medianprops=dict(color="black"),
-                           patch_artist=True)
+        bplot = ax.boxplot(
+            list(data_dict.values()),
+            showfliers=False,
+            showcaps=False,
+            widths=0.66,
+            medianprops=dict(color="black"),
+            patch_artist=True
+        )
+
     else:
         bplot = violin_plot(data_dict.values(), ax)
 
@@ -182,28 +182,19 @@ def box_plot_subject_comparison(species_df: pd.DataFrame,
         plt.show()
 
 
-def box_plot_species_comparison(df: pd.DataFrame,
+def box_plot_species_comparison(data: Dict[str, Dict[str, Dict[str, pd.Series]]],
                                 attribute: str,
                                 y_label: str,
-                                species_order: List[str],
                                 colors: Dict[str, Tuple[float]],
                                 unit: str,
                                 log=False,
                                 show_violins: bool = False,
                                 ax: plt.Axes = None,
-                                test_results=None,
                                 annotate_n=True,
                                 annotate_group=True,
                                 anno_ax_size=0.07
                                 ) -> None:
-    data_colors = []
-
-    len_groups = len(pd.unique(df["group"]))
-
-    for g in pd.unique(df["group"]):
-        for species in species_order:
-            if species in g:
-                data_colors.append(colors[species])
+    len_groups = sum([len(x) for x in data.values()])
 
     if ax is None:
         fig, ax = plt.subplots(1, 1, dpi=600)
@@ -212,23 +203,13 @@ def box_plot_species_comparison(df: pd.DataFrame,
     ax.set_xticks([])
     ax.set_yticks([])
 
-    print(len(data_colors))
-
-    species_gb = df.groupby("species")
-
     x = 0
 
     in_axes = []
-    for i, sp in enumerate(species_order):
-
-        data_dict = {}
-        sp_df = species_gb.get_group(sp)
-
-        for gr, gr_df in sp_df.groupby("group"):
-            data_dict[gr] = gr_df[attribute]
+    for i, (sp, group_dict) in enumerate(data.items()):
 
         # sp_df = sp_df[sp_df[attribute] < sp_df['area'].quantile(0.995)]
-        n_sub_groups = len(data_dict)
+        n_sub_groups = len(group_dict)
 
         width = n_sub_groups / len_groups
         in_ax = ax.inset_axes((x, 0, width, 1), transform=ax.transAxes)
@@ -250,7 +231,7 @@ def box_plot_species_comparison(df: pd.DataFrame,
         else:
             in_ax.tick_params(axis='x', which='both', length=0, width=0)
 
-        bplot, vplot = violin_plot(data=data_dict.values(), log=log, ax=in_ax, show_violins=show_violins)
+        bplot, vplot = violin_plot(data=[attr_dict[attribute] for attr_dict in group_dict.values()], log=log, ax=in_ax, show_violins=show_violins)
 
         for patch in bplot['boxes']:
             patch.set_facecolor(colors[sp])
@@ -259,13 +240,11 @@ def box_plot_species_comparison(df: pd.DataFrame,
             for pcol in vplot["bodies"]:
                 pcol.set_facecolor(colors[sp] + (0.3,))
 
-        group_gb = sp_df.groupby("group")
-
         if annotate_n:
             n_axes = in_ax.inset_axes((0, -anno_ax_size, 1, anno_ax_size), transform=in_ax.transAxes)
 
-            for i, (group, group_df) in enumerate(group_gb):
-                n = len(group_df)
+            for i, (group, attr_dict) in enumerate(group_dict.items()):
+                n = len(attr_dict[attribute])
 
                 if n > 9999:
                     s_n = f"{round(n / 1000)}k"
@@ -286,17 +265,13 @@ def box_plot_species_comparison(df: pd.DataFrame,
         if annotate_group:
             gr_axes = in_ax.inset_axes((0, 1, 1, anno_ax_size), transform=in_ax.transAxes)
 
-            for i, (group, group_df) in enumerate(group_gb):
-                diet = pd.unique(group_df["diet"])
-
-                w = f"{diet[0]}W" if not pd.isna(diet[0]) else "Control" if group == "control" else "Stea."
-                if not pd.isna(w):
-                    gr_axes.text((i + 1) / n_sub_groups - 1 / 2 * 1 / n_sub_groups,
-                                 0,
-                                 s=w,
-                                 ha="center",
-                                 va="bottom",
-                                 fontsize=8)
+            for i, (group) in enumerate(group_dict.keys()):
+                gr_axes.text((i + 1) / n_sub_groups - 1 / 2 * 1 / n_sub_groups,
+                             0,
+                             s=group,
+                             ha="center",
+                             va="bottom",
+                             fontsize=8)
 
                 gr_axes.fill_betweenx(y=[0, 1], x1=i / n_sub_groups, x2=(i + 1) / n_sub_groups, color="white" if i % 2 == 0 else "whitesmoke")
             gr_axes.set_xlim(left=0, right=1)
@@ -322,7 +297,10 @@ def adjacent_values(vals, q1, q3):
     return lower_adjacent_value, upper_adjacent_value
 
 
-def violin_plot(data: List[pd.Series], ax: plt.Axes, log: bool = False, show_violins=True,
+def violin_plot(data: List[pd.Series],
+                ax: plt.Axes,
+                log: bool = False,
+                show_violins=True,
                 positions: List[float] = None,
                 widths: float = None,
                 whis=None,
