@@ -23,7 +23,7 @@ def calc_average_area_density(slide_stats_df: pd.DataFrame, area: float) -> floa
     return (slide_stats_df["area"].sum() / area) * 100
 
 
-def species_comparison_droplet_density(slide_stats_df: pd.DataFrame,
+def species_comparison_droplet_density(droplet_stats_df: pd.DataFrame,
                                        wsi_df: pd.DataFrame,
                                        report_path: Path):
     attributes = ["Average droplet density", "Droplet area fraction"]
@@ -31,7 +31,7 @@ def species_comparison_droplet_density(slide_stats_df: pd.DataFrame,
     units = ["mm$^{-1}$", "%"]
     logs = [False, False]
 
-    subject_roi_gb = slide_stats_df.groupby(["subject", "roi"])
+    subject_roi_gb = droplet_stats_df.groupby(["subject", "roi"])
 
     wsi_df["Average droplet density"] = wsi_df.apply(
         lambda row: calc_average_density(

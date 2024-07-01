@@ -1,4 +1,5 @@
 import cv2
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
@@ -100,9 +101,10 @@ def get_density_stats(px_size=0.2272) -> pd.DataFrame:
 
                 blur = cv2.GaussianBlur(image, (15, 15), 5)
 
-                _, th = cv2.threshold(blur, 200, 255, cv2.THRESH_BINARY)
+                _, th = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
 
-                area = np.count_nonzero(th == 0) * (px_size * 2 ** lowest_key) ** 2
+                # plt.imshow(th)
+                area = np.count_nonzero(th != 0) * (px_size * 2 ** lowest_key) ** 2
 
                 data_points.append(
                     dict(
@@ -123,6 +125,7 @@ def load_distance_df(project_config: Configuration) -> pd.DataFrame:
         raise FileNotFoundError("The Lobule Portality data frame does not exist.")
 
     return pd.read_csv(p, index_col=False)
+
 
 def get_droplet_df(droplet_data: pd.DataFrame, portality_df: pd.DataFrame, overwrite: bool = True) -> pd.DataFrame:
     result_df_path = project_config.image_data_path / PortalityMappingComponent.dir_name / "lobule_droplets.csv"
@@ -158,21 +161,20 @@ def get_droplet_df(droplet_data: pd.DataFrame, portality_df: pd.DataFrame, overw
             pd.merge(pgroup_df.copy(), grouped_by_idx, left_on=("height", "width"), right_on=("y_idx", "x_idx"), how="left")
         )
 
-        #print("merged_df", len(result_dfs[-1]))
-
+        # print("merged_df", len(result_dfs[-1]))
 
     portality_droplet_df = pd.concat(result_dfs, ignore_index=True)
-    #print(portality_droplet_df.columns)
-
+    # print(portality_droplet_df.columns)
 
     portality_droplet_df = portality_droplet_df.drop(columns="diet_y")
     portality_droplet_df = portality_droplet_df.rename(columns={"diet_x": "diet"})
 
-    portality_droplet_df[['mean_droplet_area', 'droplet_count', 'total_droplet_area']] = portality_droplet_df[['mean_droplet_area', 'droplet_count', 'total_droplet_area']].fillna(0)
-    #print(len(portality_droplet_df))
+    portality_droplet_df[['mean_droplet_area', 'droplet_count', 'total_droplet_area']] = portality_droplet_df[
+        ['mean_droplet_area', 'droplet_count', 'total_droplet_area']].fillna(0)
+    # print(len(portality_droplet_df))
 
     # portality_droplet_df = portality_droplet_df.astype(dict(diet="Int64"))
 
-    portality_droplet_df.to_csv(project_config.image_data_path / PortalityMappingComponent.dir_name / "lobule_droplets.csv", index=False)
+    portality_droplet_df.to_csv(result_df_path, index=False)
 
     return portality_droplet_df

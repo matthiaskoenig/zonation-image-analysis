@@ -3,6 +3,7 @@ from zia.pipeline.pipeline_components.segementation_component import Segmentatio
 from zia.statistics.paper_plots_control import load_distance_df
 from zia.statistics.steatosis.droplet_density_species_comparison import species_comparison_droplet_density
 from zia.statistics.steatosis.droplet_species_comparison import droplet_species_comparison
+from zia.statistics.steatosis.plot_portality_density import plot_droplet_portality
 from zia.statistics.steatosis.utils.get_data import get_steatosis_stats, get_density_stats, get_droplet_df
 from zia.statistics.steatosis.lobuli_species_comparison import species_lobuli_comparison
 from zia.statistics.steatosis.steatosis_gradient import plot_species_comparison_gradient
@@ -91,7 +92,7 @@ droplet_species_comparison(droplet_stats_df=df,
                            logs=steatosis_logs,
                            units=steatosis_units)
 #
-species_comparison_droplet_density(slide_stats_df=df,
+species_comparison_droplet_density(droplet_stats_df=df,
                                    wsi_df=wsi_df,
                                    report_path=report_path_steatosis_boxplots)
 
@@ -113,10 +114,10 @@ for gr in SPECIES_ORDER:
     else:
         colors.append(SPECIES_COLORS[gr])
 
-# plot_droplet_portality(report_path=report_path_steatosis_portality,
-#                        distance_df=portality_droplet_df,
-#                        group_order=group_order,
-#                        colors=colors)
+plot_droplet_portality(report_path=report_path_steatosis_portality,
+                       distance_df=portality_droplet_df,
+                       group_order=group_order,
+                       colors=colors)
 
 species_lobuli_comparison(report_path=report_path_steatosis_boxplots,
                           slide_stats_df_steatosis=slide_stats_df,
