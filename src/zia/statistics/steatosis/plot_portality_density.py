@@ -49,9 +49,10 @@ def plot_droplet_portality(report_path: Path,
         for i in range(len(bins) - 1):
             df_bin = group_df[(group_df["pv_dist"] > bins[i]) & (group_df["pv_dist"] <= bins[i + 1])]
             df_bin_non_zero = df_bin[df_bin["droplet_count"] > 0]
+
             x.append((bins[i] + bins[i + 1]) / 2)
             y_frames.append(df_bin_non_zero)
-            steatotis_fraction.append(len(df_bin_non_zero) / len(df_bin))
+            steatotis_fraction.append(df_bin["droplet_area_fraction"].mean())
 
         axes[0, col].plot(
             x, steatotis_fraction,
