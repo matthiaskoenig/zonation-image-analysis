@@ -1,13 +1,19 @@
 from pathlib import Path
-from typing import List
+from typing import List, Tuple
 
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
+from matplotlib.colors import LinearSegmentedColormap
 
 from zia.statistics.steatosis.utils.boxplots import violin_plot
 from zia.statistics.steatosis.utils.utils import map_to_group, PIXEL_SIZE
 from zia.statistics.utils.data_provider import capitalize
+from scipy.interpolate import interp1d
+
+
+def from_hex(color: str) -> Tuple[float, ...]:
+    return (tuple(int(color.strip("#")[i:i + 2], 16) / 255 for i in (0, 2, 4)))
 
 
 def plot_droplet_portality(report_path: Path,
@@ -19,14 +25,14 @@ def plot_droplet_portality(report_path: Path,
     attributes = ["droplet_area_fraction", "mean_droplet_area"]
     units = ["%", "%", "µm$^{2}$"]
 
-    distance_df["droplet_area_fraction"] = distance_df["total_droplet_area"] / ((PIXEL_SIZE * 2 ** level) ** 2)
+    distance_df["droplet_area_fraction"] = distance_df["total_droplet_area"] / ((PIXEL_SIZE * 2 ** level) ** 2) * 100
 
     # colors = ["#77AADD", "#EE8866", "#DDDDDD", "#44BB99"]
 
     group_gb = distance_df.groupby("group")
 
     fig, axes = plt.subplots(nrows=len(y_labels), ncols=len(group_order), dpi=300,
-                             figsize=(len(group_order) * 2, len(y_labels) * 2),
+                             figsize=(len(group_order) * 2, len(y_labels) * 2.5),
                              layout="constrained")
     print(group_gb.groups.keys())
     print(group_order)
@@ -44,31 +50,123 @@ def plot_droplet_portality(report_path: Path,
         d = bins[1] - bins[0]
 
         x = []
+        y_frames_non_zero = []
         y_frames = []
         steatotis_fraction = []
+
+        percentiles = [45, 40, 30, 20, 10]
+
+        bin_low = []
+        bin_high = []
+        median = []
+        means = []
         for i in range(len(bins) - 1):
             df_bin = group_df[(group_df["pv_dist"] > bins[i]) & (group_df["pv_dist"] <= bins[i + 1])]
             df_bin_non_zero = df_bin[df_bin["droplet_count"] > 0]
 
             x.append((bins[i] + bins[i + 1]) / 2)
-            y_frames.append(df_bin_non_zero)
+            y_frames_non_zero.append(df_bin_non_zero)
+            y_frames.append(df_bin)
             steatotis_fraction.append(df_bin["droplet_area_fraction"].mean())
 
+            lows = []
+            highs = []
+            for p in percentiles:
+                low, high = np.percentile(df_bin["droplet_area_fraction"], (50 - p, 50 + p))
+                lows.append(low)
+                highs.append(high)
+            median.append(np.percentile(df_bin["droplet_area_fraction"], 50))
+            means.append(np.mean(df_bin["droplet_area_fraction"]))
+
+            bin_low.append(lows)
+            bin_high.append(highs)
+
+        # # get the max value of all bins
+        # max_d = max([np.percentile(d, 95) for d in bin_data])
+        # min_d = min([np.percentile(d, 5) for d in bin_data])
+        #
+        # # create a array at which we can evaluate the percentile
+        #
+        # d_reads = np.linspace(min_d, max_d, 100)
+        #
+        # #
+        # p_reads = np.vstack([np.interp(d_reads, bin_d, bin_p) for bin_d, bin_p in zip(bin_data, bin_percentiles)]).T
+        # cmap_colors = [from_hex(colors[col]) + (1,), from_hex(colors[col]) + (0,)]
+        # cmap = LinearSegmentedColormap.from_list("whatever", cmap_colors)
+        x_ip = np.linspace(0, 1, 100)
+
+        position_low = []
+        max_val_low = []
+        position_high = []
+        max_val_high = []
+
+        for ip, p in enumerate(percentiles):
+            low_y = [p_vec[ip] for p_vec in bin_low]
+            high_y = [p_vec[ip] for p_vec in bin_high]
+
+            pos_low = np.argmax(low_y)
+            pos_high = np.argmax(high_y)
+
+            position_low.append(x[pos_low])
+            position_high.append(x[pos_high])
+
+            max_val_low.append(low_y[pos_low])
+            max_val_high.append(high_y[pos_high])
+
+            f_low_y = interp1d(x, low_y, fill_value="extrapolate")
+            f_high_y = interp1d(x, high_y, fill_value="extrapolate")
+
+            axes[0, col].fill_between(
+                x_ip,
+                np.maximum(f_low_y(x_ip), 0),
+                np.maximum(f_high_y(x_ip), 0),
+                color=colors[col],
+                alpha=1 / len(percentiles),
+                edgecolor="None"
+            )
+
         axes[0, col].plot(
-            x, steatotis_fraction,
-            marker="o",
+            x, means,
+            marker="P",
             markerfacecolor=colors[col],
             markeredgecolor="black",
             linewidth=1,
             markersize=4,
-            zorder=10,
+            zorder=20,
             color="black"
         )
+
+        median_ip = interp1d(x, median, fill_value="extrapolate")
+        axes[0, col].plot(
+            x_ip, median_ip(x_ip),
+            marker="none",
+            linewidth=2,
+            zorder=10,
+            color=colors[col]
+        )
+
+        for pos_low, max_low, p in zip(position_low, max_val_low, percentiles):
+            if max_low < 0.1:
+                continue
+
+            pos = max(0.05, pos_low)
+            pos = min(0.95, pos)
+
+            axes[0, col].text(pos, max_low, f"{50 - p}%", fontsize=5, va="center", fontweight="bold", ha="center", color="grey")
+
+        for pos_high, max_high, p in zip(position_high, max_val_high, percentiles):
+            if max_high < 0.1:
+                continue
+
+            pos = max(0.1, pos_high)
+            pos = min(0.9, pos)
+
+            axes[0, col].text(pos, max_high, f"{50 + p}%", fontsize=5, va="center", fontweight="bold", ha="center", color="gray")
 
         for row, attr in enumerate(attributes):
             ax = axes[row + 1, col]
 
-            bp, vs = violin_plot(data=[y[attr] for y in y_frames],
+            bp, vs = violin_plot(data=[y[attr] for y in y_frames_non_zero],
                                  ax=ax,
                                  positions=x,
                                  widths=d,
@@ -76,7 +174,7 @@ def plot_droplet_portality(report_path: Path,
                                  show_violins=False,
                                  whis=(5, 95))
 
-            ax.plot(x, [y[attr].median() for y in y_frames],
+            ax.plot(x, [y[attr].median() for y in y_frames_non_zero],
                     marker="o",
                     markerfacecolor=colors[col],
                     markeredgecolor="black",

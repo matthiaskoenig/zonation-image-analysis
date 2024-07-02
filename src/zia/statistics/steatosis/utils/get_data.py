@@ -103,8 +103,13 @@ def get_density_stats(px_size=0.2272) -> pd.DataFrame:
 
                 _, th = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
 
-                # plt.imshow(th)
-                area = np.count_nonzero(th != 0) * (px_size * 2 ** lowest_key) ** 2
+                # fig, (ax, ax1) = plt.subplots(1, 2)
+                #
+                # ax.imshow(image)
+                # ax1.imshow(th)
+                # plt.show()
+
+                area = np.count_nonzero(th == 0) * (px_size * 2 ** lowest_key) ** 2
 
                 data_points.append(
                     dict(
