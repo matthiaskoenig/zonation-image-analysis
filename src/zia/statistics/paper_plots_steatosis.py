@@ -43,6 +43,7 @@ wsi_df = get_density_stats()
 
 steatosis_portality_df = load_distance_df(project_config)
 control_portality_df = load_distance_df(project_config_control)
+
 portality_droplet_df = get_droplet_df(df, steatosis_portality_df, overwrite=False)
 """
 plt.hist(portality_droplet_df["pv_dist"])
@@ -92,9 +93,9 @@ slide_stats_df_control = slide_stat_provider_control.get_slide_stats_df()
 #                            logs=steatosis_logs,
 #                            units=steatosis_units)
 # #
-# species_comparison_droplet_density(droplet_stats_df=df,
-#                                    wsi_df=wsi_df,
-#                                    report_path=report_path_steatosis_boxplots)
+species_comparison_droplet_density(droplet_stats_df=df,
+                                   wsi_df=wsi_df,
+                                   report_path=report_path_steatosis_boxplots)
 
 group_order = []
 
