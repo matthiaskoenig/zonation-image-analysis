@@ -71,3 +71,7 @@ def species_lobuli_comparison(
                                    report_path,
                                    attributes,
                                    labels, logs, units)
+
+def test_species_comparison(data_dict: Dict[str, Dict[str, Dict[str, pd.Series]]]):
+    pass
+
