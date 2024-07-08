@@ -12,6 +12,8 @@ def create_descriptive_stats(data: pd.Series) -> Dict[str, float]:
     std = data.std()
     geo_mean = np.exp(np.mean(np.log(data)))
     q1, q3 = np.percentile(data, [25, 75])
+    n = len(data)
+
 
     return dict(
         mean=mean,
@@ -22,6 +24,7 @@ def create_descriptive_stats(data: pd.Series) -> Dict[str, float]:
         geo_mean=geo_mean,
         q1=q1,
         q3=q3,
+        n=n
     )
 
 

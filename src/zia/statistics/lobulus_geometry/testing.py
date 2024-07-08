@@ -48,6 +48,7 @@ def test_kruskal(nomial_var: str, attributes: List[str], data: pd.DataFrame, log
     for attr, log in zip(attributes, logs):
         groups = []
         for group, group_df in data.groupby(nomial_var):
+            print(group)
             groups.append(group_df[attr].values)
 
         if log:

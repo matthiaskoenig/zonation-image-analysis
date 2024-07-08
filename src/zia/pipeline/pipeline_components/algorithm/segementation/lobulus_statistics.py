@@ -180,6 +180,11 @@ class SlideStats:
 
             lobule_stats.append(lobule_stat)
 
+        u, counts = np.unique([lobule_stat._id for lobule_stat in lobule_stats], return_counts=True)
+
+        if np.any(counts != 1):
+            raise Exception("The lobule id must be unique.")
+
         return cls(lobule_stats, central_vessels, portal_vessels, unclassified, col.get("metaData"))
 
     def plot(self, report_path=None):
@@ -280,6 +285,7 @@ class SlideStats:
 
         for stat in self.lobule_stats:
             row_dict = dict(
+                lobule_id=stat.get_id(),
                 area=stat.get_area() * dimension_factor ** 2,
                 area_unit="µm$^2$",
                 perimeter=stat.get_perimeter() * dimension_factor,
@@ -339,6 +345,9 @@ class LobuleStatistics:
         )
 
         return lobule_statistics
+
+    def get_id(self):
+        return self._id
 
     def get_area(self) -> float:
         return Polygon(self.polygon.exterior).area

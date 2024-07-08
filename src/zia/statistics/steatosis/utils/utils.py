@@ -1,4 +1,7 @@
+from dataclasses import dataclass
 from typing import List, Tuple, Dict
+
+import pandas as pd
 
 
 def _species_colors_rgb(species_colors) -> Dict[str, Tuple[float]]:
@@ -28,10 +31,14 @@ def create_data_dict(attributes, data_frame):
     species_gb = data_frame.groupby("species")
     species_dict = {}  # dict of species, groups, attributes
     for sp, group_order in GROUP_ORDER.items():
+        if sp not in species_gb.groups.keys():
+            continue
         sp_df = species_gb.get_group(sp)
         gr_groupby = sp_df.groupby("group")
         group_dict = {}
         for gr in group_order:
+            if gr not in gr_groupby.groups.keys():
+                continue
             gr_df = gr_groupby.get_group(gr)
             attr_dict = {}
             for attr in attributes:
@@ -39,3 +46,15 @@ def create_data_dict(attributes, data_frame):
             group_dict[gr] = attr_dict
         species_dict[sp] = group_dict
     return species_dict
+
+
+@dataclass(init=True)
+class TestResult:
+    kruskal: pd.DataFrame
+    dunns: pd.DataFrame
+
+@dataclass(init=True)
+class GroupTestResults:
+    test_result: Dict[str, TestResult]
+
+

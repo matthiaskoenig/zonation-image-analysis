@@ -7,6 +7,7 @@ import pandas as pd
 from scipy.stats import gaussian_kde
 
 from zia.statistics.lobulus_geometry.plotting.plot_significance import plot_significance
+from zia.statistics.steatosis.utils.utils import GroupTestResults
 from zia.statistics.utils.data_provider import capitalize
 
 
@@ -193,7 +194,8 @@ def box_plot_species_comparison(data: Dict[str, Dict[str, Dict[str, pd.Series]]]
                                 annotate_n=True,
                                 annotate_group=True,
                                 anno_ax_size=0.07,
-                                plot_fc: bool = False
+                                plot_fc: bool = False,
+                                test_results: Optional[GroupTestResults] = None
                                 ) -> None:
     len_groups = sum([len(x) for x in data.values()])
 
@@ -278,6 +280,12 @@ def box_plot_species_comparison(data: Dict[str, Dict[str, Dict[str, pd.Series]]]
                 in_ax_twin.tick_params(axis='y', which='both', length=0, width=0)
 
             in_axes_twins.append(in_ax_twin)
+
+        if test_results is not None:
+            kruskal_result = test_results.test_result[sp].kruskal
+            dunns_result = test_results.test_result[sp].dunns
+            if kruskal_result[kruskal_result["attr"] == attribute].iloc[0]["pvalue"] < 0.05:
+                plot_significance(in_ax, list(group_dict.keys()), dunns_result[dunns_result["attr"] == attribute], log)
 
         if annotate_n:
             n_axes = in_ax.inset_axes((0, -anno_ax_size, 1, anno_ax_size), transform=in_ax.transAxes)

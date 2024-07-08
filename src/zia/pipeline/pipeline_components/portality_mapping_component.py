@@ -253,8 +253,8 @@ def analyse_protein_expression_for_lobule(protein_array: np.ndarray, foreground_
 
 def analyse_protein_expression(protein_array: np.ndarray, fore_ground_mask: np.ndarray, slide_stats: SlideStats,
                                sum_array: np.ndarray) -> pd.DataFrame:
-    dfs = [analyse_protein_expression_for_lobule(protein_array, fore_ground_mask, ls, idx, slide_stats.meta_data, sum_array) for idx, ls in
-           enumerate(slide_stats.lobule_stats)]
+    dfs = [analyse_protein_expression_for_lobule(protein_array, fore_ground_mask, ls, ls.get_id(), slide_stats.meta_data, sum_array) for ls in
+           slide_stats.lobule_stats]
     dfs = list(filter(lambda x: x is not None, dfs))
     return pd.concat(dfs)
 

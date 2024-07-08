@@ -9,6 +9,8 @@ from zia.pipeline.pipeline_components.pipeline import Pipeline
 from zia.pipeline.common.project_config import get_project_config
 from zia.pipeline.pipeline_components.portality_mapping_component import PortalityMappingComponent
 from zia.log import get_logger
+from zia.pipeline.pipeline_components.stain_separation_component import StainSeparationComponent, Stain
+from zia.pipeline.pipeline_components.steatosis_segmentation_component import SegmentationComponentSteatosis
 
 logger = get_logger(__name__)
 
@@ -27,9 +29,9 @@ if __name__ == "__main__":
             #  valis slide registration
             # SlideRegistrationComponent(config, file_manager, overwrite=False)
             # stain separation
-            StainSeparationComponent(config, file_manager, stains=[Stain.ZERO, Stain.ONE], overwrite=False),
+            # StainSeparationComponent(config, file_manager, stains=[Stain.ZERO, Stain.ONE], overwrite=False),
             # lobule segmentation
-            SegmentationComponentSteatosis(config, file_manager, overwrite=True, report=True),
+            # SegmentationComponentSteatosis(config, file_manager, overwrite=True, report=True),
             PortalityMappingComponent(config, file_manager, overwrite=True)
         ]
     )
