@@ -114,17 +114,18 @@ for gr in SPECIES_ORDER:
     else:
         colors.append(SPECIES_COLORS[gr])
 
-plot_droplet_portality(report_path=report_path_steatosis_portality,
-                       distance_df=portality_droplet_df,
-                       group_order=group_order,
-                       colors=colors)
+# plot_droplet_portality(report_path=report_path_steatosis_portality,
+#                        distance_df=portality_droplet_df,
+#                        group_order=group_order,
+#                        colors=colors)
 
-# species_lobuli_comparison(report_path=report_path_steatosis_boxplots,
-#                           slide_stats_df_steatosis=slide_stats_df,
-#                           slide_stats_df_control=slide_stats_df_control,
-#                           attributes=lobuli_attributes,
-#                           logs=lobuli_logs,
-#                           labels=lobuli_labels, units=lobuli_units)
+species_lobuli_comparison(report_path=report_path_steatosis_boxplots,
+                          slide_stats_df_steatosis=slide_stats_df,
+                          slide_stats_df_control=slide_stats_df_control,
+                          attributes=lobuli_attributes,
+                          logs=lobuli_logs,
+                          labels=lobuli_labels,
+                          units=lobuli_units)
 #
 # plot_species_comparison_gradient(report_path=report_path_steatosis_portality,
 #                                  control_portality_df=control_portality_df,

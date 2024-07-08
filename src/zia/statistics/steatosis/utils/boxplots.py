@@ -192,7 +192,8 @@ def box_plot_species_comparison(data: Dict[str, Dict[str, Dict[str, pd.Series]]]
                                 ax: plt.Axes = None,
                                 annotate_n=True,
                                 annotate_group=True,
-                                anno_ax_size=0.07
+                                anno_ax_size=0.07,
+                                plot_fc: bool = False
                                 ) -> None:
     len_groups = sum([len(x) for x in data.values()])
 
@@ -206,6 +207,7 @@ def box_plot_species_comparison(data: Dict[str, Dict[str, Dict[str, pd.Series]]]
     x = 0
 
     in_axes = []
+    in_axes_twins = []
     for i, (sp, group_dict) in enumerate(data.items()):
 
         # sp_df = sp_df[sp_df[attribute] < sp_df['area'].quantile(0.995)]
@@ -214,6 +216,7 @@ def box_plot_species_comparison(data: Dict[str, Dict[str, Dict[str, pd.Series]]]
         width = n_sub_groups / len_groups
         in_ax = ax.inset_axes((x, 0, width, 1), transform=ax.transAxes)
         in_axes.append(in_ax)
+
         x += width
 
         if i != 0:
@@ -239,6 +242,42 @@ def box_plot_species_comparison(data: Dict[str, Dict[str, Dict[str, pd.Series]]]
         if vplot is not None:
             for pcol in vplot["bodies"]:
                 pcol.set_facecolor(colors[sp] + (0.3,))
+
+        if plot_fc:
+            in_ax_twin = in_ax.twinx()
+
+            control = group_dict["Control"][attribute]
+            folds = []
+            for l, (gr, attr_dict) in enumerate(group_dict.items()):
+                med = np.median(attr_dict[attribute])
+
+                fold_c = med / np.median(control)
+                folds.append(fold_c)
+
+            in_ax_twin.plot(
+                range(1, len(folds) + 1),
+                folds,
+                marker="o",
+                linestyle="-",
+                color="grey",
+                markerfacecolor=colors[sp],
+                markeredgecolor="grey",
+                alpha=0.5,
+                zorder=-100
+            )
+
+            if i != n_sub_groups - 1:
+                in_ax_twin.tick_params(axis="y", labelright=False)
+            else:
+                in_ax_twin.tick_params(axis="y", labelcolor="grey", labelright=True)
+
+            if i == n_sub_groups - 1:
+                in_ax_twin.set_ylabel(f"Median fold change")
+
+            if i != n_sub_groups - 1:
+                in_ax_twin.tick_params(axis='y', which='both', length=0, width=0)
+
+            in_axes_twins.append(in_ax_twin)
 
         if annotate_n:
             n_axes = in_ax.inset_axes((0, -anno_ax_size, 1, anno_ax_size), transform=in_ax.transAxes)
@@ -286,6 +325,17 @@ def box_plot_species_comparison(data: Dict[str, Dict[str, Dict[str, pd.Series]]]
             bottom=min(mins),
             top=max(maxs)
         )
+
+    if plot_fc:
+
+        mins = [in_ax_twin.get_ylim()[0] for in_ax_twin in in_axes_twins]
+        maxs = [in_ax_twin.get_ylim()[1] for in_ax_twin in in_axes_twins]
+
+        for in_ax_twin in in_axes_twins:
+            in_ax_twin.set_ylim(
+                bottom=min(mins),
+                top=max(maxs)
+            )
 
 
 def adjacent_values(vals, q1, q3):
