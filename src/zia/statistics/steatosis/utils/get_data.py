@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
@@ -5,6 +7,7 @@ import pandas as pd
 
 from zia.oven.annotations.workflow_visualizations.util.image_plotting import plot_pic
 from zia.pipeline.common.project_config import get_project_config, Configuration
+from zia.pipeline.pipeline_components.algorithm.segementation.lobulus_statistics import SlideStats
 from zia.pipeline.pipeline_components.portality_mapping_component import PortalityMappingComponent
 from zia.pipeline.pipeline_components.roi_extraction_component import RoiExtractionComponent
 from zia.statistics.lobulus_geometry.species_comparison import plot_species_comparison
@@ -46,6 +49,88 @@ DIET = {
     "MNT-045": "4",
     "MNT-046": "4",
 }
+
+example_subjects = [
+    {
+        "species": "rat",
+        "subject": "FLR-169",
+        "roi": "0",
+        "group": "rat (2W HDF)"
+    },
+    {
+        "species": "rat",
+        "subject": "FLR-181",
+        "roi": "0",
+        "group": "rat (4W HDF)"
+    },
+    {
+        "species": "mouse",
+        "subject": "MNT-036",
+        "roi": "1",
+        "group": "mouse (2W HDF)"
+    },
+    {
+        "species": "mouse",
+        "subject": "MNT-045",
+        "roi": "1",
+        "group": "mouse (4W HDF)"
+    },
+    {
+        "species": "human",
+        "subject": "UKJ-19-050_Human",
+        "roi": "0",
+        "group": "human"
+    },
+]
+
+
+def get_example_image(group: str):
+    points_path = Path("/home/jkuettner/Development/git/zonation-image-analysis/src/zia/statistics/steatosis/resources/points")
+    segmentation_results_path = Path("/media/jkuettner/Extreme Pro/exchange/SegmentationResults")
+
+    filtered = list(filter(lambda x: x["group"] == group, example_subjects))
+
+    if len(filtered) == 0:
+        raise KeyError(f"No images found for group {group}")
+
+    example_subject = filtered[0]
+
+    point_files = list(filter(lambda x: example_subject["subject"] in x.name, points_path.iterdir()))
+
+    if len(point_files) == 0:
+        raise FileNotFoundError(f"No points found for subject {example_subject['subject']}.")
+
+    point_file = point_files[0]
+
+    points = pd.read_csv(point_file, delimiter="\t")
+
+    wsi = read_ndpi(segmentation_results_path / example_subject["subject"] / example_subject[
+        "roi"] / f"{example_subject['subject']}_{example_subject['roi']}_macrosteatosis.ome.tiff")
+
+    slide_stats = SlideStats.load_from_file_system(
+        project_config.image_data_path / "LobuliSegmentation" / example_subject["subject"] / example_subject[
+            "roi"])
+
+    image = wsi[0][:]
+
+    image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+
+    for lobule_statistics in slide_stats.lobule_stats:
+        res = slide_stats.meta_data["level"]
+        dim_fac = 2 ** (res - 2)  ## result image was level 2
+        exterior_coords = np.array(lobule_statistics.polygon.exterior.coords, dtype=np.int32)
+        exterior_coords = exterior_coords[:, ::-1]
+        exterior_coords = exterior_coords.reshape((-1, 1, 2))
+        exterior_coords = exterior_coords * dim_fac
+        cv2.polylines(image, [exterior_coords], True, (3, 252, 248), thickness=20)
+
+    x, y = int(points["x"]), int(points["y"])
+
+    subset = image[y: y + 4000, x: x + 4000]
+
+    subset = cv2.pyrDown(subset)
+
+    return cv2.cvtColor(subset, cv2.COLOR_BGR2RGB)
 
 
 def get_species_from_subject(subject: str) -> str:
@@ -103,6 +188,12 @@ def get_density_stats(px_size=0.2272) -> pd.DataFrame:
 
                 _, th = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
 
+                # temp = np.zeros(shape=(image.shape[0], image.shape[1], 3), dtype=np.uint8)
+
+                # temp[th == 0] = [255, 255, 255]
+
+                # plt.imshow(temp)
+                # plt.show()
                 # fig, (ax, ax1) = plt.subplots(1, 2)
                 #
                 # ax.imshow(image)
@@ -183,3 +274,7 @@ def get_droplet_df(droplet_data: pd.DataFrame, portality_df: pd.DataFrame, overw
     portality_droplet_df.to_csv(result_df_path, index=False)
 
     return portality_droplet_df
+
+
+if __name__ == "__main__":
+    get_example_image("human", "Steatosis")

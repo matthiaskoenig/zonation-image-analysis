@@ -7,6 +7,7 @@ from matplotlib import pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
 
 from zia.statistics.steatosis.utils.boxplots import violin_plot
+from zia.statistics.steatosis.utils.get_data import get_example_image
 from zia.statistics.steatosis.utils.utils import map_to_group, PIXEL_SIZE
 from zia.statistics.utils.data_provider import capitalize
 from scipy.interpolate import interp1d
@@ -21,9 +22,9 @@ def plot_droplet_portality(report_path: Path,
                            group_order: List[str],
                            colors: List[str],
                            level: int = 7):
-    y_labels = ["MS surface coverage", "MS droplet coverage", "Mean MS droplet area"]
-    attributes = ["droplet_area_fraction", "mean_droplet_area"]
-    units = ["%", "%", "µm$^{2}$"]
+    y_labels = ["Surface coverage", "Mean droplet size"]
+    attributes = ["mean_droplet_area"]
+    units = ["%", "µm$^{2}$"]
 
     distance_df["droplet_area_fraction"] = distance_df["total_droplet_area"] / ((PIXEL_SIZE * 2 ** level) ** 2) * 100
 
@@ -31,8 +32,8 @@ def plot_droplet_portality(report_path: Path,
 
     group_gb = distance_df.groupby("group")
 
-    fig, axes = plt.subplots(nrows=len(y_labels), ncols=len(group_order), dpi=300,
-                             figsize=(len(group_order) * 2, len(y_labels) * 2.5),
+    fig, axes = plt.subplots(nrows=len(y_labels) + 1, ncols=len(group_order), dpi=300,
+                             figsize=(len(group_order) * 2, (len(y_labels) + 1) * 2),
                              layout="constrained")
     print(group_gb.groups.keys())
     print(group_order)
@@ -46,6 +47,8 @@ def plot_droplet_portality(report_path: Path,
 
         bins = np.histogram_bin_edges(group_df["pv_dist"], range=(0, 1), bins=12)
         binned, bins = pd.cut(group_df["pv_dist"], bins=bins, retbins=True)
+
+        axes[0, col].imshow(get_example_image(group))
 
         d = bins[1] - bins[0]
 
@@ -93,6 +96,7 @@ def plot_droplet_portality(report_path: Path,
         # p_reads = np.vstack([np.interp(d_reads, bin_d, bin_p) for bin_d, bin_p in zip(bin_data, bin_percentiles)]).T
         # cmap_colors = [from_hex(colors[col]) + (1,), from_hex(colors[col]) + (0,)]
         # cmap = LinearSegmentedColormap.from_list("whatever", cmap_colors)
+
         x_ip = np.linspace(0, 1, 100)
 
         position_low = []
@@ -116,7 +120,7 @@ def plot_droplet_portality(report_path: Path,
             f_low_y = interp1d(x, low_y, fill_value="extrapolate")
             f_high_y = interp1d(x, high_y, fill_value="extrapolate")
 
-            axes[0, col].fill_between(
+            axes[1, col].fill_between(
                 x_ip,
                 np.maximum(f_low_y(x_ip), 0),
                 np.maximum(f_high_y(x_ip), 0),
@@ -125,7 +129,7 @@ def plot_droplet_portality(report_path: Path,
                 edgecolor="None"
             )
 
-        axes[0, col].plot(
+        axes[1, col].plot(
             x, means,
             marker="P",
             markerfacecolor=colors[col],
@@ -137,7 +141,7 @@ def plot_droplet_portality(report_path: Path,
         )
 
         median_ip = interp1d(x, median, fill_value="extrapolate")
-        axes[0, col].plot(
+        axes[1, col].plot(
             x_ip, median_ip(x_ip),
             marker="none",
             linewidth=2,
@@ -152,7 +156,7 @@ def plot_droplet_portality(report_path: Path,
             pos = max(0.05, pos_low)
             pos = min(0.95, pos)
 
-            axes[0, col].text(pos, max_low, f"{50 - p}%", fontsize=5, va="center", fontweight="bold", ha="center", color="grey")
+            axes[1, col].text(pos, max_low, f"{50 - p}%", fontsize=5, va="center", fontweight="bold", ha="center", color="grey")
 
         for pos_high, max_high, p in zip(position_high, max_val_high, percentiles):
             if max_high < 0.1:
@@ -161,10 +165,10 @@ def plot_droplet_portality(report_path: Path,
             pos = max(0.1, pos_high)
             pos = min(0.9, pos)
 
-            axes[0, col].text(pos, max_high, f"{50 + p}%", fontsize=5, va="center", fontweight="bold", ha="center", color="gray")
+            axes[1, col].text(pos, max_high, f"{50 + p}%", fontsize=5, va="center", fontweight="bold", ha="center", color="gray")
 
         for row, attr in enumerate(attributes):
-            ax = axes[row + 1, col]
+            ax = axes[row + 2, col]
 
             bp, vs = violin_plot(data=[y[attr] for y in y_frames_non_zero],
                                  ax=ax,
@@ -198,8 +202,15 @@ def plot_droplet_portality(report_path: Path,
     for ax in axes[-1, :].flatten():
         ax.xaxis.set_ticks([0, 1], labels=["PP", "PV"])
 
+    for ax in axes[0, :].flatten():
+        ax.set_xticks([])
+        ax.set_yticks([])
+
+    for ax in axes[1:-1, :].flatten():
+        ax.xaxis.set_ticks([0, 1])
+
     for i, group in enumerate(group_order):
-        for ax in axes[:, i].flatten():
+        for ax in axes[1:, i].flatten():
             ax.set_xlim(left=0, right=1)
 
     for ax in axes[:-1, 1:].flatten():
@@ -212,7 +223,7 @@ def plot_droplet_portality(report_path: Path,
     for ax in axes[-1, 1:].flatten():
         ax.set_yticklabels([])
 
-    for ylabel, unit, ax in zip(y_labels, units, axes[:, 0].flatten()):
+    for ylabel, unit, ax in zip(y_labels, units, axes[1:, 0].flatten()):
         ax.set_ylabel(f"{ylabel} ({unit})")
 
     for group, ax in zip(group_order, axes[0, :].flatten()):
