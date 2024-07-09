@@ -123,7 +123,7 @@ for gr in SPECIES_ORDER:
 
 plot_lobulegeo_steatosis_correlation(
     portality_droplet_df=portality_droplet_df,
-    report_path_stats_steatosis_test=report_path_base,
+    reportpath=report_path_base,
     slide_stats_df_steatosis=slide_stats_df,
     slide_stats_df_control=slide_stats_df_control,
     attributes=lobuli_attributes,
