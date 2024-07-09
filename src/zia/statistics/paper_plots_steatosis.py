@@ -87,16 +87,16 @@ slide_stats_df_control = slide_stat_provider_control.get_slide_stats_df()
 #     # Show plot
 #     plt.show()
 
-# droplet_species_comparison(droplet_stats_df=df,
-#                            report_path=report_path_steatosis_boxplots,
-#                            attributes=steatosis_attributes,
-#                            labels=steatosis_labels,
-#                            logs=steatosis_logs,
-#                            units=steatosis_units)
-# #
-# species_comparison_droplet_density(droplet_stats_df=df,
-#                                   wsi_df=wsi_df,
-#                                   report_path=report_path_steatosis_boxplots)
+droplet_species_comparison(droplet_stats_df=df,
+                           report_path=report_path_steatosis_boxplots,
+                           attributes=steatosis_attributes,
+                           labels=steatosis_labels,
+                           logs=steatosis_logs,
+                           units=steatosis_units)
+
+species_comparison_droplet_density(droplet_stats_df=df,
+                                   wsi_df=wsi_df,
+                                   report_path=report_path_steatosis_boxplots)
 
 group_order = []
 
@@ -116,10 +116,10 @@ for gr in SPECIES_ORDER:
     else:
         colors.append(SPECIES_COLORS[gr])
 
-# plot_droplet_portality(report_path=report_path_steatosis_portality,
-#                       distance_df=portality_droplet_df,
-#                       group_order=group_order,
-#                       colors=colors)
+plot_droplet_portality(report_path=report_path_steatosis_portality,
+                       distance_df=portality_droplet_df,
+                       group_order=group_order,
+                       colors=colors)
 
 plot_lobulegeo_steatosis_correlation(
     portality_droplet_df=portality_droplet_df,
@@ -132,15 +132,16 @@ plot_lobulegeo_steatosis_correlation(
     units=lobuli_units
 
 )
-# species_lobuli_comparison(report_path=report_path_steatosis_boxplots,
-#                          slide_stats_df_steatosis=slide_stats_df,
-#                          slide_stats_df_control=slide_stats_df_control,
-#                          attributes=lobuli_attributes,
-#                          logs=lobuli_logs,
-#                          labels=lobuli_labels,
-#                          units=lobuli_units)
-#
-# plot_species_comparison_gradient(report_path=report_path_steatosis_portality,
-#                                 control_portality_df=control_portality_df,
-#                                 steatosis_portality_df=steatosis_portality_df
-#                                 )
+
+species_lobuli_comparison(report_path=report_path_steatosis_boxplots,
+                          slide_stats_df_steatosis=slide_stats_df,
+                          slide_stats_df_control=slide_stats_df_control,
+                          attributes=lobuli_attributes,
+                          logs=lobuli_logs,
+                          labels=lobuli_labels,
+                          units=lobuli_units)
+
+plot_species_comparison_gradient(report_path=report_path_steatosis_portality,
+                                 control_portality_df=control_portality_df,
+                                 steatosis_portality_df=steatosis_portality_df
+                                 )
