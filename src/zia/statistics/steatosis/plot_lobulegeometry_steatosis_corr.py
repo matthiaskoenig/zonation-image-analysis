@@ -32,12 +32,7 @@ def plot_lobulegeo_steatosis_correlation(reportpath: Path,
                                          logs: List[bool],
                                          labels: List[str],
                                          units: List[str]):
-    marker_dict = {
-        "Control": "o",
-        "2W": "D",
-        "4W": "s",
-        "Stea.": "v"
-    }
+
 
     slide_stats_df_steatosis["diet"] = slide_stats_df_steatosis["subject"].map(DIET)
     slide_stats_df_steatosis["group"] = slide_stats_df_steatosis.apply(lambda row: map_to_group(row['species'], row['diet']), axis=1)
@@ -168,12 +163,10 @@ def plot_lobulegeo_steatosis_correlation(reportpath: Path,
     for ax, species in zip(axes[0, :], SPECIES_ORDER):
         ax.set_title(capitalize(species), fontsize=11, fontweight='bold')
 
-    for ax in axes[1, :]:
-        ax.axline((10, 10), (100, 100), color='grey', linestyle='--')
 
     fig.supxlabel("Total MS droplet area (µm$^2$)", fontsize=10)
 
-    fig.savefig(reportpath / f"corr_steatosis_lobule_geometry.png", dpi=600)
-    fig.savefig(reportpath / f"corr_steatosis_lobule_geometry.svg", dpi=600)
+    fig.savefig(reportpath / f"corr-steatosis-lobule-geometry.png", dpi=600)
+    fig.savefig(reportpath / f"corr-steatosis-lobule-geometry.svg", dpi=600)
 
     plt.show()

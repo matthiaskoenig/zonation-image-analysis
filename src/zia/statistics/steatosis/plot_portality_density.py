@@ -239,7 +239,7 @@ def plot_droplet_portality(report_path: Path,
         for ax in row_ax:
             ax.set_ylim(bottom=min(mins), top=max(maxs))
 
-    fig.savefig(report_path / f"gradient_portality.png", dpi=600)
-    fig.savefig(report_path / f"gradient_portality.svg", dpi=600)
+    fig.savefig(report_path / f"droplet-portality.png", dpi=600)
+    fig.savefig(report_path / f"droplet-portality.svg", dpi=600)
 
     plt.show()

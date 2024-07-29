@@ -13,16 +13,12 @@ from zia.statistics.utils.data_provider import SlideStatsProvider
 
 project_config = get_project_config("steatosis")
 project_config_control = get_project_config("control")
-report_path_base = project_config.reports_path / "plots" / "manuscript"
-report_path_stats_steatosis_test = report_path_base / "steatosis-statistical-test"
-report_path_paper_plots = report_path_base / "paper-plots"
-report_path_steatosis_boxplots = report_path_base / "steatosis-boxplots"
-report_path_steatosis_portality = report_path_base / "steatosis-portality"
+report_path_plots = project_config.reports_path / "plots"
+stats_excel = project_config.reports_path / "descriptive-stats.xlsx"
 
-report_path_descriptive_stats = report_path_base / "descriptive-stats"
 
-for p in [report_path_base, report_path_stats_steatosis_test, report_path_paper_plots, report_path_steatosis_boxplots, report_path_descriptive_stats,
-          report_path_steatosis_portality]:
+
+for p in [report_path_plots]:
     p.mkdir(exist_ok=True, parents=True)
 
 steatosis_attributes = ["perimeter", "area", "min_enclosing_circle"]
@@ -87,8 +83,11 @@ slide_stats_df_control = slide_stat_provider_control.get_slide_stats_df()
 #     # Show plot
 #     plt.show()
 
+
+
 droplet_species_comparison(droplet_stats_df=df,
-                           report_path=report_path_steatosis_boxplots,
+                           report_path=report_path_plots,
+                           stats_excel=stats_excel,
                            attributes=steatosis_attributes,
                            labels=steatosis_labels,
                            logs=steatosis_logs,
@@ -96,7 +95,8 @@ droplet_species_comparison(droplet_stats_df=df,
 
 species_comparison_droplet_density(droplet_stats_df=df,
                                    wsi_df=wsi_df,
-                                   report_path=report_path_steatosis_boxplots)
+                                   report_path=report_path_plots,
+                                   stats_excel=stats_excel)
 
 group_order = []
 
@@ -116,14 +116,14 @@ for gr in SPECIES_ORDER:
     else:
         colors.append(SPECIES_COLORS[gr])
 
-plot_droplet_portality(report_path=report_path_steatosis_portality,
+plot_droplet_portality(report_path=report_path_plots,
                        distance_df=portality_droplet_df,
                        group_order=group_order,
                        colors=colors)
 
 plot_lobulegeo_steatosis_correlation(
     portality_droplet_df=portality_droplet_df,
-    reportpath=report_path_base,
+    reportpath=report_path_plots,
     slide_stats_df_steatosis=slide_stats_df,
     slide_stats_df_control=slide_stats_df_control,
     attributes=lobuli_attributes,
@@ -133,7 +133,8 @@ plot_lobulegeo_steatosis_correlation(
 
 )
 
-species_lobuli_comparison(report_path=report_path_steatosis_boxplots,
+species_lobuli_comparison(report_path=report_path_plots,
+                          stats_excel=stats_excel,
                           slide_stats_df_steatosis=slide_stats_df,
                           slide_stats_df_control=slide_stats_df_control,
                           attributes=lobuli_attributes,
@@ -141,7 +142,7 @@ species_lobuli_comparison(report_path=report_path_steatosis_boxplots,
                           labels=lobuli_labels,
                           units=lobuli_units)
 
-plot_species_comparison_gradient(report_path=report_path_steatosis_portality,
+plot_species_comparison_gradient(report_path=report_path_plots,
                                  control_portality_df=control_portality_df,
                                  steatosis_portality_df=steatosis_portality_df
                                  )

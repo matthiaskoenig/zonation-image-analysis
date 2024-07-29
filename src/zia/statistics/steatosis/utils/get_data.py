@@ -85,8 +85,8 @@ example_subjects = [
 
 
 def get_example_image(group: str):
-    points_path = Path("/home/jkuettner/Development/git/zonation-image-analysis/src/zia/statistics/steatosis/resources/points")
-    segmentation_results_path = Path("/media/jkuettner/Extreme Pro/exchange/SegmentationResults")
+    points_path = Path("C:/Users/jonas/Development/git/zonation-image-analysis/src/zia/statistics/steatosis/resources/points")
+    segmentation_results_path = Path("E:/exchange/SegmentationResults")
 
     filtered = list(filter(lambda x: x["group"] == group, example_subjects))
 

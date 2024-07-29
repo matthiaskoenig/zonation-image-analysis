@@ -15,11 +15,13 @@ def create_descriptive_stats(data: pd.Series) -> Dict[str, float]:
     log_cv = np.sqrt(np.exp(np.std(np.log(data)) ** 2) - 1)
     geo_mean = np.exp(np.mean(np.log(data)))
     q1, q3 = np.percentile(data, [25, 75])
+    iqr = q3 - q1
     n = len(data)
 
     return dict(
         mean=mean,
         median=median,
+        iqr=iqr,
         min=min_,
         max=max_,
         std=std,

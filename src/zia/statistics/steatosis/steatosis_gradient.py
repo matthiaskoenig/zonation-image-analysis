@@ -13,11 +13,13 @@ def map_to_group(species, diet) -> pd.DataFrame:
     if species in ["mouse", "rat"]:
         return f"{diet}W HDF"
     return "Steatosis"
+
+
 def map_diet_on_df(df: pd.DataFrame) -> None:
     df["group"] = list(map(map_to_group, df['species'], df['diet']))
 
 
-def plot_species_comparison_gradient(report_path:Path,
+def plot_species_comparison_gradient(report_path: Path,
                                      steatosis_portality_df: pd.DataFrame,
                                      control_portality_df: pd.DataFrame
                                      ):
@@ -142,8 +144,8 @@ def plot_species_comparison_gradient(report_path:Path,
             ax.set_ylabel(protein, fontsize=14, fontweight="bold")
             ax.yaxis.set_label_position("right")
 
-        for species, ax in zip(group_order[species] , axes[0, :].flatten()):
-            ax.set_title(capitalize(species), fontsize=14, fontweight="bold")
+        for group, ax in zip(group_order[species], axes[0, :].flatten()):
+            ax.set_title(capitalize(group), fontsize=14, fontweight="bold")
 
         axes[-2, -1].xaxis.set_ticks([0, 1], labels=["PP", "PV"])
 
@@ -154,7 +156,7 @@ def plot_species_comparison_gradient(report_path:Path,
 
         axes[-1, -1].legend(handles=handles, frameon=False, ncols=1, prop=dict(size=10))
 
-        fig.savefig(report_path / f"gradient.png", dpi=600)
-        fig.savefig(report_path / f"gradient.svg", dpi=600)
+        fig.savefig(report_path / f"expression-gradient-steatosis-{species}.png", dpi=600)
+        fig.savefig(report_path / f"expression-gradient-steatosis-{species}.svg", dpi=600)
 
         plt.show()

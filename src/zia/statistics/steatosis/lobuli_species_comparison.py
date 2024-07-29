@@ -56,8 +56,8 @@ def plot_species_lobuli_comparison(data_dict: Dict[str, Dict[str, Dict[str, pd.S
                      axes[:, 1],
                      test_results)
 
-    plt.savefig(report_path / "species_comparison.png", dpi=600)
-    plt.savefig(report_path / "species_comparison.svg", dpi=600)
+    plt.savefig(report_path / "species-comparison-lobule-geometry-steatosis.png", dpi=600)
+    plt.savefig(report_path / "species-comparison-lobule-geometry-steatosis.svg", dpi=600)
 
     plt.show()
 
@@ -66,6 +66,7 @@ def species_lobuli_comparison(
         slide_stats_df_steatosis: pd.DataFrame,
         slide_stats_df_control: pd.DataFrame,
         report_path: Path,
+        stats_excel: Path,
         attributes: List[str],
         labels: List[str],
         logs: List[bool],
@@ -81,7 +82,9 @@ def species_lobuli_comparison(
     test_results = test_between_groups(df, attributes, logs, report_path)
 
     stats = create_stats_from_data_dict(data_dict=data_dict)
-    stats.to_excel(report_path / 'lobuli_species_comparison.xlsx')
+
+    with pd.ExcelWriter(stats_excel, mode='a' if stats_excel.exists() else 'w', if_sheet_exists="replace" if stats_excel.exists() else None) as w:
+        stats.to_excel(w, 'species-comparison-lobule-geometry-steatosis', index=False)
 
     plot_species_lobuli_comparison(data_dict,
                                    report_path,
@@ -95,7 +98,11 @@ def test_between_groups(slide_stats_df: pd.DataFrame,
                         logs: List[bool],
                         report_path: Path) -> GroupTestResults:
     # subject comparison
-    with pd.ExcelWriter(report_path / "test-group-comparison.xlsx") as subject_writer:
+
+    test_path = report_path / "tests"
+    test_path.mkdir(exist_ok=True)
+
+    with pd.ExcelWriter(test_path / "test-group-comparison.xlsx") as subject_writer:
         species_gb = slide_stats_df.groupby("species")
 
         results = {}

@@ -25,10 +25,11 @@ def calc_average_area_density(slide_stats_df: pd.DataFrame, area: float) -> floa
 
 def species_comparison_droplet_density(droplet_stats_df: pd.DataFrame,
                                        wsi_df: pd.DataFrame,
-                                       report_path: Path):
-    attributes = ["Average droplet density", "Droplet area fraction"]
-    labels = ["droplet density", "droplet area fraction"]
-    units = ["mm$^{-1}$", "%"]
+                                       report_path: Path,
+                                       stats_excel: Path):
+    attributes = ["Average droplet density", "Surface coverage"]
+    labels = ["droplet density", "surface coverage"]
+    units = ["mm$^{-2}$", "%"]
     logs = [False, False]
 
     subject_roi_gb = droplet_stats_df.groupby(["subject", "roi"])
@@ -41,7 +42,7 @@ def species_comparison_droplet_density(droplet_stats_df: pd.DataFrame,
         axis=1
     )
 
-    wsi_df["Droplet area fraction"] = wsi_df.apply(
+    wsi_df["Surface coverage"] = wsi_df.apply(
         lambda row: calc_average_area_density(
             subject_roi_gb.get_group((row["subject"], row["roi"])),
             row["area"]
@@ -54,7 +55,9 @@ def species_comparison_droplet_density(droplet_stats_df: pd.DataFrame,
     data_dict = create_data_dict(attributes, wsi_df)
 
     stats = create_stats_from_data_dict(data_dict=data_dict)
-    stats.to_excel(report_path / 'droplet_density_comparison.xlsx')
+
+    with pd.ExcelWriter(stats_excel, mode='a' if stats_excel.exists() else 'w', if_sheet_exists="replace"  if stats_excel.exists() else None) as w:
+        stats.to_excel(w, sheet_name='species-comparison-droplet-density', index=False)
 
     plot_species_comparison_density(data_dict, attributes, logs, labels, units, report_path)
 

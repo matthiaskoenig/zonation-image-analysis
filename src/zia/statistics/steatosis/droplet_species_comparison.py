@@ -41,6 +41,7 @@ def plot_species_droplet_comparison(data_dict: Dict[str, Dict[str, Dict[str, pd.
 
 def droplet_species_comparison(droplet_stats_df: pd.DataFrame,
                                report_path: Path,
+                               stats_excel: Path,
                                attributes: List[str],
                                labels: List[str],
                                logs: List[bool],
@@ -50,7 +51,10 @@ def droplet_species_comparison(droplet_stats_df: pd.DataFrame,
     data_dict = create_data_dict(attributes, droplet_stats_df)
 
     stats = create_stats_from_data_dict(data_dict=data_dict)
-    stats.to_excel(report_path / 'droplet_species_comparison.xlsx')
+
+    print(stats_excel.exists())
+    with pd.ExcelWriter(stats_excel, mode='a' if stats_excel.exists() else 'w', if_sheet_exists="replace"  if stats_excel.exists() else None) as w:
+        stats.to_excel(w, sheet_name="species-comparison-droplet-geometry", index=False)
 
     plot_species_droplet_comparison(data_dict,
                                     report_path,
