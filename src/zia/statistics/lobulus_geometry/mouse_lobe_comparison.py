@@ -82,6 +82,7 @@ def plot_mouse_lobe_comparison(slide_stats_df: pd.DataFrame,
         in_axes.set_xlim(left=0, right=1)
 
     plt.savefig(report_path / "mouse_roi_comparison.png", dpi=600)
+    plt.savefig(report_path / "mouse_roi_comparison.pdf", dpi=600)
     plt.savefig(report_path / "mouse_roi_comparison.svg", dpi=600)
 
     plt.show()

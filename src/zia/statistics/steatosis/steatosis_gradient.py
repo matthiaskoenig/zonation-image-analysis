@@ -157,6 +157,7 @@ def plot_species_comparison_gradient(report_path: Path,
         axes[-1, -1].legend(handles=handles, frameon=False, ncols=1, prop=dict(size=10))
 
         fig.savefig(report_path / f"expression-gradient-steatosis-{species}.png", dpi=600)
+        fig.savefig(report_path / f"expression-gradient-steatosis-{species}.pdf", dpi=600)
         fig.savefig(report_path / f"expression-gradient-steatosis-{species}.svg", dpi=600)
 
         plt.show()

@@ -43,6 +43,7 @@ def plot_species_comparison(slide_stats_df: pd.DataFrame,
                                     unit=unit)
 
     plt.savefig(report_path / "species_comparison.png", dpi=600)
+    plt.savefig(report_path / "species_comparison.pdf", dpi=600)
     plt.savefig(report_path / "species_comparison.svg", dpi=600)
 
     plt.show()

@@ -167,6 +167,7 @@ def plot_lobulegeo_steatosis_correlation(reportpath: Path,
     fig.supxlabel("Total MS droplet area (µm$^2$)", fontsize=10)
 
     fig.savefig(reportpath / f"corr-steatosis-lobule-geometry.png", dpi=600)
+    fig.savefig(reportpath / f"corr-steatosis-lobule-geometry.pdf", dpi=600)
     fig.savefig(reportpath / f"corr-steatosis-lobule-geometry.svg", dpi=600)
 
     plt.show()

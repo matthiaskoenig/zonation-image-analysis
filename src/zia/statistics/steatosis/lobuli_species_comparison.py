@@ -57,6 +57,8 @@ def plot_species_lobuli_comparison(data_dict: Dict[str, Dict[str, Dict[str, pd.S
                      test_results)
 
     plt.savefig(report_path / "species-comparison-lobule-geometry-steatosis.png", dpi=600)
+    plt.savefig(report_path / "species-comparison-lobule-geometry-steatosis.pdf", dpi=600)
+
     plt.savefig(report_path / "species-comparison-lobule-geometry-steatosis.svg", dpi=600)
 
     plt.show()

@@ -84,6 +84,8 @@ def plot_species_comparison_density(data_dict: dict,
                                     show_violins=False)
 
     plt.savefig(report_path / "species_comparison_droplet_density.png", dpi=600)
+    plt.savefig(report_path / "species_comparison_droplet_density.pdf", dpi=600)
+
     plt.savefig(report_path / "species_comparison_droplet_density.svg", dpi=600)
 
     plt.show()

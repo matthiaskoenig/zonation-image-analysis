@@ -85,6 +85,7 @@ def plot_subject_comparison(slide_stats_df: pd.DataFrame,
         in_axes.set_xlim(left=0, right=1)
 
     plt.savefig(report_path / "subject_comparison.png", dpi=600)
+    plt.savefig(report_path / "subject_comparison.pdf", dpi=600)
     plt.savefig(report_path / "subject_comparison.svg", dpi=600)
 
     plt.show()

@@ -182,4 +182,6 @@ def plot_validation_for_all(project_config: Configuration, report_path: Path, di
                      y=1.01)
 
         plt.savefig(report_path / f"distance_{subject}_{roi}.png", bbox_inches="tight")
+        plt.savefig(report_path / f"distance_{subject}_{roi}.pdf", bbox_inches="tight")
+
         plt.close(fig)

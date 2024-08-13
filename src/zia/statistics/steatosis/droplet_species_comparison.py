@@ -34,6 +34,8 @@ def plot_species_droplet_comparison(data_dict: Dict[str, Dict[str, Dict[str, pd.
                                     show_violins=True)
 
     plt.savefig(report_path / "species_droplet_comparison.png", dpi=600)
+    plt.savefig(report_path / "species_droplet_comparison.pdf", dpi=600)
+
     plt.savefig(report_path / "species_droplet_comparison.svg", dpi=600)
 
     plt.show()

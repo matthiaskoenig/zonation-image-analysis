@@ -51,6 +51,8 @@ def plot_correlation(slide_stats_df: pd.DataFrame,
         ax.set_title(capitalize(species), fontweight="bold")
 
     plt.savefig(report_path / f"correlation_matrix{'_binned' if binned else ''}.png", dpi=600)
+    plt.savefig(report_path / f"correlation_matrix{'_binned' if binned else ''}.pdf", dpi=600)
+
     plt.savefig(report_path / f"correlation_matrix{'_binned' if binned else ''}.svg", dpi=600)
 
     plt.show()
