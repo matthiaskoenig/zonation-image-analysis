@@ -11,7 +11,7 @@ from zia.statistics.utils.data_provider import capitalize
 
 def map_to_group(species, diet) -> pd.DataFrame:
     if species in ["mouse", "rat"]:
-        return f"{diet}W HDF"
+        return f"{diet}W HFD"
     return "Steatosis"
 
 
@@ -26,8 +26,8 @@ def plot_species_comparison_gradient(report_path: Path,
     plt.style.use("tableau-colorblind10")
     group_order = {
         "human": ["Control", "Steatosis"],
-        "mouse": ["Control", "2W HDF", "4W HDF"],
-        "rat": ["Control", "2W HDF", "4W HDF"],
+        "mouse": ["Control", "2W HFD", "4W HFD"],
+        "rat": ["Control", "2W HFD", "4W HFD"],
     }
     protein_order = ["HE", "GS", "CYP1A2", "CYP2D6", "CYP2E1", "CYP3A4"]
 

@@ -41,7 +41,7 @@ wsi_df = get_density_stats()
 steatosis_portality_df = load_distance_df(project_config)
 control_portality_df = load_distance_df(project_config_control)
 
-portality_droplet_df = get_droplet_df(df, steatosis_portality_df, overwrite=False)
+portality_droplet_df = get_droplet_df(df, steatosis_portality_df, overwrite=True)
 """
 plt.hist(portality_droplet_df["pv_dist"])
 plt.show()
@@ -103,7 +103,7 @@ group_order = []
 for gr in SPECIES_ORDER:
     if gr in ["mouse", "rat"]:
         for w in ["2", "4"]:
-            group_order.append(f"{gr} ({w}W HDF)")
+            group_order.append(f"{gr} ({w}W HFD)")
     else:
         group_order.append(gr)
 

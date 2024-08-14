@@ -19,7 +19,7 @@ def map_to_group(species, diet) -> pd.DataFrame:
 
 def get_from_species(sp, gr):
     if sp in ["mouse", "rat"]:
-        return f"{sp} ({gr} HDF)"
+        return f"{sp} ({gr} HFD)"
     else:
         return sp
 

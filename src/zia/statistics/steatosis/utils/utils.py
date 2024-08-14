@@ -23,7 +23,7 @@ PIXEL_SIZE = 0.2272  # µm
 
 def map_to_group(species, diet):
     if species in ["mouse", "rat"]:
-        return f"{species} ({diet}W HDF)"
+        return f"{species} ({diet}W HFD)"
     return species
 
 

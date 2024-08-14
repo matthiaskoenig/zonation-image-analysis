@@ -55,25 +55,25 @@ example_subjects = [
         "species": "rat",
         "subject": "FLR-169",
         "roi": "0",
-        "group": "rat (2W HDF)"
+        "group": "rat (2W HFD)"
     },
     {
         "species": "rat",
         "subject": "FLR-181",
         "roi": "0",
-        "group": "rat (4W HDF)"
+        "group": "rat (4W HFD)"
     },
     {
         "species": "mouse",
         "subject": "MNT-036",
         "roi": "1",
-        "group": "mouse (2W HDF)"
+        "group": "mouse (2W HFD)"
     },
     {
         "species": "mouse",
         "subject": "MNT-045",
         "roi": "1",
-        "group": "mouse (4W HDF)"
+        "group": "mouse (4W HFD)"
     },
     {
         "species": "human",
